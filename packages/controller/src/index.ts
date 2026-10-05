@@ -26,19 +26,38 @@ export interface RunConfig {
   config: MiGPTConfig
 }
 
-let child: ChildProcess | undefined
+/**
+ * 多设备支持：每个 deviceId 对应一个独立的 bot 子进程。
+ * 日志通过 onLog 回调透传给上层（server 端做环形缓冲）。
+ */
+const children = new Map<string, ChildProcess>()
 
-function killChild() {
+function killChild(id: string) {
   return new Promise<void>((resolve) => {
-    if (child) {
-      child.once('exit', () => {
-        resolve()
-      })
-      child.send({ type: 'destroy' })
-      child = undefined
-    } else {
+    const child = children.get(id)
+    if (!child) {
+      resolve()
+      return
+    }
+    const cleanup = () => {
+      if (children.get(id) === child) children.delete(id)
       resolve()
     }
+    child.once('exit', cleanup)
+    try {
+      child.send({ type: 'destroy' })
+    } catch {
+      // 子进程 IPC 已关闭（进程已退出），直接清理
+      child.removeListener('exit', cleanup)
+      cleanup()
+    }
+    // 超时兜底：防止子进程不响应 destroy 导致卡死
+    setTimeout(() => {
+      if (children.get(id) === child) {
+        child.kill('SIGKILL')
+        cleanup()
+      }
+    }, 5000).unref()
   })
 }
 
@@ -47,21 +66,55 @@ const __dirname = path.dirname(__filename)
 
 const childFilePath = path.join(__dirname, './child_process.js')
 
-export async function run(config: RunConfig, cwd?: string) {
-  await killChild()
-  child = childProcess.fork(childFilePath, {
+export async function run(
+  id: string,
+  config: RunConfig,
+  cwd?: string,
+  onLog?: (id: string, line: string) => void,
+) {
+  await killChild(id)
+  const child = childProcess.fork(childFilePath, {
     env: config.env,
     cwd,
+    stdio: ['inherit', 'pipe', 'pipe', 'ipc'],
   })
-  child.send({ type: 'run', config: config.config })
-}
-
-export async function stop() {
-  await killChild()
-}
-
-export function getStatus() {
-  return {
-    running: !!child,
+  if (onLog) {
+    const emit = (chunk: Buffer) => {
+      const text = chunk.toString('utf8')
+      for (const line of text.split('\n')) {
+        if (line.trim()) onLog(id, line)
+      }
+    }
+    child.stdout?.on('data', emit)
+    child.stderr?.on('data', emit)
   }
+  try {
+    child.send({ type: 'run', config: config.config })
+  } catch (e) {
+    // fork 后立即 send 一般不会失败，失败则直接放弃该子进程
+    child.kill('SIGKILL')
+    throw e
+  }
+  children.set(id, child)
+  child.on('exit', () => {
+    if (children.get(id) === child) children.delete(id)
+  })
+}
+
+export async function stop(id: string) {
+  await killChild(id)
+}
+
+export function getStatus(id: string) {
+  return {
+    running: !!children.get(id),
+  }
+}
+
+export function getAllStatus() {
+  const status: Record<string, { running: boolean }> = {}
+  for (const id of children.keys()) {
+    status[id] = { running: true }
+  }
+  return status
 }

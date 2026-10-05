@@ -26,3 +26,12 @@ Thumbs.db
 /apps/cli/testrobot
 /apps/cli/migptgui.json
 /packages/gui/webpack-report.html
+
+# 本地产品设计文档（含真实小米 ID，不入库）
+docs/
+
+# 运行日志与临时构建文件
+*.log
+.gui-build-check.txt
+.gui-webpack-out*.txt
+check_proj.py

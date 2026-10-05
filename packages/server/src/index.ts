@@ -2,52 +2,924 @@ import path from 'node:path'
 import express from 'express'
 import open from 'open'
 import os from 'node:os'
-import { getStatus, type RunConfig, run, stop } from '@migptgui/controller'
+import {
+  getAllStatus,
+  run,
+  stop,
+  type RunConfig,
+} from '@migptgui/controller'
 import fse from 'fs-extra'
 import fs from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { createTTS, kTTSSpeakers } from 'mi-gpt-tts'
 import { Readable } from 'node:stream'
-// import ip from 'ip'
 import { type GuiConfig } from '@migptgui/options'
-import baseAuth from 'express-basic-auth'
 import { nanoid } from 'nanoid'
 import _trimEnd from 'lodash/trimEnd.js'
 import createDebug from 'debug'
 
-const dDefault = createDebug('@migptgui/server:default')
-// dDefault.enabled = true
-
 const dRoute = createDebug('@migptgui/server:route')
-// dRoute.enabled = true
-
 const dAudio = createDebug('@migptgui/server:audio')
-// dAudio.enabled = true
+
+// ── 数据目录（容器 VOLUME /root/.migptgui）────────────────────────
+const root = path.join(os.homedir(), '.migptgui')
+const devicesRoot = path.join(root, 'devices')
+const settingsFile = path.join(root, 'settings.json')
+const accountsFile = path.join(root, 'accounts.json')
+const rolesFile = path.join(root, 'roles.json')
+const thinkServicesFile = path.join(root, 'thinkServices.json')
+const voiceServicesFile = path.join(root, 'voiceServices.json')
+const speakerModelsFile = path.join(root, 'speakerModels.json')
+const roomsFile = path.join(root, 'rooms.json')
+const authFile = path.join(root, 'auth.json')
+const systemLogFile = path.join(root, 'system.log')
+
+// ── 系统日志：拦截 console → 内存环形缓冲 + 落盘 system.log ──
+const sysLogBuf: string[] = []
+const sysLogMax = 1000
+const _origLog = console.log.bind(console)
+const _origInfo = console.info.bind(console)
+const _origWarn = console.warn.bind(console)
+const _origError = console.error.bind(console)
+function _fmtLogArgs(args: any[]): string {
+  return args
+    .map((a) => {
+      if (typeof a === 'string') return a
+      if (a instanceof Error) return a.stack || a.message
+      try {
+        return JSON.stringify(a)
+      } catch {
+        return String(a)
+      }
+    })
+    .join(' ')
+}
+function _pushSysLog(level: string, text: string) {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  const line = `[${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(
+    d.getMinutes(),
+  )}:${p(d.getSeconds())}] [${level}] ${text}`
+  sysLogBuf.push(line)
+  if (sysLogBuf.length > sysLogMax) sysLogBuf.splice(0, sysLogBuf.length - sysLogMax)
+  fse.appendFile(systemLogFile, line + '\n').catch(() => {})
+}
+console.log = (...a: any[]) => {
+  _pushSysLog('INFO', _fmtLogArgs(a))
+  _origLog(...a)
+}
+console.info = (...a: any[]) => {
+  _pushSysLog('INFO', _fmtLogArgs(a))
+  _origInfo(...a)
+}
+console.warn = (...a: any[]) => {
+  _pushSysLog('WARN', _fmtLogArgs(a))
+  _origWarn(...a)
+}
+console.error = (...a: any[]) => {
+  _pushSysLog('ERROR', _fmtLogArgs(a))
+  _origError(...a)
+}
+
+interface Settings {
+  miUserId?: string
+  miPassword?: string
+  passToken?: string
+}
+
+interface Account {
+  id: string
+  name: string
+  miUserId: string
+  miPassword?: string
+  passToken?: string
+  createdAt: number
+}
+
+interface Role {
+  id: string
+  name: string
+  profile: string
+  callAIKeywords: string[]
+  wakeUpKeywords: string[]
+  exitKeywords: string[]
+  onEnterAI: string[]
+  onExitAI: string[]
+  onAIAsking: string[]
+  onAIReplied: string[]
+  onAIError: string[]
+  /** 该角色默认引用的思考服务（设备未覆盖时生效） */
+  thinkServiceId?: string
+  /** 该角色默认引用的语音服务（设备未覆盖时生效） */
+  voiceId?: string
+}
+
+/**
+ * 思考服务：音箱的「大脑」——大模型供应商 + 模型 + 凭据 + 温度。
+ * 独立于设备存在，被角色与设备引用；被引用时禁止删除。
+ */
+interface ThinkService {
+  id: string
+  name: string
+  provider: string
+  model: string
+  apiKey: string
+  baseUrl?: string
+  temperature?: number
+  /** 全局默认思考服务：未指定角色/设备时回退到这里 */
+  isDefault?: boolean
+  createdAt: number
+}
+
+/**
+ * 语音服务：音箱的「嗓子」——供应商 + 音色库。
+ * builtin = 小米内置（永不可删）；第三方语音由 tts 配置承载。
+ */
+interface VoiceService {
+  id: string
+  name: string
+  provider: string
+  /** 音色 ID（第三方语音），内置语音为空 */
+  voiceId?: string
+  /** 唤醒时的音效序列，如 [5,3] */
+  ttsCommand?: (number | undefined)[]
+  /** 内建标记：小米内置 voice 永不可删 */
+  builtin?: boolean
+  /** 全局默认语音服务 */
+  isDefault?: boolean
+  /** 第三方 TTS 引擎配置（provider !== 'builtin' 时生效） */
+  tts?: import('mi-gpt-tts').TTSConfig
+  createdAt: number
+}
+
+/**
+ * 会话群：对话记忆的上下文归属（对应旧版 chatGroup / room）。
+ * 独立实体，多台设备可共用同一会话群；被设备引用时禁止删除。
+ */
+interface Room {
+  id: string
+  /** 会话群名称（对话记忆上下文归属，如「家庭闲聊」） */
+  name: string
+  /** 会话群描述 */
+  description?: string
+  createdAt: number
+}
+
+interface DeviceMeta {
+  id: string
+  alias: string
+  did: string
+  speakerModel?: string
+  roleId?: string
+  accountId?: string
+  /** 设备级思考服务覆盖（优先级最高） */
+  thinkServiceId?: string
+  /** 设备级语音服务覆盖（优先级最高） */
+  voiceOverrideId?: string
+  /** 连续对话超时（秒）：无响应多久自动退出唤醒模式，默认 30 */
+  exitKeepAliveAfter?: number
+  /** 会话群引用（Room 实体 id）；多设备可共用同一会话群 */
+  roomRef?: string
+  /** 会话群名称（已迁移至 Room 实体，保留仅兼容旧数据；编译时优先 roomRef） */
+  roomName?: string
+  /** 会话群描述（已迁移至 Room 实体，保留仅兼容旧数据） */
+  roomDescription?: string
+  ttsSecret: string
+  createdAt: number
+}
+
+/**
+ * 音箱型号：设备的「硬件身份」——数字指令与连续对话能力的默认配置。
+ * 召唤词与播报词等文字配置归属「对话角色」，型号不承载语义层参数。
+ * 内置型号（builtin）永不可删不可编辑；设备通过 speakerModel 关联型号。
+ */
+interface SpeakerModel {
+  id: string
+  name: string
+  /** 型号标识（did 前缀 / 硬件型号），如 X08E、L05B */
+  did: string
+  desc?: string
+  /** TTS 指令（硬件指令序列，如 [5,1]） */
+  ttsCommand?: number[]
+  /** 唤醒指令（硬件指令序列，如 [5,3]） */
+  wakeUpCommand?: number[]
+  /** 播放检测指令（查询播放状态；部分型号不支持，可缺省） */
+  playingCommand?: number[]
+  /** 连续对话功能是否启用 */
+  consecutive?: boolean
+  /** 型号图片（内置型号为真实设备图 URL；自定义型号可留空） */
+  imageUrl?: string
+  /** 内建标记：系统内置型号永不可删、不可编辑 */
+  builtin?: boolean
+  createdAt: number
+}
+
+const ROLE_DEFAULTS = {
+  callAIKeywords: ['请', '你', '傻妞'],
+  wakeUpKeywords: ['打开', '进入', '召唤'],
+  exitKeywords: ['关闭', '退出', '再见'],
+  onEnterAI: ['你好，我是傻妞，很高兴认识你'],
+  onExitAI: ['傻妞已退出'],
+  onAIAsking: ['让我先想想', '请稍等'],
+  onAIReplied: ['我说完了', '还有其他问题吗'],
+  onAIError: ['啊哦，出错了，请稍后再试吧！'],
+}
+
+async function readJson<T>(file: string, fallback: T): Promise<T> {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf-8'))
+  } catch {
+    return fallback
+  }
+}
+
+async function writeJson(file: string, data: unknown) {
+  await fse.ensureDir(path.dirname(file))
+  await fs.writeFile(file, JSON.stringify(data, null, 2))
+}
+
+// 同步读取小文件（认证中间件是同步的）
+function readJsonSync<T>(file: string, fallback: T): T {
+  try {
+    return JSON.parse(readFileSync(file, 'utf-8'))
+  } catch {
+    return fallback
+  }
+}
+
+// ── 登录认证：生效凭据解析 ────────────────────────────────────
+// 优先级：CLI --user/--pwd > AUTH_USER/AUTH_PASSWORD 环境变量 > auth.json（面板可改）> 默认 admin/123456
+function resolveAuth(cliUsers?: Record<string, string>): Record<string, string> {
+  if (cliUsers) return cliUsers
+  const envUser = process.env.AUTH_USER || 'admin'
+  const envPwd = process.env.AUTH_PASSWORD
+  if (envPwd) return { [envUser]: envPwd }
+  const file = readJsonSync<{ user?: string; password?: string }>(authFile, {})
+  if (file.password) return { [file.user || 'admin']: file.password }
+  return { admin: '123456' }
+}
+
+function getSettings(): Promise<Settings> {
+  return readJson<Settings>(settingsFile, {})
+}
+
+// ── 多云端账号：读取（含旧 settings.json 迁移）─────────────────
+async function getAccounts(): Promise<Account[]> {
+  const accounts = await readJson<Account[]>(accountsFile, [])
+  if (accounts.length > 0) return accounts
+  // 兼容旧版本：settings.json → 迁移为第一个账号
+  const old = await readJson<Settings>(settingsFile, {})
+  if (old.miUserId || old.passToken) {
+    const account: Account = {
+      id: nanoid(),
+      name: '默认账号',
+      miUserId: old.miUserId || '',
+      miPassword: old.miPassword,
+      passToken: old.passToken,
+      createdAt: Date.now(),
+    }
+    await writeJson(accountsFile, [account])
+    return [account]
+  }
+  return []
+}
+
+// 按设备归属取账号；未指定或找不到时回退第一个账号
+async function getAccountById(id?: string): Promise<Account | undefined> {
+  const accounts = await getAccounts()
+  if (id) {
+    const found = accounts.find((a) => a.id === id)
+    if (found) return found
+  }
+  return accounts[0]
+}
+
+async function getRoles(): Promise<Role[]> {
+  return readJson<Role[]>(rolesFile, [])
+}
+
+async function getThinkServices(): Promise<ThinkService[]> {
+  return readJson<ThinkService[]>(thinkServicesFile, [])
+}
+
+async function getVoiceServices(): Promise<VoiceService[]> {
+  return readJson<VoiceService[]>(voiceServicesFile, [])
+}
+
+async function getSpeakerModels(): Promise<SpeakerModel[]> {
+  return readJson<SpeakerModel[]>(speakerModelsFile, [])
+}
+
+async function getRooms(): Promise<Room[]> {
+  return readJson<Room[]>(roomsFile, [])
+}
+
+/** 全局默认思考服务（未指定角色/设备引用时回退） */
+async function getDefaultThinkService(): Promise<ThinkService | undefined> {
+  const list = await getThinkServices()
+  return list.find((t) => t.isDefault) ?? list[0]
+}
+
+/** 全局默认语音服务 */
+async function getDefaultVoiceService(): Promise<VoiceService | undefined> {
+  const list = await getVoiceServices()
+  return list.find((v) => v.isDefault) ?? list[0]
+}
+
+/**
+ * 供应商 → 推理服务 Base URL 映射。
+ * 未覆盖的供应商允许用户自定义 baseUrl，否则留空（由 mi-gpt 默认处理）。
+ */
+const PROVIDER_BASE_URLS: Record<string, string> = {
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  openai: 'https://api.openai.com/v1',
+  deepseek: 'https://api.deepseek.com/v1',
+  qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  moonshot: 'https://api.moonshot.cn/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+}
+
+async function getDeviceMeta(id: string): Promise<DeviceMeta | undefined> {
+  return readJson<DeviceMeta | undefined>(
+    path.join(devicesRoot, id, 'meta.json'),
+    undefined,
+  )
+}
+
+async function listDeviceMetas(): Promise<DeviceMeta[]> {
+  const metas: DeviceMeta[] = []
+  try {
+    const ids = await fs.readdir(devicesRoot)
+    for (const id of ids) {
+      const meta = await getDeviceMeta(id)
+      if (meta) metas.push(meta)
+    }
+  } catch {
+    /* devices 目录不存在 */
+  }
+  metas.sort((a, b) => a.createdAt - b.createdAt)
+  return metas
+}
+
+// ── 设备日志环形缓冲 ────────────────────────────────────────────
+const MAX_LOG_LINES = 500
+const logBuffers = new Map<string, string[]>()
+
+function appendLog(id: string, line: string) {
+  let buf = logBuffers.get(id)
+  if (!buf) {
+    buf = []
+    logBuffers.set(id, buf)
+  }
+  buf.push(line)
+  if (buf.length > MAX_LOG_LINES) buf.splice(0, buf.length - MAX_LOG_LINES)
+}
+
+// ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话日志」页联调 ──
+const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
+  { q: '小爱同学，今天天气怎么样', a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。', sys: '思考服务命中角色默认（豆包 Doubao-Seed）' },
+  { q: '帮我设一个 30 分钟的番茄钟', a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。', sys: '语音音色由角色指定（小米内置）' },
+  { q: '播放点轻音乐', a: '为你播放《Lofi 清晨电台》，音量已调到 30%。', sys: '' },
+  { q: '小爱同学，国庆周边有什么好玩的', a: '苏州周边推荐：拙政园、平江路夜游、金鸡湖音乐喷泉，今天人流量较大建议错峰出行。', sys: '语音音色热切换成功（豆包语音）' },
+]
+
+function demoTs(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+async function seedBuiltinVoice() {
+  const list = await getVoiceServices()
+  if (!list.some((v) => v.builtin)) {
+    list.unshift({
+      id: 'builtin-mi',
+      name: '小米内置',
+      provider: 'builtin',
+      builtin: true,
+      isDefault: list.length === 0,
+      createdAt: Date.now(),
+    })
+    await writeJson(voiceServicesFile, list)
+    console.log('已初始化内置语音服务：小米内置')
+  }
+}
+
+/**
+ * 系统内置音箱型号（初始化时必须存在；禁删禁编辑）。
+ * 清单与指令参数对齐 mi-gpt 官方兼容型号表（github.com/idootop/mi-gpt docs/compatibility.md）
+ * 与 migpt-server 内置型号选择器（packages/options ChooseSpeaker）。
+ * 分组：支持连续对话（完美运行）/ 不支持连续对话（正常运行）。
+ */
+const BUILTIN_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
+  // ── 支持连续对话（完美运行）──
+  {
+    id: 'xiaomi-smart-pro',
+    name: 'Xiaomi 智能音箱 Pro',
+    did: 'OH2P',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/vIHjnJJqrc',
+  },
+  {
+    id: 'xiaomi-smart',
+    name: 'Xiaomi 智能音箱',
+    did: 'OH2',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    playingCommand: [3, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/WQG4uLGOcd',
+  },
+  {
+    id: 'xiaomi-pro',
+    name: '小爱音箱 Pro',
+    did: 'LX06',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/fqq9JgNvUR',
+  },
+  {
+    id: 'xiaomi-ai-speaker',
+    name: '小米 AI 音箱',
+    did: 'S12',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/s1KdNlarvU',
+  },
+  {
+    id: 'xiaomi-ai-speaker-2',
+    name: '小米 AI 音箱（第二代）',
+    did: 'L15A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    playingCommand: [3, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/h84tjXGVYP',
+  },
+  {
+    id: 'xiaomi-universal',
+    name: '小爱音箱 万能遥控版',
+    did: 'LX5A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/ZpRUVmwTh5',
+  },
+  {
+    id: 'xiaomi-play-2019',
+    name: '小爱音箱 Play（2019 款）',
+    did: 'LX05',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    playingCommand: [3, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/sIhk2YxwD7',
+  },
+  {
+    id: 'xiaomi-home-screen-10',
+    name: '小爱智能家庭屏 10',
+    did: 'X10A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/sDM9V3slih',
+  },
+  {
+    id: 'xiaomi-sound-pro',
+    name: 'Xiaomi Sound Pro',
+    did: 'L17A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/s7vgvRqqwU',
+  },
+  // ── 不支持连续对话（正常运行）──
+  {
+    id: 'xiaomi-speaker',
+    name: '小爱音箱',
+    did: 'L06A',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 2],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/Ig6OUMFV2u',
+  },
+  {
+    id: 'xiaomi-mini',
+    name: '小爱音箱 mini',
+    did: 'LX01',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 2],
+    playingCommand: [4, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/IBVUyAfu4M',
+  },
+  {
+    id: 'xiaomi-play',
+    name: '小爱音箱 Play',
+    did: 'L05B',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/s9jN6QwVcG',
+  },
+  {
+    id: 'xiaomi-play-plus',
+    name: '小米小爱音箱 Play 增强版',
+    did: 'L05C',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/NU5KITCTbl',
+  },
+  {
+    id: 'xiaomi-art',
+    name: '小爱音箱 Art',
+    did: 'L09A',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [3, 1],
+    wakeUpCommand: [3, 2],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/c7uFBjO7cV',
+  },
+  {
+    id: 'xiaomi-touch',
+    name: '小爱触屏音箱',
+    did: 'LX04',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 2],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/SkwcG8td6n',
+  },
+  {
+    id: 'xiaomi-home-mini',
+    name: 'Xiaomi 智能家庭屏 Mini',
+    did: 'ASX4B',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/Q9Vnj3UTJt',
+  },
+  {
+    id: 'xiaomi-home-6',
+    name: 'Xiaomi 智能家庭屏 6',
+    did: 'X6A',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/2QVKCAW8rT',
+  },
+  {
+    id: 'xiaomi-redmi-touch-8',
+    name: 'Redmi 小爱触屏音箱 Pro 8 英寸',
+    did: 'X08E',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/0UncKIwUlB',
+  },
+  {
+    id: 'xiaomi-home-pro-8',
+    name: 'Xiaomi 智能家庭屏 Pro 8',
+    did: 'X8F',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/FQuMVAKPUK',
+  },
+]
+
+async function seedBuiltinModels() {
+  const list = await getSpeakerModels()
+  // upsert：内置型号以代码定义为准，存在则整体覆盖（保证升级后官方数据自动修正），不存在则新增
+  const merged = [
+    ...BUILTIN_MODELS.map((m) => ({ ...m, createdAt: list.find((x) => x.id === m.id)?.createdAt ?? Date.now() })),
+    ...list.filter((x) => !BUILTIN_MODELS.some((m) => m.id === x.id)),
+  ]
+  const changed = BUILTIN_MODELS.filter(
+    (m) => JSON.stringify(list.find((x) => x.id === m.id)) !== JSON.stringify({ ...m, createdAt: list.find((x) => x.id === m.id)?.createdAt ?? Date.now() }),
+  )
+  await writeJson(speakerModelsFile, merged)
+  if (changed.length > 0) console.log(`已更新内置音箱型号：${changed.map((m) => m.name).join('、')}`)
+}
+
+/** 迁移旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
+async function migrateRooms() {
+  const metas = await listDeviceMetas()
+  const rooms = await getRooms()
+  let changed = false
+  for (const meta of metas) {
+    if (!meta.roomName || meta.roomRef) continue
+    let room = rooms.find((r) => r.name === meta.roomName)
+    if (!room) {
+      room = { id: nanoid(8), name: meta.roomName, description: meta.roomDescription, createdAt: Date.now() }
+      rooms.push(room)
+    }
+    const nextMeta: DeviceMeta = { ...meta, roomRef: room.id }
+    delete nextMeta.roomName
+    delete nextMeta.roomDescription
+    await writeJson(path.join(devicesRoot, meta.id, 'meta.json'), nextMeta)
+    changed = true
+  }
+  if (changed) await writeJson(roomsFile, rooms)
+}
+
+/** 按 id 或名称解析会话群 */
+async function getRoomByRef(ref?: string): Promise<Room | undefined> {
+  if (!ref) return undefined
+  const list = await getRooms()
+  return list.find((r) => r.id === ref || r.name === ref)
+}
+
+
+/** 按 id 或名称解析型号（兼容旧数据：设备 speakerModel 可能存名称） */
+async function getSpeakerModelByRef(ref?: string): Promise<SpeakerModel | undefined> {
+  if (!ref) return undefined
+  const list = await getSpeakerModels()
+  return list.find((m) => m.id === ref || m.name === ref)
+}
+
+async function seedDemoLogs() {
+  if (!process.env.MIGPT_DEMO_LOGS) return
+  const devices = await listDeviceMetas()
+  if (!devices.length) return
+  const now = Date.now()
+  for (const d of devices) {
+    const buf: string[] = []
+    for (let i = 0; i < 4; i++) {
+      const s = DEMO_SCENES[i % DEMO_SCENES.length]
+      const tq = new Date(now - (i * 47 + 13) * 60000)
+      buf.push(`${demoTs(tq)} [用户] 问：${s.q}`)
+      buf.push(`${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a}`)
+      if (s.sys) buf.push(`${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`)
+    }
+    logBuffers.set(d.id, buf)
+  }
+  console.log(`[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`)
+}
+
+// ── 用角色的默认配置展开设备初始 migptgui.json ─────────────────────
+function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
+  return {
+    config: {
+      bot: {
+        name: role?.name || '傻妞',
+        profile: role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。',
+      },
+      master: {
+        name: '主人',
+        profile: '',
+      },
+      speaker: {
+        userId: account?.miUserId || '',
+        password: account?.miPassword || '',
+        switchSpeakerKeywords: ['把声音换成'],
+        callAIKeywords: role?.callAIKeywords || ROLE_DEFAULTS.callAIKeywords,
+        wakeUpKeywords: role?.wakeUpKeywords || ROLE_DEFAULTS.wakeUpKeywords,
+        exitKeywords: role?.exitKeywords || ROLE_DEFAULTS.exitKeywords,
+        onEnterAI: role?.onEnterAI || ROLE_DEFAULTS.onEnterAI,
+        onExitAI: role?.onExitAI || ROLE_DEFAULTS.onExitAI,
+        onAIAsking: role?.onAIAsking || ROLE_DEFAULTS.onAIAsking,
+        onAIReplied: role?.onAIReplied || ROLE_DEFAULTS.onAIReplied,
+        onAIError: role?.onAIError || ROLE_DEFAULTS.onAIError,
+      },
+    },
+    env: {
+      OPENAI_API_KEY: '',
+      OPENAI_MODEL: '',
+      OPENAI_BASE_URL: '',
+    },
+  }
+}
+
+/**
+ * 绑定链来源标注：
+ * - account / role  来自设备显式绑定
+ * - think / voice   依次回退：设备覆盖 → 继承人设 → 全局默认
+ */
+export interface BindingRow {
+  key: 'account' | 'role' | 'think' | 'voice'
+  label: string
+  name: string
+  detail?: string
+  source: 'device' | 'role' | 'global'
+  sourceLabel: string
+}
+
+export interface DeviceBindings {
+  account?: Account
+  role?: Role
+  think?: ThinkService
+  voice?: VoiceService
+  rows: BindingRow[]
+}
+
+/** 解析一台设备的完整绑定链（账号/角色/思考服务/语音服务 + 来源标注） */
+async function resolveBindings(meta: DeviceMeta): Promise<DeviceBindings> {
+  const account = await getAccountById(meta.accountId)
+  const roles = await getRoles()
+  const role = meta.roleId
+    ? roles.find((r) => r.id === meta.roleId)
+    : undefined
+
+  // 思考服务：设备覆盖 → 继承人设 → 全局默认
+  let think = meta.thinkServiceId
+    ? (await getThinkServices()).find((t) => t.id === meta.thinkServiceId)
+    : undefined
+  let thinkSource: BindingRow['source'] = 'device'
+  if (!think && role?.thinkServiceId) {
+    think = (await getThinkServices()).find((t) => t.id === role.thinkServiceId)
+    thinkSource = 'role'
+  }
+  if (!think) {
+    think = await getDefaultThinkService()
+    thinkSource = 'global'
+  }
+
+  // 语音服务：设备覆盖 → 继承人设 → 全局默认
+  let voice = meta.voiceOverrideId
+    ? (await getVoiceServices()).find((v) => v.id === meta.voiceOverrideId)
+    : undefined
+  let voiceSource: BindingRow['source'] = 'device'
+  if (!voice && role?.voiceId) {
+    voice = (await getVoiceServices()).find((v) => v.id === role.voiceId)
+    voiceSource = 'role'
+  }
+  if (!voice) {
+    voice = await getDefaultVoiceService()
+    voiceSource = 'global'
+  }
+
+  const rows: BindingRow[] = [
+    {
+      key: 'account',
+      label: '云端账号',
+      name: account?.name || '未绑定',
+      detail: account?.miUserId,
+      source: 'device',
+      sourceLabel: '设备指定',
+    },
+    {
+      key: 'role',
+      label: '对话角色',
+      name: role?.name || '未绑定',
+      detail: role ? undefined : '将使用默认行为',
+      source: 'device',
+      sourceLabel: '设备绑定',
+    },
+    {
+      key: 'think',
+      label: '思考服务',
+      name: think?.name || '未配置',
+      detail: think ? `${think.provider} · ${think.model}` : undefined,
+      source: thinkSource,
+      sourceLabel:
+        thinkSource === 'device'
+          ? '设备覆盖'
+          : thinkSource === 'role'
+            ? '继承人设'
+            : '全局默认',
+    },
+    {
+      key: 'voice',
+      label: '语音服务',
+      name: voice?.name || '未配置',
+      detail: voice
+        ? voice.builtin
+          ? '小米内置'
+          : `${voice.provider} · ${voice.voiceId || '默认音色'}`
+        : undefined,
+      source: voiceSource,
+      sourceLabel:
+        voiceSource === 'device'
+          ? '设备覆盖'
+          : voiceSource === 'role'
+            ? '继承人设'
+            : '全局默认',
+    },
+  ]
+
+  return { account, role, think, voice, rows }
+}
+
+/**
+ * 按绑定链编译设备运行时配置（编译投影）：
+ * 角色内容 → bot/speaker；思考服务 → env；语音服务 → tts。
+ * existingConfig 用于保留设备已有的 gui（publicURL 等）与用户手工设置。
+ */
+async function buildRunConfig(
+  meta: DeviceMeta,
+  existingConfig?: GuiConfig,
+): Promise<{ config: GuiConfig; bindings: DeviceBindings }> {
+  const bindings = await resolveBindings(meta)
+  const { account, role, think, voice } = bindings
+  const config = buildConfigFromRole(role, account)
+
+  // 保留已有设备的 GUI 字段（publicURL / ttsProvider / speakerModel 等）
+  if (existingConfig?.gui) {
+    config.gui = existingConfig.gui
+  }
+
+  // 思考服务 → 推理环境变量
+  if (think) {
+    config.env.OPENAI_API_KEY = think.apiKey
+    config.env.OPENAI_MODEL = think.model
+    config.env.OPENAI_BASE_URL =
+      think.baseUrl || PROVIDER_BASE_URLS[think.provider] || ''
+  } else {
+    // 未配置思考服务时保留已有 env，方便手工模式
+    config.env = existingConfig?.env || config.env
+  }
+
+  // 语音服务 → TTS（内置语音不配置，第三方语音写入 tts 配置）
+  if (voice) {
+    if (voice.ttsCommand && voice.ttsCommand.length > 0) {
+      config.config.speaker.ttsCommand = voice.ttsCommand
+    }
+    if (!voice.builtin && voice.tts) {
+      config.tts = voice.tts
+      config.config.speaker.tts = 'custom'
+    }
+  }
+
+  // 型号 → speaker 硬件指令（数字指令与连续对话能力随型号；召唤词/播报词归角色层）
+  const model = await getSpeakerModelByRef(meta.speakerModel)
+  if (model) {
+    const sp = config.config.speaker
+    // 数字指令：TTS / 唤醒 / 播放检测（硬件指令序列，型号有配置即覆盖）
+    if (model.ttsCommand?.length) sp.ttsCommand = model.ttsCommand
+    if (model.wakeUpCommand?.length) sp.wakeUpCommand = model.wakeUpCommand
+    if (model.playingCommand?.length) sp.playingCommand = model.playingCommand
+    // 连续对话：consecutive === false 时显式禁用 streamResponse
+    if (model.consecutive === false) sp.streamResponse = false
+    // 注意：无 playingCommand 不代表不支持连续对话（官方多数型号依赖 Mina 检测播放状态，
+    // playingCommand 仅作 MiOT 备选指令，异常时才需补充）——故此处不做强制禁用
+  }
+  // 连续对话超时（无响应自动退出唤醒模式，默认 30 秒）
+  config.config.speaker.exitKeepAliveAfter = meta.exitKeepAliveAfter ?? 30
+  // 会话群（room）：对话记忆上下文归属（独立 Room 实体，多设备共用；旧字段仅兼容）
+  const room = await getRoomByRef(meta.roomRef || meta.roomName)
+  if (room) {
+    config.config.room = {
+      name: room.name,
+      description: room.description || '',
+    }
+  }
+
+  config.config.speaker.did = meta.did
+  return { config, bindings }
+}
 
 export function runServer(options?: {
   open?: boolean
   port?: number
   users?: Record<string, string>
   staticPath?: string
+  auth?: boolean
 }) {
   const port = options?.port || 36592
-
-  const defaultBotCwd = path.join(os.homedir(), '.migptgui/default/')
-
-  let guiConfigRunning: GuiConfig | undefined
-
-  const isAuth = !!options?.users
-  const ttsSecret = nanoid()
-  const ttsSecretPath = '/' + ttsSecret
-  const ttsPath = ttsSecretPath + '/tts/tts.mp3'
-  const ttsSpeakersPath = ttsSecretPath + '/tts/speakers'
-
-  async function saveConfig(config: GuiConfig) {
-    await fse.ensureDir(defaultBotCwd)
-    return fs.writeFile(
-      path.join(os.homedir(), '.migptgui/default/migptgui.json'),
-      JSON.stringify(config),
-    )
-  }
+  // 认证默认启用（中间件无条件挂载）；--no-auth 时由 apps/server 传 auth:false
+  const isAuth = options?.auth !== false
+  const defaultBotCwd = path.join(root, 'default')
 
   const app = express()
 
@@ -57,54 +929,64 @@ export function runServer(options?: {
     res.status(204).send()
   })
 
-  // mi-gpt 会通过这个接口获取可用的音色列表，用于通过【切换音色关键词】来切换音色
-  app.get(ttsSpeakersPath, (req, res) => {
-    dRoute('进入 GET /tts/speakers，`req.query`：%O', req.query)
+  // ── 多设备 TTS：/{ttsSecret}/tts/tts.mp3（小爱音箱访问，不能加 basicAuth）──
+  async function findDeviceBySecret(secret: string): Promise<DeviceMeta | undefined> {
+    const metas = await listDeviceMetas()
+    return metas.find((m) => m.ttsSecret === secret)
+  }
+
+  async function loadDeviceConfig(id: string): Promise<GuiConfig | undefined> {
+    const file =
+      id === 'default'
+        ? path.join(root, 'default', 'migptgui.json')
+        : path.join(devicesRoot, id, 'migptgui.json')
+    try {
+      return JSON.parse(await fs.readFile(file, 'utf-8'))
+    } catch {
+      return undefined
+    }
+  }
+
+  app.get('/:secret/tts/speakers', (req, res) => {
     res.json(kTTSSpeakers)
   })
 
-  // 小爱音箱会通过这个接口获取语音合成的音频，所以不能给它加 basicAuth
-  app.get(ttsPath, (req, res) => {
-    dRoute('进入 GET /tts/tts.mp3，`req.url`：%s', req.url)
-    // req.url 会是这么个格式：`/tts/tts.mp3?speaker=zh-CN-liaoning-XiaobeiNeural+text=要朗读的文本`
-    // 其中要注意的是：
-    // - speaker 与 text 参数中间用的是加号 + 来连接，而不是 &，所以需要先修正一下
-    // - speaker 参数一般是空的，但是，如果用户通过【切换音色关键词】换过音色，那么这个参数就会有值，例如 zh-CN-liaoning-XiaobeiNeural
+  app.get('/:secret/tts/tts.mp3', async (req, res) => {
+    const secret = req.params.secret
+    let meta: DeviceMeta | undefined
+    let config: GuiConfig | undefined
+    if (secret === 'default') {
+      config = await loadDeviceConfig('default')
+    } else {
+      meta = await findDeviceBySecret(secret)
+      config = meta ? await loadDeviceConfig(meta.id) : undefined
+    }
 
-    // 没有启动 MiGPT，或者没有配置过 tts
-    if (!guiConfigRunning || !guiConfigRunning.tts) {
-      dDefault('没有启动 MiGPT，或者没有配置过 tts，所以返回 500')
+    if (!config?.tts) {
       res.status(500).send('Internal Server Error')
       return
     }
 
-    const tts = createTTS(guiConfigRunning.tts)
-
-    const nUrl = req.url.replace('+text=', '&text=') // 修正请求 URL
+    const tts = createTTS(config.tts)
+    const nUrl = req.url.replace('+text=', '&text=')
     const url = new URL('http://localhost' + nUrl)
     const audioStream = new Readable({ read() {} })
 
     const options = {
-      // 指定 speaker 的原因见 `/api/test/audio` 接口的注释
-      speaker:
-        url.searchParams.get('speaker') || guiConfigRunning.tts.defaultSpeaker!,
+      speaker: url.searchParams.get('speaker') || config.tts.defaultSpeaker!,
       text: decodeURIComponent(url.searchParams.get('text') || ''),
       stream: audioStream,
     }
 
     dAudio('准备合成语音。参数：%O', options)
 
-    tts(options)
-      // 错误处理的代码是复制的 `/api/test/audio` 接口里的
-      .then((buffer) => {
-        if (!buffer) {
-          // 没有填写配置的时候，会走到这里面来
-          audioStream.destroy(new Error('没有把配置填写完整'))
-        }
-      })
+    tts(options).then((buffer) => {
+      if (!buffer) {
+        audioStream.destroy(new Error('没有把配置填写完整'))
+      }
+    })
 
     let headersSent = false
-
     audioStream.on('data', (chunk) => {
       if (
         (chunk.length === 3 && chunk.toString('utf8') === '404') ||
@@ -113,8 +995,6 @@ export function runServer(options?: {
         audioStream.destroy(new Error('配置填写有误'))
         return
       }
-
-      // 到了这里才可以确保这次是正常响应了
       if (!headersSent) {
         res.writeHead(200, {
           'Transfer-Encoding': 'chunked',
@@ -122,15 +1002,9 @@ export function runServer(options?: {
         })
         headersSent = true
       }
-
-      // 流式响应数据
       res.write(chunk)
     })
-
-    audioStream.on('end', () => {
-      res.end()
-    })
-
+    audioStream.on('end', () => res.end())
     audioStream.once('error', (error) => {
       if (!headersSent) {
         res.status(400).send(error.message || 'Internal Server Error')
@@ -142,97 +1016,812 @@ export function runServer(options?: {
 
   app.use(express.json())
 
-  if (options?.users) {
-    app.use(baseAuth({ users: options.users, challenge: true }))
-  }
-
+  // 静态资源匿名加载（前端 SPA 先加载 JS），API 全部要求认证
   if (options?.staticPath) {
     app.use(express.static(options.staticPath))
   }
 
-  app.get('/api/status', async (req, res) => {
-    const s = getStatus()
-    dRoute('进入 GET /api/status，响应：%O', s)
-    res.json(s)
+  // 自定义 Basic Auth：失败返回 JSON 401（不带 challenge），由前端渲染登录页。
+  // 认证默认启用：凭据按 环境变量/--pwd > auth.json（面板可改）> 默认 admin/123456 解析。
+  if (options?.auth !== false) {
+    app.use('/api', (req, res, next) => {
+      const users = resolveAuth(options?.users)
+      const header = req.headers.authorization || ''
+      const [type, token] = header.split(' ')
+      if (type === 'Basic' && token) {
+        let decoded = ''
+        try {
+          decoded = Buffer.from(token, 'base64').toString('utf-8')
+        } catch {
+          decoded = ''
+        }
+        const idx = decoded.indexOf(':')
+        const user = idx >= 0 ? decoded.slice(0, idx) : ''
+        const pass = idx >= 0 ? decoded.slice(idx + 1) : ''
+        if (user && users[user] === pass) {
+          return next()
+        }
+      }
+      res.status(401).json({ error: 'unauthorized' })
+    })
+  }
+
+  // ── 修改登录凭据（持久化到 auth.json，前端「我的」页调用）─────
+  app.put('/api/auth', async (req, res) => {
+    const body = req.body as {
+      oldUser?: string
+      oldPassword?: string
+      newUser?: string
+      newPassword?: string
+    }
+    if (!body.newUser || !body.newPassword) {
+      res.status(400).json({ error: '新用户名和新密码必填' })
+      return
+    }
+    const users = resolveAuth(options?.users)
+    const current = users[body.oldUser || '']
+    if (!current || current !== body.oldPassword) {
+      res.status(403).json({ error: '旧密码不正确' })
+      return
+    }
+    await writeJson(authFile, {
+      user: body.newUser,
+      password: body.newPassword,
+    })
+    res.json({ success: true })
   })
 
-  // 测试对外地址是否能连通
+  // ── 状态：全部设备 ─────────────────────────────────────────────
+  app.get('/api/status', async (req, res) => {
+    const devices = await listDeviceMetas()
+    const status = getAllStatus()
+    res.json({
+      devices: devices.map((meta) => ({
+        ...meta,
+        running: !!status[meta.id],
+      })),
+    })
+  })
+
+  // ── 账号托管 ──────────────────────────────────────────────────
+  // ── 云端账号（多账号）────────────────────────────────────────
+  app.get('/api/accounts', async (req, res) => {
+    res.json(await getAccounts())
+  })
+
+  app.post('/api/accounts', async (req, res) => {
+    const body = req.body as Partial<Account>
+    if (!body.name || !body.miUserId) {
+      res.status(400).json({ error: '名称与云端账号数字 ID 必填' })
+      return
+    }
+    const account: Account = {
+      id: nanoid(8),
+      name: body.name,
+      miUserId: body.miUserId,
+      miPassword: body.miPassword,
+      passToken: body.passToken,
+      createdAt: Date.now(),
+    }
+    const accounts = await getAccounts()
+    accounts.push(account)
+    await writeJson(accountsFile, accounts)
+    res.json(account)
+  })
+
+  app.put('/api/accounts/:id', async (req, res) => {
+    const accounts = await getAccounts()
+    const idx = accounts.findIndex((a) => a.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '账号不存在' })
+      return
+    }
+    const body = req.body as Partial<Account>
+    accounts[idx] = {
+      ...accounts[idx],
+      name: body.name ?? accounts[idx].name,
+      miUserId: body.miUserId ?? accounts[idx].miUserId,
+      ...(body.passToken !== undefined ? { miPassword: body.miPassword, passToken: body.passToken } : {}),
+    }
+    await writeJson(accountsFile, accounts)
+    res.json(accounts[idx])
+  })
+
+  app.delete('/api/accounts/:id', async (req, res) => {
+    const accounts = await getAccounts()
+    const idx = accounts.findIndex((a) => a.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '账号不存在' })
+      return
+    }
+    // 删除保护：被设备引用的账号禁止删除
+    const metas = await listDeviceMetas()
+    const refDevices = metas.filter((m) => m.accountId === req.params.id)
+    if (refDevices.length > 0) {
+      res.status(409).json({
+        error: '该账号正被设备引用，无法删除；请先解绑相关设备',
+        refs: { devices: refDevices.map((d) => d.alias) },
+      })
+      return
+    }
+    accounts.splice(idx, 1)
+    await writeJson(accountsFile, accounts)
+    res.json({ success: true })
+  })
+
+  // 兼容旧版：/api/settings 读写第一个（默认）账号
+  app.get('/api/settings', async (req, res) => {
+    const account = await getAccountById()
+    res.json(
+      account
+        ? {
+            miUserId: account.miUserId,
+            miPassword: account.miPassword,
+            passToken: account.passToken,
+          }
+        : {},
+    )
+  })
+
+  app.put('/api/settings', async (req, res) => {
+    const body = req.body as Settings
+    const accounts = await getAccounts()
+    if (accounts.length > 0) {
+      accounts[0] = {
+        ...accounts[0],
+        miUserId: body.miUserId || accounts[0].miUserId,
+        miPassword: body.miPassword,
+        passToken: body.passToken,
+      }
+    } else {
+      accounts.push({
+        id: nanoid(8),
+        name: '默认账号',
+        miUserId: body.miUserId || '',
+        miPassword: body.miPassword,
+        passToken: body.passToken,
+        createdAt: Date.now(),
+      })
+    }
+    await writeJson(accountsFile, accounts)
+    res.json({ success: true })
+  })
+
+  // ── AI 角色 ───────────────────────────────────────────────────
+  app.get('/api/roles', async (req, res) => {
+    res.json(await getRoles())
+  })
+
+  app.post('/api/roles', async (req, res) => {
+    const roles = await getRoles()
+    const role: Role = {
+      id: nanoid(8),
+      ...ROLE_DEFAULTS,
+      ...req.body,
+    }
+    roles.push(role)
+    await writeJson(rolesFile, roles)
+    res.json(role)
+  })
+
+  app.put('/api/roles/:id', async (req, res) => {
+    const roles = await getRoles()
+    const idx = roles.findIndex((r) => r.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '角色不存在' })
+      return
+    }
+    roles[idx] = { ...roles[idx], ...req.body, id: req.params.id }
+    await writeJson(rolesFile, roles)
+    res.json(roles[idx])
+  })
+
+  app.delete('/api/roles/:id', async (req, res) => {
+    const roles = await getRoles()
+    if (!roles.some((r) => r.id === req.params.id)) {
+      res.status(404).json({ error: '角色不存在' })
+      return
+    }
+    // 删除保护：被设备引用的角色禁止删除
+    const metas = await listDeviceMetas()
+    const refDevices = metas.filter((m) => m.roleId === req.params.id)
+    if (refDevices.length > 0) {
+      res.status(409).json({
+        error: '该角色正被设备引用，无法删除；请先更换引用该角色的设备',
+        refs: { devices: refDevices.map((d) => d.alias) },
+      })
+      return
+    }
+    await writeJson(
+      rolesFile,
+      roles.filter((r) => r.id !== req.params.id),
+    )
+    res.json({ success: true })
+  })
+
+  // ── 思考服务（音箱的「大脑」）───────────────────────────────
+  app.get('/api/think-services', async (req, res) => {
+    res.json(await getThinkServices())
+  })
+
+  app.post('/api/think-services', async (req, res) => {
+    const body = req.body as Partial<ThinkService>
+    if (!body.name || !body.provider || !body.model || !body.apiKey) {
+      res.status(400).json({ error: '名称、供应商、模型与 API Key 必填' })
+      return
+    }
+    const list = await getThinkServices()
+    const svc: ThinkService = {
+      id: nanoid(8),
+      name: body.name,
+      provider: body.provider,
+      model: body.model,
+      apiKey: body.apiKey,
+      baseUrl: body.baseUrl,
+      temperature: body.temperature,
+      isDefault: body.isDefault ?? list.length === 0,
+      createdAt: Date.now(),
+    }
+    // 保持全局默认唯一
+    if (svc.isDefault) {
+      for (const t of list) t.isDefault = false
+      await writeJson(thinkServicesFile, list)
+    }
+    list.push(svc)
+    await writeJson(thinkServicesFile, list)
+    res.json(svc)
+  })
+
+  app.put('/api/think-services/:id', async (req, res) => {
+    const list = await getThinkServices()
+    const idx = list.findIndex((t) => t.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '思考服务不存在' })
+      return
+    }
+    const body = req.body as Partial<ThinkService>
+    const wasDefault = list[idx].isDefault
+    list[idx] = { ...list[idx], ...body, id: req.params.id }
+    if (body.isDefault && !wasDefault) {
+      for (const t of list) if (t.id !== req.params.id) t.isDefault = false
+    }
+    if (body.isDefault === false && wasDefault) {
+      list[idx].isDefault = list.length === 1
+    }
+    await writeJson(thinkServicesFile, list)
+    res.json(list[idx])
+  })
+
+  app.delete('/api/think-services/:id', async (req, res) => {
+    const list = await getThinkServices()
+    if (!list.some((t) => t.id === req.params.id)) {
+      res.status(404).json({ error: '思考服务不存在' })
+      return
+    }
+    // 删除保护：被设备或角色引用的实体禁止删除
+    const roles = await getRoles()
+    const metas = await listDeviceMetas()
+    const refRoles = roles.filter((r) => r.thinkServiceId === req.params.id)
+    const refDevices = metas.filter((m) => m.thinkServiceId === req.params.id)
+    if (refRoles.length > 0 || refDevices.length > 0) {
+      res.status(409).json({
+        error: '该思考服务正被其他实体引用，无法删除',
+        refs: {
+          roles: refRoles.map((r) => r.name),
+          devices: refDevices.map((d) => d.alias),
+        },
+      })
+      return
+    }
+    await writeJson(
+      thinkServicesFile,
+      list.filter((t) => t.id !== req.params.id),
+    )
+    res.json({ success: true })
+  })
+
+  // ── 语音服务（音箱的「嗓子」）───────────────────────────────
+  app.get('/api/voice-services', async (req, res) => {
+    res.json(await getVoiceServices())
+  })
+
+  app.post('/api/voice-services', async (req, res) => {
+    const body = req.body as Partial<VoiceService>
+    if (!body.name || !body.provider) {
+      res.status(400).json({ error: '名称与供应商必填' })
+      return
+    }
+    const list = await getVoiceServices()
+    const svc: VoiceService = {
+      id: nanoid(8),
+      name: body.name,
+      provider: body.provider,
+      voiceId: body.voiceId,
+      ttsCommand: body.ttsCommand,
+      builtin: body.builtin ?? false,
+      isDefault: body.isDefault ?? list.length === 0,
+      tts: body.tts,
+      createdAt: Date.now(),
+    }
+    if (svc.isDefault) {
+      for (const v of list) v.isDefault = false
+      await writeJson(voiceServicesFile, list)
+    }
+    list.push(svc)
+    await writeJson(voiceServicesFile, list)
+    res.json(svc)
+  })
+
+  app.put('/api/voice-services/:id', async (req, res) => {
+    const list = await getVoiceServices()
+    const idx = list.findIndex((v) => v.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '语音服务不存在' })
+      return
+    }
+    const body = req.body as Partial<VoiceService>
+    if (list[idx].builtin) {
+      res.status(409).json({ error: '内建语音服务不可编辑' })
+      return
+    }
+    const wasDefault = list[idx].isDefault
+    list[idx] = { ...list[idx], ...body, id: req.params.id, builtin: list[idx].builtin }
+    if (body.isDefault && !wasDefault) {
+      for (const v of list) if (v.id !== req.params.id) v.isDefault = false
+    }
+    if (body.isDefault === false && wasDefault) {
+      list[idx].isDefault = list.length === 1
+    }
+    await writeJson(voiceServicesFile, list)
+    res.json(list[idx])
+  })
+
+  app.delete('/api/voice-services/:id', async (req, res) => {
+    const list = await getVoiceServices()
+    const target = list.find((v) => v.id === req.params.id)
+    if (!target) {
+      res.status(404).json({ error: '语音服务不存在' })
+      return
+    }
+    if (target.builtin) {
+      res.status(409).json({ error: '内建语音服务不可删除' })
+      return
+    }
+    // 删除保护：被设备或角色引用的实体禁止删除
+    const roles = await getRoles()
+    const metas = await listDeviceMetas()
+    const refRoles = roles.filter((r) => r.voiceId === req.params.id)
+    const refDevices = metas.filter((m) => m.voiceOverrideId === req.params.id)
+    if (refRoles.length > 0 || refDevices.length > 0) {
+      res.status(409).json({
+        error: '该语音服务正被其他实体引用，无法删除',
+        refs: {
+          roles: refRoles.map((r) => r.name),
+          devices: refDevices.map((d) => d.alias),
+        },
+      })
+      return
+    }
+    await writeJson(
+      voiceServicesFile,
+      list.filter((v) => v.id !== req.params.id),
+    )
+    res.json({ success: true })
+  })
+
+  // ── 音箱型号（设备的「硬件身份」配置）─────────────────────────
+  app.get('/api/speaker-models', async (req, res) => {
+    res.json(await getSpeakerModels())
+  })
+
+  app.post('/api/speaker-models', async (req, res) => {
+    const body = req.body as Partial<SpeakerModel>
+    if (!body.name || !body.did) {
+      res.status(400).json({ error: '名称与型号标识必填' })
+      return
+    }
+    const list = await getSpeakerModels()
+    const model: SpeakerModel = {
+      id: nanoid(8),
+      name: body.name,
+      did: body.did,
+      desc: body.desc,
+      ttsCommand: body.ttsCommand || [],
+      wakeUpCommand: body.wakeUpCommand || [],
+      playingCommand: body.playingCommand || [],
+      consecutive: body.consecutive ?? true,
+      imageUrl: body.imageUrl,
+      builtin: false,
+      createdAt: Date.now(),
+    }
+    list.push(model)
+    await writeJson(speakerModelsFile, list)
+    res.json(model)
+  })
+
+  app.put('/api/speaker-models/:id', async (req, res) => {
+    const list = await getSpeakerModels()
+    const idx = list.findIndex((m) => m.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '型号不存在' })
+      return
+    }
+    const body = req.body as Partial<SpeakerModel>
+    if (list[idx].builtin) {
+      res.status(409).json({ error: '系统内置型号不可编辑' })
+      return
+    }
+    list[idx] = { ...list[idx], ...body, id: req.params.id, builtin: list[idx].builtin }
+    await writeJson(speakerModelsFile, list)
+    res.json(list[idx])
+  })
+
+  app.delete('/api/speaker-models/:id', async (req, res) => {
+    const list = await getSpeakerModels()
+    const target = list.find((m) => m.id === req.params.id)
+    if (!target) {
+      res.status(404).json({ error: '型号不存在' })
+      return
+    }
+    if (target.builtin) {
+      res.status(409).json({ error: '系统内置型号不可删除' })
+      return
+    }
+    // 删除保护：被设备关联的型号禁止删除
+    const metas = await listDeviceMetas()
+    const refDevices = metas.filter(
+      (m) => m.speakerModel === req.params.id || m.speakerModel === target.name,
+    )
+    if (refDevices.length > 0) {
+      res.status(409).json({
+        error: '该型号正被设备引用，无法删除',
+        refs: { devices: refDevices.map((d) => d.alias) },
+      })
+      return
+    }
+    await writeJson(
+      speakerModelsFile,
+      list.filter((m) => m.id !== req.params.id),
+    )
+    res.json({ success: true })
+  })
+
+  // ── 会话群（对话记忆上下文归属，多设备共用）──────────────────────
+  app.get('/api/rooms', async (req, res) => {
+    const rooms = await getRooms()
+    const metas = await listDeviceMetas()
+    res.json(
+      rooms.map((r) => ({
+        ...r,
+        deviceCount: metas.filter((m) => m.roomRef === r.id).length,
+      })),
+    )
+  })
+
+  app.post('/api/rooms', async (req, res) => {
+    const body = req.body as Partial<Room>
+    if (!body.name) {
+      res.status(400).json({ error: '会话群名称必填' })
+      return
+    }
+    const rooms = await getRooms()
+    const room: Room = {
+      id: nanoid(8),
+      name: body.name,
+      description: body.description,
+      createdAt: Date.now(),
+    }
+    rooms.push(room)
+    await writeJson(roomsFile, rooms)
+    res.json(room)
+  })
+
+  app.put('/api/rooms/:id', async (req, res) => {
+    const rooms = await getRooms()
+    const idx = rooms.findIndex((r) => r.id === req.params.id)
+    if (idx < 0) {
+      res.status(404).json({ error: '会话群不存在' })
+      return
+    }
+    const body = req.body as Partial<Room>
+    rooms[idx] = { ...rooms[idx], ...body, id: req.params.id }
+    await writeJson(roomsFile, rooms)
+    res.json(rooms[idx])
+  })
+
+  app.delete('/api/rooms/:id', async (req, res) => {
+    const rooms = await getRooms()
+    if (!rooms.some((r) => r.id === req.params.id)) {
+      res.status(404).json({ error: '会话群不存在' })
+      return
+    }
+    // 删除保护：被设备引用的会话群禁止删除
+    const metas = await listDeviceMetas()
+    const refDevices = metas.filter((m) => m.roomRef === req.params.id)
+    if (refDevices.length > 0) {
+      res.status(409).json({
+        error: '该会话群正被设备引用，无法删除；请先解绑引用该会话群的设备',
+        refs: { devices: refDevices.map((d) => d.alias) },
+      })
+      return
+    }
+    await writeJson(
+      roomsFile,
+      rooms.filter((r) => r.id !== req.params.id),
+    )
+    res.json({ success: true })
+  })
+
+  // ── 设备管理 ──────────────────────────────────────────────────
+  app.get('/api/devices', async (req, res) => {
+    const devices = await listDeviceMetas()
+    const status = getAllStatus()
+    res.json(
+      devices.map((meta) => ({ ...meta, running: !!status[meta.id] })),
+    )
+  })
+
+  app.post('/api/devices', async (req, res) => {
+    const body = req.body as {
+      alias: string
+      did: string
+      speakerModel?: string
+      roleId?: string
+      accountId?: string
+      thinkServiceId?: string
+      voiceOverrideId?: string
+      exitKeepAliveAfter?: number
+      roomRef?: string
+      roomName?: string
+      roomDescription?: string
+    }
+    if (!body.alias || !body.did) {
+      res.status(400).json({ error: '别名和设备 ID 必填' })
+      return
+    }
+    const id = nanoid(8)
+    const meta: DeviceMeta = {
+      id,
+      alias: body.alias,
+      did: body.did,
+      speakerModel: body.speakerModel,
+      roleId: body.roleId,
+      accountId: body.accountId,
+      thinkServiceId: body.thinkServiceId,
+      voiceOverrideId: body.voiceOverrideId,
+      exitKeepAliveAfter: body.exitKeepAliveAfter,
+      roomRef: body.roomRef,
+      roomName: body.roomName,
+      roomDescription: body.roomDescription,
+      ttsSecret: nanoid(),
+      createdAt: Date.now(),
+    }
+    const deviceCwd = path.join(devicesRoot, id)
+    await writeJson(path.join(deviceCwd, 'meta.json'), meta)
+    // 按绑定链编译初始配置（编译投影）
+    const { config } = await buildRunConfig(meta)
+    await writeJson(path.join(deviceCwd, 'migptgui.json'), config)
+    res.json({ id, meta })
+  })
+
+  app.get('/api/devices/:id', async (req, res) => {
+    const meta = await getDeviceMeta(req.params.id)
+    if (!meta) {
+      res.status(404).json({ error: '设备不存在' })
+      return
+    }
+    const config = await loadDeviceConfig(req.params.id)
+    // 绑定关系（含来源标注：设备覆盖 / 继承人设 / 全局默认）
+    const bindings = await resolveBindings(meta)
+    res.json({ meta, config, bindings })
+  })
+
+  app.put('/api/devices/:id', async (req, res) => {
+    const id = req.params.id
+    const meta = await getDeviceMeta(id)
+    if (!meta) {
+      res.status(404).json({ error: '设备不存在' })
+      return
+    }
+    const body = req.body as { meta?: Partial<DeviceMeta>; config?: GuiConfig }
+    if (body.meta) {
+      const nextMeta: DeviceMeta = { ...meta, ...body.meta, id }
+      await writeJson(path.join(devicesRoot, id, 'meta.json'), nextMeta)
+      // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
+      if (
+        body.meta.roleId !== undefined ||
+        body.meta.accountId !== undefined ||
+        body.meta.thinkServiceId !== undefined ||
+        body.meta.voiceOverrideId !== undefined ||
+        body.meta.speakerModel !== undefined ||
+        body.meta.did !== undefined ||
+        body.meta.exitKeepAliveAfter !== undefined ||
+        body.meta.roomRef !== undefined ||
+        body.meta.roomName !== undefined ||
+        body.meta.roomDescription !== undefined
+      ) {
+        const { config } = await buildRunConfig(nextMeta)
+        await writeJson(path.join(devicesRoot, id, 'migptgui.json'), config)
+      }
+    }
+    if (body.config) {
+      await writeJson(path.join(devicesRoot, id, 'migptgui.json'), body.config)
+    }
+    res.json({ success: true })
+  })
+
+  app.delete('/api/devices/:id', async (req, res) => {
+    await stop(req.params.id)
+    await fse.remove(path.join(devicesRoot, req.params.id))
+    logBuffers.delete(req.params.id)
+    res.json({ success: true })
+  })
+
+  // ── 启动/停止 ─────────────────────────────────────────────────
+  app.post('/api/devices/:id/start', async (req, res) => {
+    const id = req.params.id
+    const meta = await getDeviceMeta(id)
+    if (!meta) {
+      res.status(404).json({ error: '设备不存在' })
+      return
+    }
+    // 启动前按绑定链重新编译投影（角色/服务变更后无需手动改 migptgui.json）
+    const existing = await loadDeviceConfig(id)
+    const { config } = await buildRunConfig(meta, existing)
+    const deviceCwd = path.join(devicesRoot, id)
+    await writeJson(path.join(deviceCwd, 'migptgui.json'), config)
+
+    // 账号托管：按设备归属账号自动写入 .mi.json（minna/miiot 两段）
+    const account = await getAccountById(meta.accountId)
+    if (account?.passToken) {
+      const miJson = {
+        mina: { pass: { passToken: account.passToken } },
+        miiot: { pass: { passToken: account.passToken } },
+      }
+      await writeJson(path.join(deviceCwd, '.mi.json'), miJson)
+    }
+
+    // 内建 TTS：为设备注入独立的 TTS_BASE_URL
+    if (
+      config.config.speaker.tts === 'custom' &&
+      config.gui &&
+      config.gui.ttsProvider !== 'custom' &&
+      config.tts
+    ) {
+      config.env.TTS_BASE_URL = `${_trimEnd(
+        config.gui.publicURL || '',
+        '/',
+      )}/${meta.ttsSecret}/tts`
+      dAudio('设置 TTS_BASE_URL 为：%s', config.env.TTS_BASE_URL)
+    }
+
+    await run(
+      id,
+      config as unknown as RunConfig,
+      deviceCwd,
+      (deviceId, line) => appendLog(deviceId, line),
+    )
+
+    res.json({ success: true })
+  })
+
+  app.post('/api/devices/:id/stop', async (req, res) => {
+    await stop(req.params.id)
+    res.json({ success: true })
+  })
+
+  app.get('/api/devices/:id/logs', async (req, res) => {
+    const limit = Number(req.query.limit) || 100
+    const buf = logBuffers.get(req.params.id) || []
+    res.json({ logs: buf.slice(-limit) })
+  })
+
+  // ── 全局对话日志（聚合所有设备，供「对话日志」页）────────────────
+  app.get('/api/logs', async (req, res) => {
+    const limit = Math.min(Number(req.query.limit) || 200, 500)
+    const rows: {
+      deviceId: string
+      deviceAlias: string
+      time: string
+      kind: 'user' | 'ai' | 'system'
+      text: string
+    }[] = []
+    for (const [deviceId, buf] of logBuffers) {
+      const meta = await getDeviceMeta(deviceId)
+      for (const line of buf.slice(-limit)) {
+        const m = line.match(/^(\d{4}[\/-]\d{2}[\/-]\d{2} \d{2}:\d{2}:\d{2})/)
+        const body = line.replace(/^\d{4}[\/-]\d{2}[\/-]\d{2} \d{2}:\d{2}:\d{2}\s*/, '')
+        let kind: 'user' | 'ai' | 'system' = 'system'
+        if (/^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/.test(body)) kind = 'user'
+        else if (/^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/.test(body)) kind = 'ai'
+        rows.push({
+          deviceId,
+          deviceAlias: meta?.alias || deviceId,
+          time: m ? m[1] : '',
+          kind,
+          text: body,
+        })
+      }
+    }
+    rows.sort((a, b) => (a.time < b.time ? 1 : -1))
+    res.json({ total: rows.length, logs: rows.slice(0, limit) })
+  })
+
+  // ── 系统日志（实时查看 + 下载历史）───────────────────────────
+  app.get('/api/system/logs', async (req, res) => {
+    const lines = Math.min(Number(req.query.lines) || 300, 2000)
+    let arr = sysLogBuf.slice(-lines)
+    if (arr.length < lines) {
+      try {
+        const all = (await fs.readFile(systemLogFile, 'utf8')).split('\n').filter(Boolean)
+        arr = all.slice(-lines)
+      } catch {
+        /* 日志文件尚未生成 */
+      }
+    }
+    let size = 0
+    try {
+      size = (await fs.stat(systemLogFile)).size
+    } catch {
+      /* 忽略 */
+    }
+    res.json({ lines: arr, file: systemLogFile, size })
+  })
+
+  app.get('/api/system/logs/download', async (_req, res) => {
+    try {
+      const text = await fs.readFile(systemLogFile, 'utf8')
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+      res.setHeader('Content-Disposition', 'attachment; filename="migpt-system.log"')
+      res.send(text)
+    } catch {
+      res.status(404).json({ error: '系统日志文件不存在' })
+    }
+  })
+
+  app.post('/api/system/logs/clear', async (_req, res) => {
+    try {
+      sysLogBuf.length = 0
+      await fse.writeFile(systemLogFile, '', 'utf8')
+      res.json({ success: true })
+    } catch (err) {
+      res.json({ success: false, error: String(err) })
+    }
+  })
+
+  // ── 测试接口（保留） ──────────────────────────────────────────
   app.post('/api/test', async (req, res) => {
     const testBaseUrl = req.body.url
     const ping = _trimEnd(testBaseUrl, '/') + '/ping'
-    dRoute(
-      '进入 POST /api/test，url 参数为：%s；拼接后的 ping 接口地址为：%s',
-      testBaseUrl,
-      ping,
-    )
     try {
       const fetchRes = await fetch(ping, {
         method: 'POST',
         signal: AbortSignal.timeout(500),
       })
-      if (fetchRes.ok) {
-        res.json({
-          success: true,
-        })
-      } else {
-        res.json({
-          success: false,
-        })
-      }
-    } catch (e) {
-      res.json({
-        success: false,
-      })
+      res.json({ success: fetchRes.ok })
+    } catch {
+      res.json({ success: false })
     }
   })
 
   app.get('/api/test/audio', (req, res) => {
-    dRoute('进入 GET /api/test/audio，query 参数：%O', req.query)
-
     const params = req.query as { ttsConfig: string }
     const options = JSON.parse(params.ttsConfig)
     const testTTS = createTTS(options)
-
     const audioStream = new Readable({ read() {} })
     options.stream = audioStream
-
     const ro = {
       text: '配置成功！',
       stream: audioStream,
-      // 关于 defaultSpeaker：
-      // mi-gpt-tts 支持三种 tts 服务，但是，这三种服务是耦合在一起的。
-      // 举个例子：我同时配置了 edge 和 volcano，如果我不指定 defaultSpeaker，那么 mi-gpt-tts 会默认使用 volcano；
-      // 如果我想要使用 edge，那么我需要在配置中指定 defaultSpeaker 为 edge 所支持的 speaker 比如“云希”。
-      //
-      // 同时，mi-gpt-tts 会将第一次调用的 defaultSpeaker 作为之后所有朗读的 speaker，举个例子，如果我第一次朗读时 defaultSpeaker 为“云希”，
-      // 那么之后所有的朗读都会使用 edge，如果我在这之后把 defaultSpeaker 切换为了 volcano 的“灿灿”，它仍然是用 edge 的“云希”朗读的。
-      // 为了解决这个问题，需要每次调用都指定下面的 speaker，这个可以强制要求 mi-gpt-tts 使用指定的 speaker。
       speaker: options.defaultSpeaker,
     }
-
-    dAudio('在语音测试接口中，开始合成语音。配置：%O', ro)
-
-    testTTS(ro)
-      // 以下错误处理的目的是如果判断到错误就让响应迅速中断，不然的话响应会一直挂起，导致配置界面 / 小爱音箱长时间处于无反应的状态
-      .then((buffer) => {
-        if (!buffer) {
-          // 没有填写配置的时候，会走到这里面来
-          audioStream.destroy(new Error('没有把配置填写完整'))
-        }
-      })
-
+    testTTS(ro).then((buffer) => {
+      if (!buffer) {
+        audioStream.destroy(new Error('没有把配置填写完整'))
+      }
+    })
     let headersSent = false
-
     audioStream.on('data', (chunk) => {
-      // console.log('data 事件数据长度：', chunk.length)
-
-      // 如果填写了配置但是填写的不对，则第一次会推送过来一个 404
-      // __但奇怪的是我没有在 mi-gpt-tts 里找到这个 404 的推送，先不管了__
-      // 破案了。
-      // npm 上发布的是 v2.0.0 的 mi-gpt-tts，当时它推送的确实是 "404"，见
-      // https://github.com/idootop/mi-gpt-tts/blob/v2.0.0/src/common/stream.ts#L30
-      // github 上现在是 v3.0.0 的，它给改成 "error" 了，见
-      // https://github.com/idootop/mi-gpt-tts/blob/v3.0.0/src/common/stream.ts#L30
       if (
         (chunk.length === 3 && chunk.toString('utf8') === '404') ||
         (chunk.length === 5 && chunk.toString('utf8') === 'error')
@@ -240,8 +1829,6 @@ export function runServer(options?: {
         audioStream.destroy(new Error('配置填写有误'))
         return
       }
-
-      // 到了这里才可以确保这次是正常响应了
       if (!headersSent) {
         res.writeHead(200, {
           'Transfer-Encoding': 'chunked',
@@ -249,15 +1836,9 @@ export function runServer(options?: {
         })
         headersSent = true
       }
-
-      // 流式响应数据
       res.write(chunk)
     })
-
-    audioStream.on('end', () => {
-      res.end()
-    })
-
+    audioStream.on('end', () => res.end())
     audioStream.once('error', (error) => {
       if (!headersSent) {
         res.status(400).send(error.message || 'Internal Server Error')
@@ -267,96 +1848,82 @@ export function runServer(options?: {
     })
   })
 
-  // 在自己运行 tts 服务时需要有一个局域网或公网 IP 地址给小爱音箱来访问下面的 /tts/tts.mp3 接口
-  // app.get('/api/myip', (req, res) => {
-  //   res.json({ ip: ip.address('public') })
-  // })
+  // ── 兼容旧版单设备 API（内部映射 id=default） ───────────────────
+  const defaultDeviceCwd = defaultBotCwd
 
-  // 读取配置
+  async function saveDefaultConfig(config: GuiConfig) {
+    await fse.ensureDir(defaultDeviceCwd)
+    return fs.writeFile(
+      path.join(defaultDeviceCwd, 'migptgui.json'),
+      JSON.stringify(config),
+    )
+  }
+
   app.get('/api/default', async (req, res) => {
-    dRoute('进入 GET /api/default')
     let migptConfig: GuiConfig | undefined
-
     try {
-      const migptConfigStr = await fs.readFile(
-        path.join(defaultBotCwd, 'migptgui.json'),
-        'utf-8',
+      migptConfig = JSON.parse(
+        await fs.readFile(path.join(defaultDeviceCwd, 'migptgui.json'), 'utf-8'),
       )
-      migptConfig = JSON.parse(migptConfigStr)
-    } catch (e) {
-      // console.log('master: 读取默认配置文件失败：', e)
+    } catch {
+      /* 不存在 */
     }
-    if (migptConfig) {
-      res.json({
-        config: migptConfig,
-      })
-    } else {
-      res.json({})
-    }
+    res.json(migptConfig ? { config: migptConfig } : {})
   })
 
-  // 保存配置
   app.put('/api/default', async (req, res) => {
-    const migptConfig = req.body as GuiConfig
-    dRoute('进入 PUT /api/default，body 参数：%O', migptConfig)
-    await saveConfig(migptConfig)
+    await saveDefaultConfig(req.body as GuiConfig)
     res.json({ success: true })
   })
 
-  // 删除 .mi.json 和 .bot.json
   app.delete('/api/default', (req, res) => {
-    dRoute('进入 DELETE /api/default，准备删除的路径：%s', defaultBotCwd)
     Promise.all([
-      fse.remove(path.join(defaultBotCwd, '.mi.json')),
-      fse.remove(path.join(defaultBotCwd, '.bot.json')),
+      fse.remove(path.join(defaultDeviceCwd, '.mi.json')),
+      fse.remove(path.join(defaultDeviceCwd, '.bot.json')),
     ]).then(
-      () => {
-        res.json({ success: true })
-      },
-      (err) => {
-        res.json({ success: false, error: err })
-      },
+      () => res.json({ success: true }),
+      (err) => res.json({ success: false, error: err }),
     )
   })
 
-  // 启动 MiGPT
   app.post('/api/default/start', async (req, res) => {
-    dRoute('进入 POST /api/default/start，body 参数：%O', req.body)
     const migptConfig = req.body as GuiConfig
-
-    await saveConfig(migptConfig)
-
-    // 如果使用了内置的 TTS 服务
+    await saveDefaultConfig(migptConfig)
     if (
       migptConfig.config.speaker.tts === 'custom' &&
       migptConfig.gui &&
       migptConfig.gui.ttsProvider !== 'custom' &&
       migptConfig.tts
     ) {
-      migptConfig.env.TTS_BASE_URL = `${_trimEnd(migptConfig.gui.publicURL, '/')}${ttsSecretPath}/tts`
-      dAudio(
-        '检测到用户启用了内建 TTS 配置，所以修改了 TTS_BASE_URL 为：%s',
-        migptConfig.env.TTS_BASE_URL,
-      )
+      migptConfig.env.TTS_BASE_URL = `${_trimEnd(
+        migptConfig.gui.publicURL || '',
+        '/',
+      )}/default/tts`
     }
-
-    // console.log('master: 收到 /api/start', migptConfig)
-
-    guiConfigRunning = migptConfig
-
-    await run(migptConfig as RunConfig, defaultBotCwd)
-
+    await run(
+      'default',
+      migptConfig as unknown as RunConfig,
+      defaultDeviceCwd,
+      (deviceId, line) => appendLog(deviceId, line),
+    )
     res.json({ success: true })
   })
 
   app.post('/api/default/stop', async (req, res) => {
-    dRoute('进入 POST /api/default/stop')
-
-    await stop()
-
+    await stop('default')
     res.json({ success: true })
   })
 
+  app.get('/api/default/logs', async (req, res) => {
+    const limit = Number(req.query.limit) || 100
+    const buf = logBuffers.get('default') || []
+    res.json({ logs: buf.slice(-limit) })
+  })
+
+  seedBuiltinVoice().catch(() => {})
+  seedBuiltinModels().catch(() => {})
+  migrateRooms().catch(() => {})
+  seedDemoLogs().catch(() => {})
   app.listen(port, () => {
     console.log('端口：', port)
     console.log('登录认证：', isAuth ? '已启用' : '未启用')

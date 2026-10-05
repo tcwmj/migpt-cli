@@ -29,7 +29,7 @@ program
   .argument('<name>', '保存有机器人数据的文件夹的名字。')
   .action((name) => {
     const json = fse.readJSONSync(path.join(name, './migptgui.json'))
-    run(json, name)
+    run(name, json, name)
   })
 
 program.parse()

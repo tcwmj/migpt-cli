@@ -32,7 +32,7 @@ export default function buildWebpackConfig(mode) {
     module: {
       rules: [
         {
-          test: /\.(woff2|ico|png|eot|svg|ttf|woff)$/i,
+          test: /\.(woff2|ico|png|jpe?g|eot|svg|ttf|woff)$/i,
           loader: 'file-loader',
           options: {
             name: '[name].[ext]',
