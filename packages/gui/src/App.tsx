@@ -1359,12 +1359,16 @@ export function App() {
                           <span className="v">{accounts.find((a) => a.id === selAcct)?.passToken ? '已保存' : '未配置'}</span>
                         </div>
                         <div className="rr">
-                          <span className="k">绑定设备</span>
+                          <span className="k">关联设备</span>
                           <span className="v">{accountUsage(selAcct).length} 台</span>
                         </div>
                         <div className="grp" style={{ marginBottom: 2 }}>
                           <h4>
                             <I n="speaker" size={14} /> 账号设备
+                            <span className="sp" />
+                            <button className="icbtn" title="刷新设备" onClick={() => loadAcctDevs(selAcct)}>
+                              <I n="arrowsClockwise" size={14} />
+                            </button>
                           </h4>
                           {(() => {
                             const st = acctDevs[selAcct]
@@ -1379,9 +1383,6 @@ export function App() {
                                 <div className="dev-pull err">
                                   <I n="warn" size={15} />
                                   {st.err}
-                                  <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={() => loadAcctDevs(selAcct)}>
-                                    <I n="arrowsClockwise" /> 重试
-                                  </button>
                                 </div>
                               )
                             if (!st.list.length)
@@ -1389,7 +1390,7 @@ export function App() {
                             return (
                               <div className="dev-pull">
                                 {st.list.map((d) => {
-                                  const mm = models.find((m) => m.id === d.hardware || m.name === d.hardware)
+                                  const mm = models.find((m) => m.id === d.hardware || m.name === d.hardware || (m.did && d.hardware && d.hardware.startsWith(m.did)))
                                   const bound = devices.find((x) => x.accountId === selAcct && x.did === d.miotDID)
                                   return (
                                     <div className="pd-row" key={d.miotDID || d.deviceID}>
@@ -1398,27 +1399,19 @@ export function App() {
                                       </span>
                                       <span className="txt">
                                         <b>{d.alias || d.name}</b>
-                                        <span>{d.deviceID || d.miotDID}
-                                          {d.hardware ? ' · ' + (mm?.name || d.hardware) : ''}
+                                        <span>
+                                          {d.miotDID ? d.miotDID + ' · ' : ''}
+                                          {mm?.name || d.hardware || '未知型号'}
                                         </span>
                                       </span>
-                                      {bound ? (
-                                        <span className="tag neu">已接入</span>
-                                      ) : (
-                                        <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>
-                                      )}
+                                      <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>
+                                      <span className={'tag' + (bound ? ' accent' : ' neu')}>{bound ? '已接入' : '未接入'}</span>
                                     </div>
                                   )
                                 })}
                               </div>
                             )
                           })()}
-                          <div className="pd-acts">
-                            <span className="sp" />
-                            <button className="btn ghost" onClick={() => loadAcctDevs(selAcct)}>
-                              <I n="arrowsClockwise" /> 刷新
-                            </button>
-                          </div>
                         </div>
                       </div>
                       <div className="acts">
@@ -3237,20 +3230,24 @@ function RolesView(props: {
           </button>
         </div>
         {sel && !edit && !creating && (
-          <div className="rform" key={'role-r-' + sel.id}>
+          <div className="rform rview" key={'role-r-' + sel.id}>
             <h3>
               <I n="chat" size={17} /> 角色详情
             </h3>
             <div className="ro">
               <div className="grp">
                 <h4>基本信息</h4>
-                <div className="rr">
-                  <span className="k">角色名称</span>
-                  <span className="v">{sel.name || '—'}</span>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">角色名称</span>
+                    <span className="v">{sel.name || '—'}</span>
+                  </div>
                 </div>
-                <div className="rr">
-                  <span className="k">人设描述</span>
-                  <span className="v">{sel.profile || '未填写'}</span>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">人设描述</span>
+                    <span className="v">{sel.profile || '未填写'}</span>
+                  </div>
                 </div>
               </div>
               <div className="grp">
@@ -3268,9 +3265,11 @@ function RolesView(props: {
               </div>
               <div className="grp">
                 <h4>单次对话</h4>
-                <div className="rr">
-                  <span className="k">调用关键词</span>
-                  <span className="v">{(sel.callAIKeywords || []).join('、') || '—'}</span>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">调用关键词</span>
+                    <span className="v">{(sel.callAIKeywords || []).join('、') || '—'}</span>
+                  </div>
                 </div>
               </div>
               <div className="grp">
@@ -3285,9 +3284,11 @@ function RolesView(props: {
                     <span className="v">{(sel.exitKeywords || []).join('、') || '—'}</span>
                   </div>
                 </div>
-                <div className="rr">
-                  <span className="k">自动退出时间</span>
-                  <span className="v">{sel.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">自动退出时间</span>
+                    <span className="v">{sel.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
+                  </div>
                 </div>
                 <div className="row">
                   <div className="rr">
@@ -3322,9 +3323,11 @@ function RolesView(props: {
                     <span className="v">{(sel.onAIReplied || []).join('、') || '关闭'}</span>
                   </div>
                 </div>
-                <div className="rr">
-                  <span className="k">AI 出错</span>
-                  <span className="v">{(sel.onAIError || []).join('、') || '关闭'}</span>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">AI 出错</span>
+                    <span className="v">{(sel.onAIError || []).join('、') || '关闭'}</span>
+                  </div>
                 </div>
               </div>
             </div>

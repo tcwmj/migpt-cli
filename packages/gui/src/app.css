@@ -1371,6 +1371,34 @@ td .ops .icon-btn svg {
   height: 13px;
   border-radius: 2px;
 }
+/* 分组标题右侧操作图标（账号设备刷新） */
+.rform .grp h4 .icbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+.rform .grp h4 .icbtn:hover {
+  color: var(--accent);
+  background: var(--amber-soft);
+}
+/* 角色详情页：属性值左对齐，k/v 固定间距，单行属性占半宽 */
+.rform.rview .ro .rr {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.rform.rview .ro .rr .v {
+  text-align: left;
+}
 /* 账号设备：账号详情页云端设备列表 */
 .dev-pull {
   display: flex;
