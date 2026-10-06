@@ -3234,6 +3234,9 @@ function RolesView(props: {
           <div className="rform rview" key={'role-r-' + sel.id}>
             <h3>
               <I n="chat" size={17} /> 角色详情
+              <span className="refs">
+                本角色被 {usage.length} 台设备引用{usage.length ? '（' + usage.join(' · ') + '）' : ''}。人设与模型热生效；修改唤醒词需重启设备。
+              </span>
             </h3>
             <div className="ro">
               <div className="grp">
@@ -3331,10 +3334,6 @@ function RolesView(props: {
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="sum">
-              <I n="info" size={14} />
-              本角色被 {usage.length} 台设备引用{usage.length ? '（' + usage.join(' · ') + '）' : ''}。人设与模型热生效；修改唤醒词需重启设备。
             </div>
             <div className="acts">
               <span className="sp" />
