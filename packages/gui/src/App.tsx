@@ -248,8 +248,8 @@ type View = 'home' | 'accounts' | 'devices' | 'roles' | 'logs' | 'think' | 'voic
 
 const TITLES: Record<View, string> = {
   home: '首页',
-  accounts: '云端账号',
-  devices: '我的设备',
+  accounts: '账号设备',
+  devices: '设备服务',
   roles: '对话角色',
   logs: '对话记录',
   think: '思考服务',
@@ -267,6 +267,10 @@ export function App() {
   const [view, setView] = useState<View>('home')
   const [settingTab, setSettingTab] = useState<'think' | 'voice'>('think')
   const [query, setQuery] = useState('')
+  const [sideOff, setSideOff] = useState<boolean>(() => localStorage.getItem('migpt-side-off') === '1')
+  useEffect(() => {
+    localStorage.setItem('migpt-side-off', sideOff ? '1' : '0')
+  }, [sideOff])
 
   const SEARCH_HINT: Record<string, string> = {
     home: '搜索账号 / 设备 / 角色 / 服务',
@@ -674,6 +678,7 @@ export function App() {
   const [detail, setDetail] = useState<DeviceDetail | null>(null)
   const [drawerBusy, setDrawerBusy] = useState(false)
   const [selDev, setSelDev] = useState<string | null>(null)
+  const [devAcctFilter, setDevAcctFilter] = useState('all')
   const [devDraft, setDevDraft] = useState<{
     alias: string
     did: string
@@ -764,6 +769,20 @@ export function App() {
     if (!authed) return
     refreshAll().catch(() => undefined)
   }, [authed, refreshAll])
+
+  /* 设备运行状态 10s 轮询（静默，不触发全局 loading） */
+  useEffect(() => {
+    if (!authed) return
+    const t = window.setInterval(async () => {
+      try {
+        const d = await api.listDevices()
+        setDevices(d)
+      } catch {
+        /* 轮询失败静默，下一轮重试 */
+      }
+    }, 10000)
+    return () => window.clearInterval(t)
+  }, [authed])
 
   const doLogin = async (u: string, p: string) => {
     setLoginErr('')
@@ -992,11 +1011,40 @@ export function App() {
     }
   }
 
+  /* 账号设备：账号详情页展示该账号下云端设备列表（独立于 devPull，按账号缓存） */
+  const [acctDevs, setAcctDevs] = useState<Record<string, { loading: boolean; err: string; list: Array<{ name?: string; alias?: string; deviceID?: string; miotDID?: string; hardware?: string; presence?: string }> }>>({})
+  const loadAcctDevs = async (accountId: string) => {
+    setAcctDevs((m) => ({ ...m, [accountId]: { loading: true, err: '', list: m[accountId]?.list || [] } }))
+    try {
+      const r = await api.pullDevices(accountId)
+      setAcctDevs((m) => ({ ...m, [accountId]: { loading: false, err: '', list: r.devices || [] } }))
+    } catch (e) {
+      setAcctDevs((m) => ({ ...m, [accountId]: { loading: false, err: errText(e), list: [] } }))
+    }
+  }
+  useEffect(() => {
+    if (selAcct && !acctDevs[selAcct]) void loadAcctDevs(selAcct)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selAcct])
+
   const filterDevices = useMemo(() => {
-    if (!query) return devices
-    const q = query.toLowerCase()
-    return devices.filter((d) => (d.alias + d.did).toLowerCase().includes(q))
-  }, [devices, query])
+    let list = devices
+    if (devAcctFilter !== 'all') list = list.filter((d) => d.accountId === devAcctFilter)
+    if (query) {
+      const q = query.toLowerCase()
+      list = list.filter((d) => (d.alias + d.did).toLowerCase().includes(q))
+    }
+    return list
+  }, [devices, query, devAcctFilter])
+  const devAcctGroups = useMemo(() => {
+    const ids: string[] = []
+    devices.forEach((d) => {
+      if (d.accountId && !ids.includes(d.accountId)) ids.push(d.accountId)
+    })
+    return ids
+      .map((id) => ({ id, name: accounts.find((a) => a.id === id)?.name || id }))
+      .filter((g) => !!g.name)
+  }, [devices, accounts])
   const filterAccounts = useMemo(() => {
     if (!query) return accounts
     const q = query.toLowerCase()
@@ -1062,14 +1110,14 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={'app' + (sideOff ? ' off' : '')}>
       {/* 侧栏 */}
-      <aside className="side">
+      <aside className={'side' + (sideOff ? ' off' : '')}>
         <div className="brand">
           <span className="mark">
             <MiLogo size={22} />
           </span>
-          <span>
+          <span className="brand-txt">
             <b>MiGPT 控制面板</b>
           </span>
         </div>
@@ -1077,6 +1125,7 @@ export function App() {
           {(['home', 'think', 'voice', 'roles', 'accounts', 'devices', 'rooms', 'models', 'logs', 'syslogs'] as View[]).map((v) => (
             <a
               key={v}
+              data-label={TITLES[v]}
               className={view === v ? 'on' : ''}
               onClick={() => {
                 setView(v)
@@ -1099,6 +1148,16 @@ export function App() {
             </span>
           </div>
         </div>
+        <button
+          className={'side-toggle' + (sideOff ? ' off' : '')}
+          title={sideOff ? '展开侧栏' : '收起侧栏'}
+          onClick={() => setSideOff(!sideOff)}
+          aria-label={sideOff ? '展开侧栏' : '收起侧栏'}
+        >
+          <svg viewBox="0 0 12 24" className="tri" aria-hidden="true">
+            <path d={sideOff ? 'M10 12 L3.6 1 L3.6 23 Z' : 'M3.6 12 L10 1 L10 23 Z'} />
+          </svg>
+        </button>
       </aside>
 
       <div className="main">
@@ -1148,7 +1207,7 @@ export function App() {
                 <button className="kpi" onClick={() => setView('accounts')}>
                   <span className="pic" style={{ backgroundImage: `url(${livingImg})` }} />
                   <div className="kv">
-                    <div className="k">云端账号</div>
+                    <div className="k">账号设备</div>
                     <div className="v num">{accounts.length}</div>
                   </div>
                   <div className="d mut">{accounts.map((a) => a.name).join(' + ') || '尚未接入'}</div>
@@ -1157,7 +1216,7 @@ export function App() {
                 <button className="kpi" onClick={() => setView('devices')}>
                   <span className="pic" style={{ backgroundImage: `url(${roomImg})` }} />
                   <div className="kv">
-                    <div className="k">我的设备</div>
+                    <div className="k">设备服务</div>
                     <div className="v num">{devices.length}</div>
                   </div>
                   <div className="d mut">{runningCount > 0 ? `${runningCount} 台运行中` : devices.length > 0 ? '部分设备待启动' : '尚未绑定音箱'}</div>
@@ -1281,7 +1340,7 @@ export function App() {
                       </button>
                     </div>
                   ) : selAcct && !acctEdit ? (
-                    <div className="form-card">
+                    <div className="form-card rform">
                       <h3>
                         <I n="user" size={17} /> 账号详情
                       </h3>
@@ -1302,6 +1361,64 @@ export function App() {
                         <div className="rr">
                           <span className="k">绑定设备</span>
                           <span className="v">{accountUsage(selAcct).length} 台</span>
+                        </div>
+                        <div className="grp" style={{ marginBottom: 2 }}>
+                          <h4>
+                            <I n="speaker" size={14} /> 账号设备
+                          </h4>
+                          {(() => {
+                            const st = acctDevs[selAcct]
+                            if (!st || st.loading)
+                              return (
+                                <div className="dev-pull loading">
+                                  <span className="spin" /> 正在从云端读取设备…
+                                </div>
+                              )
+                            if (st.err)
+                              return (
+                                <div className="dev-pull err">
+                                  <I n="warn" size={15} />
+                                  {st.err}
+                                  <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={() => loadAcctDevs(selAcct)}>
+                                    <I n="arrowsClockwise" /> 重试
+                                  </button>
+                                </div>
+                              )
+                            if (!st.list.length)
+                              return <div className="dev-pull empty">该账号下暂无音箱设备</div>
+                            return (
+                              <div className="dev-pull">
+                                {st.list.map((d) => {
+                                  const mm = models.find((m) => m.id === d.hardware || m.name === d.hardware)
+                                  const bound = devices.find((x) => x.accountId === selAcct && x.did === d.miotDID)
+                                  return (
+                                    <div className="pd-row" key={d.miotDID || d.deviceID}>
+                                      <span className="ic t">
+                                        {mm?.imageUrl ? <img src={mm.imageUrl} alt="" className="thumb" /> : <I n="speaker" />}
+                                      </span>
+                                      <span className="txt">
+                                        <b>{d.alias || d.name}</b>
+                                        <span>{d.deviceID || d.miotDID}
+                                          {d.hardware ? ' · ' + (mm?.name || d.hardware) : ''}
+                                        </span>
+                                      </span>
+                                      {bound ? (
+                                        <span className="tag neu">已接入</span>
+                                      ) : (
+                                        <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
+                          <div className="pd-acts">
+                            <span className="sp" />
+                            <button className="btn ghost" onClick={() => loadAcctDevs(selAcct)}>
+                              <I n="arrowsClockwise" /> 刷新
+                            </button>
+                          </div>
                         </div>
                       </div>
                       <div className="acts">
@@ -1404,7 +1521,7 @@ export function App() {
                         const mm = models.find((m) => m.id === selModel)
                         return mm?.imageUrl ? (
                           <div className="model-pic">
-                            <img src={mm.imageUrl} alt={mm.name} />
+                            <img className="fade" src={mm.imageUrl} alt={mm.name} onLoad={(e) => e.currentTarget.classList.add('loaded')} onError={(e) => e.currentTarget.classList.add('loaded')} />
                             <span className="pic-tag">{mm.builtin ? '内置型号' : '自定义型号'}</span>
                           </div>
                         ) : null
@@ -1466,7 +1583,7 @@ export function App() {
                         <I n="info" size={14} />
                         {(() => {
                           const used = devices.filter((d) => d.speakerModel === selModel)
-                          return used.length ? `被 ${used.map((d) => d.alias).join('、')} 关联 · 关联设备重启后生效` : '未被设备关联 · 可在「我的设备」中选择'
+                          return used.length ? `被 ${used.map((d) => d.alias).join('、')} 关联 · 关联设备重启后生效` : '未被设备关联 · 可在「设备服务」中选择'
                         })()}
                       </div>
                       <div className="acts">
@@ -1494,7 +1611,7 @@ export function App() {
                       <h3>
                         <I n="speaker" size={17} /> {selModel ? '编辑型号' : '新建型号'}
                       </h3>
-                      <div className="desc">{selModel ? '修改型号配置；已关联设备重启后生效。' : '维护音箱型号的指令与播放配置；创建后可在「我的设备」中选择。'}</div>                      <div className="fld">
+                      <div className="desc">{selModel ? '修改型号配置；已关联设备重启后生效。' : '维护音箱型号的指令与播放配置；创建后可在「设备服务」中选择。'}</div>                      <div className="fld">
                         <label>型号名称</label>
                         <input value={modelDraft.name} placeholder="例如：小米 AI 音箱第一代" onChange={(e) => setModelDraft({ ...modelDraft, name: e.target.value })} />
                       </div>
@@ -1561,7 +1678,14 @@ export function App() {
           {view === 'devices' && (
             <section data-view="devices" className="on">
               <div className="filters">
-                <span className="chip on">全部设备</span>
+                <span className={'chip' + (devAcctFilter === 'all' ? ' on' : '')} onClick={() => { setDevAcctFilter('all'); selectDev(filterDevices.length ? filterDevices[0].id : null) }}>
+                  全部设备
+                </span>
+                {devAcctGroups.map((g) => (
+                  <span key={g.id} className={'chip' + (devAcctFilter === g.id ? ' on' : '')} onClick={() => { setDevAcctFilter(g.id); const first = devices.find((d) => d.accountId === g.id); selectDev(first ? first.id : null) }}>
+                    {g.name}
+                  </span>
+                ))}
                 <span className="sp">
                   <span className="count">共 {filterDevices.length} 台</span>
                 </span>
@@ -1582,7 +1706,7 @@ export function App() {
                           <b>{d.alias}</b>
                           <span>{d.did} · {r?.name || '未指定角色'}</span>
                         </span>
-                        <span className={'tag' + (d.running ? ' accent' : ' neu')}>{d.running ? '在线' : '离线'}</span>
+                        <span className={'tag' + (d.running ? ' accent' : ' neu')}>{d.running ? '运行中' : '未启动'}</span>
                       </div>
                     )
                   })}
@@ -1597,7 +1721,7 @@ export function App() {
                         <I n="speaker" size={26} />
                       </div>
                       <b>还没有绑定设备</b>
-                      <span>先在「云端账号」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。</span>
+                      <span>先在「账号设备」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。</span>
                       <button className="btn primary" onClick={() => selectDev(null)}>
                         <I n="plus" /> 新建
                       </button>
@@ -1634,6 +1758,19 @@ export function App() {
                               const ref = devices.find((x) => x.id === selDev)?.speakerModel
                               const m = ref ? models.find((x) => x.id === ref || x.name === ref) : null
                               return m ? `${m.name}（${m.did}）` : ref || '—'
+                            })()}
+                          </span>
+                        </div>
+                        <div className="rr">
+                          <span className="k">服务状态</span>
+                          <span className="v">
+                            {(() => {
+                              const d = devices.find((x) => x.id === selDev)
+                              return d ? (
+                                <span className={'tag' + (d.running ? ' accent' : ' neu')}>{d.running ? '运行中' : '未启动'}</span>
+                              ) : (
+                                '—'
+                              )
                             })()}
                           </span>
                         </div>
@@ -1707,12 +1844,12 @@ export function App() {
                       </div>
                       <div className="sum">
                         <I n="info" size={14} />
-                        {devices.find((x) => x.id === selDev)?.running ? '设备在线 · 变更绑定后需重启' : '设备离线 · 变更绑定后需重启'}
+                        {devices.find((x) => x.id === selDev)?.running ? '服务运行中 · 变更绑定后需重启' : '服务未启动 · 变更绑定后需重启'}
                       </div>
                       <div className="acts">
                         <span className="sp" />
-                        <button className="btn ghost" onClick={() => restartDevice(selDev)} disabled={!devices.find((x) => x.id === selDev)?.running}>
-                          <I n="restart" /> 重启
+                        <button className="btn ghost" onClick={() => restartDevice(selDev)}>
+                          <I n="restart" /> {devices.find((x) => x.id === selDev)?.running ? '重启' : '启动'}
                         </button>
                         <button className="btn danger" onClick={removeDeviceForm}>
                           <I n="trash" /> 删除
@@ -1844,13 +1981,15 @@ export function App() {
                               <div className="pick-list" style={{ marginTop: 8 }}>
                                 {devPull.list.map((d) => {
                                   const m = models.find((x) => x.did.toLowerCase() === (d.hardware || '').toLowerCase())
+                                  const bound = !!devices.find((x) => x.accountId === devDraft.accountId && x.did === d.miotDID)
                                   return (
                                     <div
-                                      className={'pl' + (devDraft.did === d.miotDID ? ' on' : '')}
+                                      className={'pl' + (devDraft.did === d.miotDID ? ' on' : '') + (bound ? ' off' : '')}
                                       key={d.miotDID}
-                                      onClick={() =>
+                                      onClick={() => {
+                                        if (bound) return
                                         setDevDraft({ ...devDraft, alias: d.name || d.alias, did: d.miotDID, speakerModel: m ? m.id : devDraft.speakerModel })
-                                      }
+                                      }}
                                     >
                                       <span className="ic">
                                         <I n="speaker" />
@@ -1861,7 +2000,7 @@ export function App() {
                                           {m ? m.name : d.hardware || '未知型号'} · {d.presence === 'online' ? '在线' : '离线'}
                                         </span>
                                       </span>
-                                      {devDraft.did === d.miotDID && <I n="check" size={18} />}
+                                      {bound ? <span className="tag neu">已接入</span> : devDraft.did === d.miotDID && <I n="check" size={18} />}
                                     </div>
                                   )
                                 })}
@@ -1922,7 +2061,7 @@ export function App() {
                       {selDev && (
                         <div className="sum">
                           <I n="info" size={14} />
-                          {devices.find((x) => x.id === selDev)?.running ? '设备在线 · 修改绑定后需重启' : '设备离线 · 修改绑定后需重启'}
+                          {devices.find((x) => x.id === selDev)?.running ? '服务运行中 · 修改绑定后需重启' : '服务未启动 · 修改绑定后需重启'}
                         </div>
                       )}
                       <div className="acts">
@@ -2510,6 +2649,8 @@ export function App() {
           accounts={accounts}
           roles={roles}
           models={models}
+          thinkSvcs={thinkSvcs}
+          voiceSvcs={voiceSvcs}
           draft={wizard}
           setDraft={(p) => setWizard({ ...wizard, ...p })}
           onClose={() => setWizard(null)}
@@ -2518,21 +2659,33 @@ export function App() {
             await refreshAll()
             return created
           }}
+          onUpdateAccount={async (id, d) => {
+            const u = await api.updateAccount(id, d as Partial<Account>)
+            await refreshAll()
+            return u
+          }}
           onNewRole={async (d) => {
             const created = await api.createRole(d)
             await refreshAll()
             return created
           }}
+          onUpdateRole={async (id, d) => {
+            const u = await api.updateRole(id, d as Partial<Role>)
+            await refreshAll()
+            return u
+          }}
+          devices={devices}
           onFinish={async () => {
             try {
-              await api.createDevice({
+              const created = await api.createDevice({
                 alias: wizard.alias,
                 did: wizard.did,
                 speakerModel: wizard.model || undefined,
                 roleId: wizard.roleId || undefined,
                 accountId: wizard.accountId || undefined,
               })
-              showToast('设备已添加，点击「重启设备」使其生效')
+              await api.startDevice(created.id)
+              showToast('设备已添加并启动')
               setWizard(null)
               refreshAll()
             } catch (e) {
@@ -2887,7 +3040,7 @@ function RoomsView(props: {
                 <I n="users" size={26} />
               </div>
               <b>还没有会话群</b>
-              <span>会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「我的设备」中关联。</span>
+              <span>会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「设备服务」中关联。</span>
               <button className="btn primary" onClick={startCreate}>
                 <I n="plus" /> 新建
               </button>
@@ -2897,7 +3050,7 @@ function RoomsView(props: {
               <h3>
                 <I n="users" size={17} /> {creating ? '新建会话群' : '编辑会话群'}
               </h3>
-              <div className="desc">{creating ? '创建后可到「我的设备」中为音箱关联此会话群。' : '修改会话群信息；关联设备重启后生效。'}</div>
+              <div className="desc">{creating ? '创建后可到「设备服务」中为音箱关联此会话群。' : '修改会话群信息；关联设备重启后生效。'}</div>
               <div className="fld">
                 <label>会话群名称</label>
                 <input value={draft.name} placeholder="例如：客厅会话" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
@@ -3189,7 +3342,7 @@ function RolesView(props: {
           </div>
         )}
         {draft && (edit || creating) && (
-          <div className="rform" key={'role-e-' + (creating ? 'new' : sel?.id || 'new')}>
+          <div className="rform redit" key={'role-e-' + (creating ? 'new' : sel?.id || 'new')}>
             <h3>
               <I n="chat" size={17} /> {creating ? '新建角色' : '编辑角色'}
               <span className="refs">
@@ -3439,8 +3592,8 @@ function Drawer(props: {
                 <span className="vv">{props.accounts.find((a) => a.id === m.accountId)?.name || '未绑定'}</span>
               </div>
               <div className="kr">
-                <span className="k">状态</span>
-                <span className="vv">{props.running ? '运行中' : '已停止'}</span>
+                <span className="k">服务状态</span>
+                <span className="vv">{props.running ? '运行中' : '未启动'}</span>
               </div>
               <div className="kr">
                 <span className="k">连续对话</span>
@@ -3916,12 +4069,17 @@ function Wizard(props: {
   accounts: Account[]
   roles: Role[]
   models: SpeakerModel[]
+  thinkSvcs: ThinkService[]
+  voiceSvcs: VoiceService[]
+  devices: { id: string; alias: string; did: string; accountId?: string }[]
   draft: { step: number; accountId: string; alias: string; did: string; model: string; roleId: string }
   setDraft: (p: Partial<{ step: number; accountId: string; alias: string; did: string; model: string; roleId: string }>) => void
   onClose: () => void
   onFinish: () => void
   onNewAccount: (d: { name: string; miUserId: string; passToken: string }) => Promise<Account>
+  onUpdateAccount: (id: string, d: Partial<Account>) => Promise<Account>
   onNewRole: (d: { name: string; profile?: string }) => Promise<Role>
+  onUpdateRole: (id: string, d: Partial<Role>) => Promise<Role>
 }) {
   const { draft } = props
   const [closing, setClosing] = useState(false)
@@ -3937,15 +4095,18 @@ function Wizard(props: {
   const [pullErr, setPullErr] = useState('')
   const [pulled, setPulled] = useState<PulledDevice[] | null>(null)
   const [newAcct, setNewAcct] = useState(false)
+  const [acctEdit, setAcctEdit] = useState(false)
   const [naDraft, setNaDraft] = useState({ name: '', miUserId: '', passToken: '' })
   const [naBusy, setNaBusy] = useState(false)
   const [naErr, setNaErr] = useState('')
   const [newRole, setNewRole] = useState(false)
-  const [nrDraft, setNrDraft] = useState({ name: '', profile: '' })
+  const [roleEdit, setRoleEdit] = useState(false)
+  const [nrDraft, setNrDraft] = useState<{ name: string; profile: string; thinkServiceId?: string; voiceId?: string }>({ name: '', profile: '' })
   const [nrBusy, setNrBusy] = useState(false)
   const [nrErr, setNrErr] = useState('')
   const step = draft.step
   const selAcct = props.accounts.find((a) => a.id === draft.accountId)
+  const selRole = props.roles.find((r) => r.id === draft.roleId)
   const load = useCallback((accountId: string) => {
     if (!accountId) return
     setPulling(true)
@@ -3964,233 +4125,425 @@ function Wizard(props: {
   useEffect(() => {
     if (step === 1 && draft.accountId) load(draft.accountId)
   }, [step, draft.accountId, load])
-  const saveNa = async () => {
+  // 列表有实体时默认选中第一个；无实体时右侧展示新建表单
+  useEffect(() => {
+    if (step === 0 && !draft.accountId && props.accounts.length) props.setDraft({ accountId: props.accounts[0].id })
+  }, [step, draft.accountId, props.accounts, props.setDraft])
+  useEffect(() => {
+    if (step === 2 && !draft.roleId && props.roles.length) props.setDraft({ roleId: props.roles[0].id })
+  }, [step, draft.roleId, props.roles, props.setDraft])
+  // 设备拉取完成且有设备时，默认选中第一台
+  useEffect(() => {
+    if (step === 1 && pulled && pulled.length > 0 && !draft.did) {
+      const d = pulled[0]
+      const m = modelOf(d.hardware)
+      props.setDraft({ alias: d.name || d.alias, did: d.miotDID, model: m ? m.id : draft.model })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pulled, draft.did])
+  const saveAcct = async () => {
     if (naBusy) return
     setNaBusy(true)
     setNaErr('')
     try {
-      const created = await props.onNewAccount(naDraft)
-      props.setDraft({ accountId: created.id })
-      setNewAcct(false)
+      if (acctEdit && selAcct) {
+        await props.onUpdateAccount(selAcct.id, { name: naDraft.name, miUserId: naDraft.miUserId, ...(naDraft.passToken ? { passToken: naDraft.passToken } : {}) })
+        setAcctEdit(false)
+      } else {
+        const created = await props.onNewAccount(naDraft)
+        props.setDraft({ accountId: created.id })
+        setNewAcct(false)
+      }
       setNaDraft({ name: '', miUserId: '', passToken: '' })
     } catch (e) {
-      setNaErr((e as Error).message || '新建账号失败')
+      setNaErr((e as Error).message || '保存账号失败')
     } finally {
       setNaBusy(false)
     }
   }
-  const saveNr = async () => {
+  const saveRole = async () => {
     if (nrBusy) return
     setNrBusy(true)
     setNrErr('')
     try {
-      const created = await props.onNewRole({ name: nrDraft.name, profile: nrDraft.profile })
-      props.setDraft({ roleId: created.id })
-      setNewRole(false)
+      const body: Record<string, unknown> = { name: nrDraft.name, profile: nrDraft.profile }
+      if (nrDraft.thinkServiceId) body.thinkServiceId = nrDraft.thinkServiceId
+      if (nrDraft.voiceId) body.voiceId = nrDraft.voiceId
+      if (roleEdit && selRole) {
+        await props.onUpdateRole(selRole.id, body)
+        setRoleEdit(false)
+      } else {
+        const created = await props.onNewRole(body)
+        props.setDraft({ roleId: created.id })
+        setNewRole(false)
+      }
       setNrDraft({ name: '', profile: '' })
     } catch (e) {
-      setNrErr((e as Error).message || '新建角色失败')
+      setNrErr((e as Error).message || '保存角色失败')
     } finally {
       setNrBusy(false)
     }
   }
+  const beginAcctEdit = () => {
+    if (!selAcct) return
+    setNewAcct(false)
+    setAcctEdit(true)
+    setNaDraft({ name: selAcct.name, miUserId: selAcct.miUserId, passToken: '' })
+  }
+  const beginRoleEdit = () => {
+    if (!selRole) return
+    setNewRole(false)
+    setRoleEdit(true)
+    setNrDraft({ name: selRole.name, profile: selRole.profile || '', thinkServiceId: selRole.thinkServiceId, voiceId: selRole.voiceId })
+  }
   const canNext =
     (step === 0 && !!draft.accountId) ||
-    (step === 1 && !!draft.did) ||
+    (step === 1 && !!draft.did && !pullErr) ||
     step === 2
   const finish = () => {
     if (closing) return
     if (step === 2) close(props.onFinish)
     else if (canNext) props.setDraft({ step: step + 1 })
   }
-  const modelOf = (hardware: string) => props.models.find((x) => x.did.toLowerCase() === (hardware || '').toLowerCase())
+  const modelOf = (hardware: string) =>
+    props.models.find((x) => {
+      const a = (x.did || '').toLowerCase()
+      const b = (hardware || '').toLowerCase()
+      return a === b || a.startsWith(b) || b.startsWith(a)
+    })
+  const WSTEP = [
+    { n: '1', t: '连接账号', s: '读取设备' },
+    { n: '2', t: '选择设备', s: '确认型号' },
+    { n: '3', t: '对话服务', s: '保存并启动' },
+  ]
   return (
     <div className={'wizard on' + (closing ? ' closing' : '')}>
       <div className="wiz">
         <div className="wh">
-          <b>添加设备</b>
-          <span className="steps">
-            {[0, 1, 2].map((s) => (
-              <i key={s} className={step === s ? 'on' : ''} />
+          <div className="wtitle">
+            <b>设备连接向导</b>
+          </div>
+          <div className="wsteps">
+            {WSTEP.map((it, i) => (
+              <div key={i} className={'wstep' + (step === i ? ' on' : i < step ? ' done' : '')}>
+                <span className="wno">{i < step ? <I n="check" size={13} /> : it.n}</span>
+                <span className="wt">
+                  <b>{it.t}（{it.s}）</b>
+                </span>
+              </div>
             ))}
-          </span>
+          </div>
           <button className="icon-btn" onClick={() => close()}>
             <I n="x" />
           </button>
         </div>
         <div className="wb">
           <div className={'step' + (step === 0 ? ' on' : '')}>
-            <h4>连接云端账号</h4>
-            <div className="desc">这台音箱归哪个小米账号管？可选择已有账号，或新建账号。</div>
-            <div className="pick-list">
-              {props.accounts.length === 0 && (
-                <div className="empty" style={{ padding: '20px' }}>
-                  <b>还没有云端账号</b>
-                  <span>请先接入小米账号，或在下方新建。</span>
-                </div>
-              )}
-              {props.accounts.map((a) => (
-                <div className={'pl' + (draft.accountId === a.id ? ' on' : '')} key={a.id} onClick={() => props.setDraft({ accountId: a.id })}>
-                  <span className="ic">
-                    <I n="user" />
-                  </span>
-                  <span>
-                    <b>
-                      {a.name} {a.miUserId}
-                    </b>
-                    <span>小米账号</span>
-                  </span>
-                  {draft.accountId === a.id && <I n="check" size={18} />}
-                </div>
-              ))}
-            </div>
-            {!newAcct ? (
-              <button className="btn" style={{ justifyContent: 'center', marginTop: 10, width: '100%' }} onClick={() => setNewAcct(true)}>
-                <I n="plus" /> 新建账号
-              </button>
-            ) : (
-              <div className="new-acct" style={{ marginTop: 10 }}>
-                <div className="fld">
-                  <label>账号名称</label>
-                  <input value={naDraft.name} placeholder="例如：默认账号" onChange={(e) => setNaDraft({ ...naDraft, name: e.target.value })} />
-                </div>
-                <div className="fld">
-                  <label>小米 ID</label>
-                  <input value={naDraft.miUserId} placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱" onChange={(e) => setNaDraft({ ...naDraft, miUserId: e.target.value })} />
-                </div>
-                <div className="fld">
-                  <label>云端会话凭证 passToken</label>
-                  <textarea rows={2} value={naDraft.passToken} placeholder="从米家 / 小爱获取的 token" onChange={(e) => setNaDraft({ ...naDraft, passToken: e.target.value })} />
-                  <span className="hint">请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。</span>
-                </div>
-                {naErr && (
-                  <div className="notice err">
-                    <I n="warning" size={15} /> {naErr}
+            <div className="split wsplit">
+              <aside className="slist">
+                {props.accounts.length === 0 && (
+                  <div className="empty" style={{ padding: '16px' }}>
+                    <b>还没有云端账号</b>
+                    <span>请新建一个账号，或在「账号设备」页先接入。</span>
                   </div>
                 )}
-                <div className="acts" style={{ marginTop: 10 }}>
-                  <span className="sp" />
-                  <button className="btn ghost" onClick={() => setNewAcct(false)}>
-                    取消
-                  </button>
-                  <button className="btn primary" disabled={naBusy || !naDraft.name || !naDraft.miUserId || !naDraft.passToken} onClick={saveNa}>
-                    {naBusy ? '保存中…' : '保存并选择'}
-                  </button>
-                </div>
-              </div>
-            )}
+                {props.accounts.map((a) => (
+                  <div key={a.id} className={'li' + (draft.accountId === a.id ? ' on' : '')} onClick={() => { props.setDraft({ accountId: a.id }); setNewAcct(false); setAcctEdit(false); setNaDraft({ name: '', miUserId: '', passToken: '' }) }}>
+                    <span className="ic">
+                      <I n="user" />
+                    </span>
+                    <span className="txt">
+                      <b>{a.name}</b>
+                      <span>小米 ID {a.miUserId}</span>
+                    </span>
+                  </div>
+                ))}
+                <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={() => { setNewAcct(true); setAcctEdit(false); setNaDraft({ name: '', miUserId: '', passToken: '' }) }}>
+                  <I n="plus" /> 新建
+                </button>
+              </aside>
+              <section className="sdetail">
+                {selAcct && !newAcct && !acctEdit ? (
+                  <div className="form-card">
+                    <h3>
+                      <I n="user" size={17} /> 账号详情
+                    </h3>
+                    <div className="desc">账号信息与凭据状态；凭据仅保存于本机服务端。</div>
+                    <div className="ro">
+                      <div className="rr">
+                        <span className="k">账号名称</span>
+                        <span className="v">{selAcct.name || '—'}</span>
+                      </div>
+                      <div className="rr">
+                        <span className="k">小米 ID</span>
+                        <span className="v">{selAcct.miUserId || '—'}</span>
+                      </div>
+                      <div className="rr">
+                        <span className="k">passToken</span>
+                        <span className="v">{selAcct.passToken ? '已保存' : '未配置'}</span>
+                      </div>
+                    </div>
+                    <div className="acts">
+                      <span className="sp" />
+                      <button className="btn primary" onClick={beginAcctEdit}>
+                        <I n="pencil" /> 编辑
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-card">
+                    <h3>
+                      <I n="user" size={17} /> {acctEdit && selAcct ? '编辑账号' : '新建云端账号'}
+                    </h3>
+                    <div className="desc">{acctEdit && selAcct ? '更新名称或凭据；换绑账号后需重启受影响设备。' : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}</div>
+                    <div className="fld">
+                      <label>账号名称</label>
+                      <input value={naDraft.name} placeholder="例如：默认账号" onChange={(e) => setNaDraft({ ...naDraft, name: e.target.value })} />
+                    </div>
+                    <div className="fld">
+                      <label>小米 ID</label>
+                      <input value={naDraft.miUserId} placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱" onChange={(e) => setNaDraft({ ...naDraft, miUserId: e.target.value })} />
+                    </div>
+                    <div className="fld">
+                      <label>云端会话凭证 passToken</label>
+                      <textarea rows={3} value={naDraft.passToken} placeholder={acctEdit && selAcct && selAcct.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setNaDraft({ ...naDraft, passToken: e.target.value })} />
+                      <span className="hint">{acctEdit && selAcct ? '留空则保留原凭据' : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'}</span>
+                    </div>
+                    {naErr && (
+                      <div className="notice err">
+                        <I n="warning" size={15} /> {naErr}
+                      </div>
+                    )}
+                    <div className="acts">
+                      <span className="sp" />
+                      <button className="btn ghost" onClick={() => (acctEdit && selAcct ? (setAcctEdit(false), setNaDraft({ name: '', miUserId: '', passToken: '' })) : setNewAcct(false))}>
+                        取消
+                      </button>
+                      <button className="btn primary" disabled={naBusy || !naDraft.name || !naDraft.miUserId} onClick={saveAcct}>
+                        {naBusy ? '保存中…' : '保存'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
           <div className={'step' + (step === 1 ? ' on' : '')}>
-            <h4>选择设备</h4>
-            <div className="desc">从账号下拉取音箱列表，选择要接入的设备；设备 ID 与型号自动识别。</div>
-            {!selAcct ? (
-              <div className="empty" style={{ padding: '20px' }}>
-                <b>请先选择云端账号</b>
-                <span>回到上一步选择或新建账号。</span>
-              </div>
-            ) : (
-              <>
-                <div className="fld">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 12.5, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {selAcct.name}（{selAcct.miUserId}）
-                    </span>
-                    <button className="btn" onClick={() => load(draft.accountId)} disabled={pulling}>
-                      <I n="refresh" /> 重新读取
-                    </button>
+            <div className="split wsplit">
+              <aside className="slist">
+                {!selAcct ? (
+                  <div className="empty" style={{ padding: '16px' }}>
+                    <b>请先选择云端账号</b>
+                    <span>回到上一步选择或新建账号。</span>
                   </div>
-                </div>
-                {pulling && <div className="hint">正在从小米云端拉取设备…</div>}
-                {pullErr && (
-                  <div className="notice err">
-                    <I n="warning" size={15} /> {pullErr}
-                  </div>
-                )}
-                {pulled && pulled.length > 0 && (
-                  <div className="pick-list">
-                    {pulled.map((d) => {
-                      const m = modelOf(d.hardware)
-                      return (
-                        <div
-                          className={'pl' + (draft.did === d.miotDID ? ' on' : '')}
-                          key={d.miotDID}
-                          onClick={() => props.setDraft({ alias: d.name || d.alias, did: d.miotDID, model: m ? m.id : draft.model })}
-                        >
-                          <span className="ic">
-                            <I n="speaker" />
-                          </span>
-                          <span>
-                            <b>{d.name || d.alias}</b>
-                            <span>
-                              {m ? m.name : d.hardware || '未知型号'} · {d.presence === 'online' ? '在线' : '离线'}
+                ) : (
+                  <>
+                    <div className="filters" style={{ margin: '0 0 8px' }}>
+                      <span className="chip on">{selAcct.name}</span>
+                    </div>
+                    {pulling && <div className="hint">正在从小米云端拉取设备…</div>}
+                    {pullErr && (
+                      <div className="empty" style={{ padding: '16px' }}>
+                        <b>未获取到设备信息</b>
+                      </div>
+                    )}
+                    {pulled && pulled.length > 0 ? (
+                      pulled.map((d) => {
+                        const m = modelOf(d.hardware)
+                        const bound = !!props.devices.find((x) => x.accountId === selAcct.id && x.did === d.miotDID)
+                        return (
+                          <div
+                            key={d.miotDID}
+                            className={'li' + (draft.did === d.miotDID ? ' on' : '') + (bound ? ' off' : '')}
+                            onClick={() => {
+                              if (bound) return
+                              props.setDraft({ alias: d.name || d.alias, did: d.miotDID, model: m ? m.id : draft.model })
+                            }}
+                          >
+                            <span className="ic">
+                              {m?.imageUrl ? <img className="thumb" src={m.imageUrl} alt="" /> : <I n="speaker" />}
                             </span>
-                          </span>
-                          {draft.did === d.miotDID && <I n="check" size={18} />}
+                            <span className="txt">
+                              <b>{d.name || d.alias}</b>
+                              <span>{m ? m.name : d.hardware || '未知型号'}</span>
+                            </span>
+                            {bound ? <span className="tag neu">已接入</span> : <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>}
+                          </div>
+                        )
+                      })
+                    ) : (
+                      pulled !== null && !pulling && (
+                        <div className="empty" style={{ padding: '16px' }}>
+                          <b>未发现音箱设备</b>
+                          <span>请确认小米 ID 与 passToken 正确。</span>
                         </div>
                       )
-                    })}
+                    )}
+                  </>
+                )}
+              </aside>
+              <section className="sdetail">
+                {pullErr ? (
+                  <div className="form-card err-card">
+                    <h3>
+                      <I n="warning" size={17} /> 设备拉取失败
+                    </h3>
+                    <div className="notice err">{pullErr}</div>
+                    <div className="desc">返回上一步检查小米 ID 与 passToken，或到「账号设备」页更新凭据后重试。</div>
+                  </div>
+                ) : draft.did ? (
+                  <div className="form-card">
+                    <h3>
+                      <I n="speaker" size={17} /> 设备详情
+                    </h3>
+                    <div className="desc">设备 ID 与型号由云端自动识别。</div>
+                    <div className="ro">
+                      {(() => {
+                        const hw = (pulled || []).find((x) => x.miotDID === draft.did)?.hardware
+                        const m = modelOf(hw)
+                        return m?.imageUrl ? (
+                          <div className="model-pic">
+                            <img className="fade" src={m.imageUrl} alt={m.name} onLoad={(e) => e.currentTarget.classList.add('loaded')} onError={(e) => e.currentTarget.classList.add('loaded')} />
+                            <span className="pic-tag">{m.builtin ? '内置型号' : '自定义型号'}</span>
+                          </div>
+                        ) : null
+                      })()}
+                      <div className="rr2">
+                        <div className="rr">
+                          <span className="k">设备名称</span>
+                          <span className="v">{draft.alias || '—'}</span>
+                        </div>
+                        <div className="rr">
+                          <span className="k">设备 ID</span>
+                          <span className="v">{draft.did || '—'}</span>
+                        </div>
+                        <div className="rr">
+                          <span className="k">设备型号</span>
+                          <span className="v">{modelOf((pulled || []).find((x) => x.miotDID === draft.did)?.hardware || '')?.name || '待型号映射核对'}</span>
+                        </div>
+                        <div className="rr">
+                          <span className="k">设备状态</span>
+                          <span className="v">{(pulled || []).find((x) => x.miotDID === draft.did)?.presence === 'online' ? '在线' : '离线'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty">
+                    <div className="art">
+                      <I n="speaker" size={26} />
+                    </div>
+                    <b>选择要接入的设备</b>
+                    <span>从左侧列表选择一台音箱；设备 ID 与型号自动识别。</span>
                   </div>
                 )}
-                {draft.did && (
-                  <div className="sum" style={{ marginTop: 8 }}>
-                    <I n="check" size={14} /> 已选择：{draft.alias}（{draft.did}）{modelOf(draft.model || '') ? '' : ' · 未命中内置型号，可在「设备型号」核对'}
-                  </div>
-                )}
-              </>
-            )}
+              </section>
+            </div>
           </div>
           <div className={'step' + (step === 2 ? ' on' : '')}>
-            <h4>绑定对话角色</h4>
-            <div className="desc">这台音箱用谁的人设？思考服务与语音服务由角色统一提供，可选择已有角色或新建。</div>
-            <div className="pick-list">
-              {props.roles.map((r) => (
-                <div className={'pl' + (draft.roleId === r.id ? ' on' : '')} key={r.id} onClick={() => props.setDraft({ roleId: r.id })}>
-                  <img className="pavatar" src={avatarOf(r.name)} alt={r.name} />
-                  <span>
-                    <b>{r.name}</b>
-                    <span>{r.profile?.slice(0, 24) || ''}</span>
-                  </span>
-                  {draft.roleId === r.id && <I n="check" size={18} />}
-                </div>
-              ))}
-              {props.roles.length === 0 && (
-                <div className="empty" style={{ padding: '20px' }}>
-                  <b>还没有对话角色</b>
-                  <span>可新建角色并绑定；思考服务与语音服务可在角色中后续配置。</span>
-                </div>
-              )}
-            </div>
-            {!newRole ? (
-              <button className="btn" style={{ justifyContent: 'center', marginTop: 10, width: '100%' }} onClick={() => setNewRole(true)}>
-                <I n="plus" /> 新建角色
-              </button>
-            ) : (
-              <div className="new-acct" style={{ marginTop: 10 }}>
-                <div className="fld">
-                  <label>角色名称</label>
-                  <input value={nrDraft.name} placeholder="例如：小爱同学" onChange={(e) => setNrDraft({ ...nrDraft, name: e.target.value })} />
-                </div>
-                <div className="fld">
-                  <label>人设描述</label>
-                  <textarea rows={3} value={nrDraft.profile} placeholder="例如：你叫小爱，是这家人的智能助手…" onChange={(e) => setNrDraft({ ...nrDraft, profile: e.target.value })} />
-                  <span className="hint">创建后可到「对话角色」补充思考服务与语音服务；留空则跟随全局默认。</span>
-                </div>
-                {nrErr && (
-                  <div className="notice err">
-                    <I n="warning" size={15} /> {nrErr}
+            <div className="split wsplit">
+              <aside className="slist">
+                {props.roles.length === 0 && (
+                  <div className="empty" style={{ padding: '16px' }}>
+                    <b>还没有对话角色</b>
+                    <span>请新建一个角色，或到「对话角色」页先创建。</span>
                   </div>
                 )}
-                <div className="acts" style={{ marginTop: 10 }}>
-                  <span className="sp" />
-                  <button className="btn ghost" onClick={() => setNewRole(false)}>
-                    取消
-                  </button>
-                  <button className="btn primary" disabled={nrBusy || !nrDraft.name} onClick={saveNr}>
-                    {nrBusy ? '保存中…' : '保存并绑定'}
-                  </button>
-                </div>
-              </div>
-            )}
+                {props.roles.map((r) => (
+                  <div key={r.id} className={'li' + (draft.roleId === r.id ? ' on' : '')} onClick={() => { props.setDraft({ roleId: r.id }); setNewRole(false); setRoleEdit(false); setNrDraft({ name: '', profile: '' }) }}>
+                    <img className="pavatar" src={avatarOf(r.name)} alt={r.name} />
+                    <span className="txt">
+                      <b>{r.name}</b>
+                      <span>{r.profile?.slice(0, 24) || '未填写人设'}</span>
+                    </span>
+                  </div>
+                ))}
+                <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={() => { setNewRole(true); setRoleEdit(false); setNrDraft({ name: '', profile: '' }) }}>
+                  <I n="plus" /> 新建
+                </button>
+              </aside>
+              <section className="sdetail">
+                {selRole && !newRole && !roleEdit ? (
+                  <div className="form-card">
+                    <h3>
+                      <I n="user" size={17} /> 角色详情
+                    </h3>
+                    <div className="desc">思考服务与语音服务由角色统一提供；人设与模型热生效。</div>
+                    <div className="ro">
+                      <div className="rr">
+                        <span className="k">角色名称</span>
+                        <span className="v">{selRole.name || '—'}</span>
+                      </div>
+                      <div className="rr">
+                        <span className="k">人设描述</span>
+                        <span className="v" style={{ whiteSpace: 'pre-wrap' }}>{selRole.profile || '—'}</span>
+                      </div>
+                      <div className="rr">
+                        <span className="k">思考服务</span>
+                        <span className="v">{props.thinkSvcs.find((s) => s.id === selRole.thinkServiceId)?.name || '跟随全局默认'}</span>
+                      </div>
+                      <div className="rr">
+                        <span className="k">语音服务</span>
+                        <span className="v">{props.voiceSvcs.find((s) => s.id === selRole.voiceId)?.name || '跟随全局默认'}</span>
+                      </div>
+                    </div>
+                    <div className="acts">
+                      <span className="sp" />
+                      <button className="btn primary" onClick={beginRoleEdit}>
+                        <I n="pencil" /> 编辑
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-card">
+                    <h3>
+                      <I n="user" size={17} /> {roleEdit && selRole ? '编辑角色' : '新建对话角色'}
+                    </h3>
+                    <div className="desc">{roleEdit && selRole ? '更新角色信息；服务留空则跟随全局默认。' : '角色名称必填；思考服务与语音服务可选，留空则跟随全局默认。'}</div>
+                    <div className="fld">
+                      <label>角色名称</label>
+                      <input value={nrDraft.name} placeholder="例如：小爱同学" onChange={(e) => setNrDraft({ ...nrDraft, name: e.target.value })} />
+                    </div>
+                    <div className="fld">
+                      <label>人设描述</label>
+                      <textarea rows={4} value={nrDraft.profile} placeholder="例如：你叫小爱，是这家人的智能助手…" onChange={(e) => setNrDraft({ ...nrDraft, profile: e.target.value })} />
+                    </div>
+                    <div className="fld">
+                      <label>思考服务</label>
+                      <select value={nrDraft.thinkServiceId || ''} onChange={(e) => setNrDraft({ ...nrDraft, thinkServiceId: e.target.value || undefined })}>
+                        <option value="">跟随全局默认</option>
+                        {props.thinkSvcs.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="fld">
+                      <label>语音服务</label>
+                      <select value={nrDraft.voiceId || ''} onChange={(e) => setNrDraft({ ...nrDraft, voiceId: e.target.value || undefined })}>
+                        <option value="">跟随全局默认</option>
+                        {props.voiceSvcs.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {nrErr && (
+                      <div className="notice err">
+                        <I n="warning" size={15} /> {nrErr}
+                      </div>
+                    )}
+                    <div className="acts">
+                      <span className="sp" />
+                      <button className="btn ghost" onClick={() => (roleEdit && selRole ? (setRoleEdit(false), setNrDraft({ name: '', profile: '' })) : setNewRole(false))}>
+                        取消
+                      </button>
+                      <button className="btn primary" disabled={nrBusy || !nrDraft.name} onClick={saveRole}>
+                        {nrBusy ? '保存中…' : '保存'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         </div>
         <div className="wf">

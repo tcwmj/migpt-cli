@@ -99,6 +99,7 @@ svg {
   display: grid;
   grid-template-columns: var(--side) 1fr;
   min-height: 100vh;
+  transition: grid-template-columns 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (max-width: 1180px) {
@@ -123,6 +124,12 @@ svg {
   height: 100vh;
   align-self: start;
   overflow-y: auto;
+  scrollbar-width: none;
+  z-index: 100;
+  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.side::-webkit-scrollbar {
+  display: none;
 }
 
 .brand {
@@ -287,6 +294,156 @@ svg {
 .side .logout svg {
   width: 16px;
   height: 16px;
+}
+
+/* ── 侧栏手动收缩（app.off / side.off） ── */
+.app.off {
+  grid-template-columns: 64px 1fr;
+}
+.app.off .side {
+  overflow: visible;
+  padding: 14px 6px 10px;
+}
+.app.off .brand {
+  justify-content: center;
+  padding: 8px 0 18px;
+  gap: 0;
+}
+.app.off .brand-txt,
+.app.off .side nav a .label,
+.app.off .user-card .foot-txt {
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.brand-txt,
+.side nav a .label,
+.user-card .foot-txt {
+  max-width: 220px;
+  transition: opacity 0.16s ease, max-width 0.24s ease;
+}
+.app:not(.off) .brand-txt,
+.app:not(.off) .side nav a .label,
+.app:not(.off) .user-card .foot-txt {
+  transition-delay: 0.2s;
+}
+.app.off .side nav {
+  gap: 4px;
+}
+.app.off .side nav a {
+  justify-content: center;
+  padding: 11px 0;
+  gap: 0;
+}
+.app.off .side nav a svg {
+  width: 21px;
+  height: 21px;
+}
+.app.off .side .foot {
+  align-items: center;
+  gap: 6px;
+}
+.app.off .user-card {
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  width: 100%;
+}
+
+/* 侧栏折叠/展开把手：空心钝角三角形（顶角约120°），贴右缘，折叠尖朝右 / 展开尖朝左 */
+.side-toggle {
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--ink-3);
+  opacity: 0.7;
+  cursor: pointer;
+  z-index: 101;
+  transition: color 0.16s ease, transform 0.16s ease, opacity 0.16s ease;
+}
+.side-toggle:hover {
+  color: var(--accent);
+  opacity: 1;
+  transform: translateY(-50%) scale(1.08);
+}
+.side-toggle:hover .tri {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.side-toggle:active {
+  transform: translateY(-50%) scale(0.94);
+}
+.side-toggle .tri {
+  width: 12px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: fill 0.16s ease, stroke 0.16s ease;
+}
+
+/* 收缩态菜单 tooltip（悬停显示菜单名，置顶） */
+.app.off .side nav a {
+  position: relative;
+}
+.app.off .side nav a::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--ink-1);
+  opacity: 0;
+  transition: opacity 0.16s ease 0.18s;
+  z-index: 9999;
+}
+.app.off .side nav a::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 15px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: var(--ink-1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 7px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease 0.18s, transform 0.16s ease 0.18s;
+  z-index: 9999;
+}
+.app.off .side nav a:hover::before,
+.app.off .side nav a:hover::after {
+  opacity: 1;
+}
+.app.off .side nav a:hover::after {
+  transform: translateY(-50%);
+}
+
+/* 窄屏侧栏已自动收缩，隐藏手动切换按钮 */
+@media (max-width: 1180px) {
+  .side-toggle {
+    display: none;
+  }
 }
 
 .main {
@@ -1159,7 +1316,7 @@ td .ops .icon-btn svg {
 
 /* 分组配置区（表单与详情通用）：基本信息 / 模型服务 / 单次对话 / 连续对话 / 提示语
    分组名称位于卡片外围上方（保留橙色竖条），底色为浅橙横幅；
-   编辑表单分组无边框，详情页分组保留细边框区分只读卡片 */
+   详情/编辑表单分组统一：无边框，分组名透明底 + 下方分割线 + 竖条左置 + 文字左对齐 */
 .grp {
   position: relative;
   border: none;
@@ -1170,7 +1327,7 @@ td .ops .icon-btn svg {
   background: var(--bg);
 }
 .ro .grp {
-  border: 1px solid var(--line);
+  border: none;
 }
 .grp h4 {
   position: absolute;
@@ -1195,6 +1352,105 @@ td .ops .icon-btn svg {
   height: 13px;
   border-radius: 2px;
   background: var(--accent);
+}
+/* 表单分组统一：移除橙色横幅背景，分组名下方加与横幅等宽的分割线，
+   橙色竖条保留在文字左侧（absolute 外移 10px），分组名文字与输入项 label 左对齐 */
+.rform .grp h4 {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 4px 0 6px;
+}
+.rform .grp h4::before {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+}
+/* 账号设备：账号详情页云端设备列表 */
+.dev-pull {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dev-pull .pd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+}
+.dev-pull .pd-row .ic.t {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--r-m);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--amber);
+  background: #fff;
+}
+.dev-pull .pd-row .ic.t .thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dev-pull .pd-row .txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dev-pull .pd-row .txt b {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.dev-pull .pd-row .txt span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.dev-pull.loading,
+.dev-pull.err,
+.dev-pull.empty {
+  padding: 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-s);
+}
+.dev-pull.err {
+  color: var(--danger);
+}
+.dev-pull .spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: devspin 0.8s linear infinite;
+}
+@keyframes devspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.pd-acts {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
 }
 /* 编辑表单：label 与输入框同一行，hint 换行在控件下方
    label 全部固定 100px，输入框起点与长度按布局档位对齐 */
@@ -1435,6 +1691,16 @@ td .ops .icon-btn svg {
   object-fit: contain;
   background: #fff;
 }
+
+/* 型号图加载完成前隐藏，避免黑块闪烁；加载后 0.25s 淡入 */
+.form-card .model-pic img.fade {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.form-card .model-pic img.fade.loaded {
+  opacity: 1;
+}
 .form-card .model-pic .pic-tag {
   position: absolute;
   top: 10px;
@@ -1489,6 +1755,29 @@ td .ops .icon-btn svg {
 
 .slist .li .tag {
   flex: none;
+}
+
+/* 已接入设备的置灰（三步向导 / 新建设备云端列表）：同账号下设备 ID 已存在时禁止重复选择 */
+.slist .li.off,
+.pick-list .pl.off {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.slist .li.off:hover,
+.pick-list .pl.off:hover {
+  border-color: var(--line);
+}
+
+.slist .li.off .ic,
+.pick-list .pl.off .ic {
+  filter: grayscale(1);
+}
+
+.slist .li.off .txt span,
+.pick-list .pl.off > span span {
+  color: var(--ink-3);
 }
 
 .form-card {
@@ -2611,7 +2900,7 @@ td .ops .icon-btn svg {
   inset: 0;
   display: none;
   place-items: center;
-  z-index: 70;
+  z-index: 9999;
   background: rgba(31, 23, 16, 0.46);
 }
 
@@ -2620,7 +2909,7 @@ td .ops .icon-btn svg {
 }
 
 .wiz {
-  width: min(680px, 94vw);
+  width: min(1180px, 96vw);
   background: var(--bg);
   border-radius: var(--r-l);
   overflow: hidden;
@@ -2640,37 +2929,157 @@ td .ops .icon-btn svg {
 }
 
 .wiz .wh {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 18px 22px;
+  gap: 16px;
+  padding: 16px 22px;
   border-bottom: 1px solid var(--line);
 }
 
-.wiz .wh b {
+.wiz .wh .wtitle {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: none;
+}
+
+.wiz .wh .icon-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.wiz .sdetail {
+  display: flex;
+  flex-direction: column;
+}
+
+.wiz .sdetail .form-card.err-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 22px;
+}
+
+.wiz .sdetail .rr2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 36px;
+  row-gap: 10px;
+  margin-top: 14px;
+}
+
+.wiz .sdetail .rr2 .rr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 13.5px;
+}
+
+.wiz .sdetail .rr2 .rr .k {
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.wiz .sdetail .rr2 .rr .v {
+  color: var(--ink-1);
+  text-align: right;
+  word-break: break-all;
+}
+
+.wiz .wh .wtitle b {
   font-size: 16px;
 }
 
-.wiz .wh .steps {
-  margin-left: auto;
+.wiz .wh .wtitle span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.wiz .wh .wsteps {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 6px;
 }
 
-.wiz .wh .steps i {
-  width: 26px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line);
+.wiz .wh .wstep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  opacity: 0.55;
+  transition: opacity 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
-.wiz .wh .steps i.on {
+.wiz .wh .wstep.on {
+  opacity: 1;
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
+}
+
+.wiz .wh .wstep.done {
+  opacity: 0.85;
+}
+
+.wiz .wh .wstep .wno {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  flex: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.wiz .wh .wstep.on .wno {
   background: var(--accent);
+  color: #fff;
+}
+
+.wiz .wh .wstep.done .wno {
+  background: #16a34a;
+  color: #fff;
+}
+
+.wiz .wh .wstep .wt {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.wiz .wh .wstep .wt b {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.wiz .wh .wstep .wt span {
+  font-size: 11px;
+  color: var(--ink-3);
 }
 
 .wiz .wb {
-  padding: 22px;
+  padding: 18px 22px 20px;
   min-height: 300px;
+}
+
+.wiz .split {
+  grid-template-columns: 288px 1fr;
+  height: 560px;
+  gap: 14px;
 }
 
 .wiz .step {

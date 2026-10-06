@@ -1823,7 +1823,13 @@ export function runServer(options?: {
       return
     }
     const metas = await listDeviceMetas()
-    const dup = assertUniqueName(metas, body.alias, undefined, '设备名称')
+    // 唯一性按「账号」维度：同账号下设备 ID 唯一（防止同一设备多套配置）；不同账号允许相同 ID/名称（支持设备切换账号）
+    const sameAcct = body.accountId ? metas.filter((m) => m.accountId === body.accountId) : metas
+    if (sameAcct.some((m) => m.did === body.did)) {
+      res.status(409).json({ error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置' })
+      return
+    }
+    const dup = assertUniqueName(sameAcct, body.alias, undefined, '设备名称')
     if (dup) {
       res.status(409).json({ error: dup })
       return
@@ -1874,12 +1880,22 @@ export function runServer(options?: {
     }
     const body = req.body as { meta?: Partial<DeviceMeta>; config?: GuiConfig }
     if (body.meta) {
-      if (body.meta.alias !== undefined) {
+      // 唯一性按「账号」维度校验（同账号 did 唯一 / 同账号内名称唯一），排除自身
+      if (body.meta.alias !== undefined || body.meta.did !== undefined || body.meta.accountId !== undefined) {
         const allMetas = await listDeviceMetas()
-        const dup = assertUniqueName(allMetas, body.meta.alias, id, '设备名称')
-        if (dup) {
-          res.status(409).json({ error: dup })
+        const nextAcct = body.meta.accountId !== undefined ? body.meta.accountId : meta.accountId
+        const sameAcct = nextAcct ? allMetas.filter((m) => m.accountId === nextAcct && m.id !== id) : allMetas.filter((m) => m.id !== id)
+        const nextDid = body.meta.did !== undefined ? body.meta.did : meta.did
+        if (sameAcct.some((m) => m.did === nextDid)) {
+          res.status(409).json({ error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置' })
           return
+        }
+        if (body.meta.alias !== undefined) {
+          const dup = assertUniqueName(sameAcct, body.meta.alias, id, '设备名称')
+          if (dup) {
+            res.status(409).json({ error: dup })
+            return
+          }
         }
       }
       const nextMeta: DeviceMeta = { ...meta, ...body.meta, id }
