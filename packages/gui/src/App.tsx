@@ -3255,13 +3255,15 @@ function RolesView(props: {
               </div>
               <div className="grp">
                 <h4>模型服务</h4>
-                <div className="rr">
-                  <span className="k">思考服务</span>
-                  <span className="v">{props.thinkSvcs.find((s) => s.id === sel.thinkServiceId)?.name || '跟随全局默认'}</span>
-                </div>
-                <div className="rr">
-                  <span className="k">语音服务</span>
-                  <span className="v">{props.voiceSvcs.find((s) => s.id === sel.voiceId)?.name || '跟随全局默认'}</span>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">思考服务</span>
+                    <span className="v">{props.thinkSvcs.find((s) => s.id === sel.thinkServiceId)?.name || '跟随全局默认'}</span>
+                  </div>
+                  <div className="rr">
+                    <span className="k">语音服务</span>
+                    <span className="v">{props.voiceSvcs.find((s) => s.id === sel.voiceId)?.name || '跟随全局默认'}</span>
+                  </div>
                 </div>
               </div>
               <div className="grp">
