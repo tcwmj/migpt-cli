@@ -366,6 +366,10 @@ export function App() {
 
   const saveAcct = async () => {
     if (!acctDraft) return
+    if (!acctDraft.name || !acctDraft.miUserId) {
+      showToast('账号名称与小米 ID 必填')
+      return
+    }
     try {
       if (selAcct) {
         await api.updateAccount(selAcct, { name: acctDraft.name, miUserId: acctDraft.miUserId, ...(acctDraft.passToken ? { passToken: acctDraft.passToken } : {}) })
@@ -409,6 +413,10 @@ export function App() {
   }
   const saveThink = async () => {
     if (!thinkDraft) return
+    if (!thinkDraft.name || !thinkDraft.model) {
+      showToast('服务名称与模型端点必填')
+      return
+    }
     try {
       const out: Record<string, unknown> = { name: thinkDraft.name, provider: thinkDraft.provider, model: thinkDraft.model, temperature: parseFloat(thinkDraft.temperature) || 0.7 }
       out.baseUrl = thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''
@@ -1473,7 +1481,7 @@ export function App() {
                         <button className="btn ghost" onClick={() => (selAcct ? setAcctEdit(false) : accounts.length ? selectAcct(accounts[0].id) : setAcctDraft(null))}>
                           取消
                         </button>
-                        <button className="btn primary" onClick={saveAcct} disabled={!acctDraft.name}>
+                        <button className="btn primary" onClick={saveAcct} disabled={!acctDraft.name || !acctDraft.miUserId}>
                           <I n="check" /> 保存
                         </button>
                       </div>
@@ -2380,7 +2388,7 @@ export function App() {
                           <button className="btn ghost" onClick={() => (selThink ? setThinkEdit(false) : thinkSvcs.length ? selectThink(thinkSvcs[0].id) : setThinkDraft(null))}>
                             取消
                           </button>
-                          <button className="btn primary" onClick={saveThink} disabled={!thinkDraft.name}>
+                          <button className="btn primary" onClick={saveThink} disabled={!thinkDraft.name || !thinkDraft.model}>
                             <I n="check" /> 保存
                           </button>
                         </div>
@@ -2564,7 +2572,7 @@ export function App() {
                           <button className="btn ghost" onClick={() => (selVoice ? setVoiceEdit(false) : voiceSvcs.length ? selectVoice(voiceSvcs[0].id) : setVoiceDraft(null))}>
                             取消
                           </button>
-                          <button className="btn primary" onClick={saveVoice} disabled={!voiceDraft.name}>
+                          <button className="btn primary" onClick={saveVoice} disabled={!voiceDraft.name || (voiceDraft.provider === 'volcano' && (!voiceDraft.volcanoAppId || !voiceDraft.volcanoToken)) || (voiceDraft.provider === 'openai' && !voiceDraft.openaiKey)}>
                             <I n="check" /> 保存
                           </button>
                         </div>
@@ -3880,6 +3888,10 @@ function ModalShell(props: {
     } else if (modal.kind === 'role') {
       out = { name: v.name, profile: v.profile }
     } else if (modal.kind === 'pwd') {
+      if (!v.old) {
+        setV({ ...v, err: '请输入当前密码' })
+        return
+      }
       if (!v.pwd) {
         setV({ ...v, err: '请输入新密码' })
         return

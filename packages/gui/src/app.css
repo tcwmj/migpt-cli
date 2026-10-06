@@ -1554,11 +1554,20 @@ td .ops .icon-btn svg {
   flex: 1 1 0;
   min-width: 0;
 }
-/* 必填标识 */
-.req {
-  color: var(--danger);
+/* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */
+.grp .fld label .req,
+.form-card .fld label .req,
+.form-card .grp .fld label .req,
+.modal .fld label .req,
+.rform .fld label .req,
+.wizard .fld label .req,
+.wizard .form-card .fld label .req,
+.login-page .fld label .req,
+.login-card .fld label .req {
+  color: #c0453c;
   font-weight: 700;
   margin-left: 2px;
+  line-height: 1;
 }
 /* 提示信息改为 label 右侧的 tooltip 符号，悬浮显示 */
 .grp .fld label .tip {
