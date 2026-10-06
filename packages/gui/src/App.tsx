@@ -1348,21 +1348,36 @@ export function App() {
                       </h3>
                       <div className="desc">账号信息与凭据状态；凭据仅保存于本机服务端。</div>
                       <div className="ro">
-                        <div className="rr">
-                          <span className="k">账号名称</span>
-                          <span className="v">{accounts.find((a) => a.id === selAcct)?.name || '—'}</span>
+                        <div className="grp">
+                          <h4>基本信息</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">账号名称</span>
+                              <span className="v">{accounts.find((a) => a.id === selAcct)?.name || '—'}</span>
+                            </div>
+                            <div className="rr">
+                              <span className="k">小米 ID</span>
+                              <span className="v">{accounts.find((a) => a.id === selAcct)?.miUserId || '—'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">小米 ID</span>
-                          <span className="v">{accounts.find((a) => a.id === selAcct)?.miUserId || '—'}</span>
+                        <div className="grp">
+                          <h4>凭据</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">passToken</span>
+                              <span className="v">{accounts.find((a) => a.id === selAcct)?.passToken ? '已保存' : '未配置'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">passToken</span>
-                          <span className="v">{accounts.find((a) => a.id === selAcct)?.passToken ? '已保存' : '未配置'}</span>
-                        </div>
-                        <div className="rr">
-                          <span className="k">关联设备</span>
-                          <span className="v">{accountUsage(selAcct).length} 台</span>
+                        <div className="grp">
+                          <h4>关联设备</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">关联设备</span>
+                              <span className="v">{accountUsage(selAcct).length} 台</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <h3 className="acct-dev">
@@ -1431,19 +1446,29 @@ export function App() {
                         <I n="user" size={17} /> {selAcct ? '编辑账号' : '新建云端账号'}
                       </h3>
                       <div className="desc">{selAcct ? '更新名称或凭据；换绑账号后需重启受影响设备。' : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}</div>
-                      <div className="fld">
-                        <label>账号名称</label>
-                        <input value={acctDraft.name} placeholder="例如：默认账号" onChange={(e) => setAcctDraft({ ...acctDraft, name: e.target.value })} />
+                      <div className="grp">
+                        <h4>基本信息</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>账号名称</label>
+                            <input value={acctDraft.name} placeholder="例如：默认账号" onChange={(e) => setAcctDraft({ ...acctDraft, name: e.target.value })} />
+                          </div>
+                          <div className="fld">
+                            <label>小米 ID</label>
+                            <input value={acctDraft.miUserId} placeholder="例如：1234567890" onChange={(e) => setAcctDraft({ ...acctDraft, miUserId: e.target.value })} />
+                            <span className="hint">登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="fld">
-                        <label>小米 ID</label>
-                        <input value={acctDraft.miUserId} placeholder="例如：1234567890" onChange={(e) => setAcctDraft({ ...acctDraft, miUserId: e.target.value })} />
-                        <span className="hint">登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。</span>
-                      </div>
-                      <div className="fld">
-                        <label>passToken</label>
-                        <textarea rows={4} value={acctDraft.passToken} placeholder={accounts.find((a) => a.id === selAcct)?.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setAcctDraft({ ...acctDraft, passToken: e.target.value })} />
-                        <span className="hint">{selAcct ? '留空则保留原凭据' : '异地登录安全验证时，会给出授权链接'}</span>
+                      <div className="grp">
+                        <h4>凭据</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>passToken</label>
+                            <textarea rows={4} value={acctDraft.passToken} placeholder={accounts.find((a) => a.id === selAcct)?.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setAcctDraft({ ...acctDraft, passToken: e.target.value })} />
+                            <span className="hint">{selAcct ? '留空则保留原凭据' : '异地登录安全验证时，会给出授权链接'}</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="acts">
                         <span className="sp" />
@@ -1509,6 +1534,12 @@ export function App() {
                     <div className="form-card">
                       <h3>
                         <I n="speaker" size={17} /> 型号详情
+                        <span className="refs">
+                          {(() => {
+                            const used = devices.filter((d) => d.speakerModel === selModel)
+                            return used.length ? `被 ${used.map((d) => d.alias).join('、')} 关联 · 关联设备重启后生效` : '未被设备关联 · 可在「设备服务」中选择'
+                          })()}
+                        </span>
                       </h3>
                       <div className="desc">该型号的硬件标识与数字指令；召唤词与播报词由对话角色控制，设备关联后重启生效。</div>
                       {(() => {
@@ -1521,64 +1552,76 @@ export function App() {
                         ) : null
                       })()}
                       <div className="ro">
-                        <div className="rr">
-                          <span className="k">型号名称</span>
-                          <span className="v">{models.find((m) => m.id === selModel)?.name || '—'}</span>
+                        <div className="grp">
+                          <h4>基本信息</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">型号名称</span>
+                              <span className="v">{models.find((m) => m.id === selModel)?.name || '—'}</span>
+                            </div>
+                            <div className="rr">
+                              <span className="k">型号标识</span>
+                              <span className="v">{models.find((m) => m.id === selModel)?.did || '—'}</span>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">说明</span>
+                              <span className="v">{models.find((m) => m.id === selModel)?.desc || '—'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">型号标识</span>
-                          <span className="v">{models.find((m) => m.id === selModel)?.did || '—'}</span>
+                        <div className="grp">
+                          <h4>硬件指令</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">播放指令</span>
+                              <span className="v cmd-row">
+                                {(() => {
+                                  const m = models.find((x) => x.id === selModel)
+                                  const arr = m?.ttsCommand?.length ? m.ttsCommand.map(String) : ['', '']
+                                  return arr.slice(0, 2).map((c, i) => <input key={i} className="cmd-input" value={c} disabled placeholder="—" />)
+                                })()}
+                              </span>
+                            </div>
+                            <div className="rr">
+                              <span className="k">唤醒命令</span>
+                              <span className="v cmd-row">
+                                {(() => {
+                                  const m = models.find((x) => x.id === selModel)
+                                  const arr = m?.wakeUpCommand?.length ? m.wakeUpCommand.map(String) : ['', '']
+                                  return arr.slice(0, 2).map((c, i) => <input key={i} className="cmd-input" value={c} disabled placeholder="—" />)
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">播放检测命令</span>
+                              <span className="v cmd-row">
+                                {(() => {
+                                  const m = models.find((x) => x.id === selModel)
+                                  const arr = m?.playingCommand?.length ? m.playingCommand.map(String) : ['', '', '']
+                                  return arr.slice(0, 3).map((c, i) => <input key={i} className="cmd-input" value={c} disabled placeholder="—" />)
+                                })()}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">说明</span>
-                          <span className="v">{models.find((m) => m.id === selModel)?.desc || '—'}</span>
+                        <div className="grp">
+                          <h4>连续对话</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">连续对话</span>
+                              <span className="v">
+                                <label className="switch">
+                                  <input type="checkbox" checked={!!models.find((x) => x.id === selModel)?.consecutive} disabled />
+                                  <span className="track" />
+                                </label>
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">播放指令</span>
-                          <span className="v cmd-row">
-                            {(() => {
-                              const m = models.find((x) => x.id === selModel)
-                              const arr = m?.ttsCommand?.length ? m.ttsCommand.map(String) : ['', '']
-                              return arr.slice(0, 2).map((c, i) => <input key={i} className="cmd-input" value={c} disabled placeholder="—" />)
-                            })()}
-                          </span>
-                        </div>
-                        <div className="rr">
-                          <span className="k">唤醒命令</span>
-                          <span className="v cmd-row">
-                            {(() => {
-                              const m = models.find((x) => x.id === selModel)
-                              const arr = m?.wakeUpCommand?.length ? m.wakeUpCommand.map(String) : ['', '']
-                              return arr.slice(0, 2).map((c, i) => <input key={i} className="cmd-input" value={c} disabled placeholder="—" />)
-                            })()}
-                          </span>
-                        </div>
-                        <div className="rr">
-                          <span className="k">播放检测命令</span>
-                          <span className="v cmd-row">
-                            {(() => {
-                              const m = models.find((x) => x.id === selModel)
-                              const arr = m?.playingCommand?.length ? m.playingCommand.map(String) : ['', '', '']
-                              return arr.slice(0, 3).map((c, i) => <input key={i} className="cmd-input" value={c} disabled placeholder="—" />)
-                            })()}
-                          </span>
-                        </div>
-                        <div className="rr">
-                          <span className="k">连续对话</span>
-                          <span className="v">
-                            <label className="switch">
-                              <input type="checkbox" checked={!!models.find((x) => x.id === selModel)?.consecutive} disabled />
-                              <span className="track" />
-                            </label>
-                          </span>
-                        </div>
-                      </div>
-                      <div className="sum">
-                        <I n="info" size={14} />
-                        {(() => {
-                          const used = devices.filter((d) => d.speakerModel === selModel)
-                          return used.length ? `被 ${used.map((d) => d.alias).join('、')} 关联 · 关联设备重启后生效` : '未被设备关联 · 可在「设备服务」中选择'
-                        })()}
                       </div>
                       <div className="acts">
                         <span className="sp" />
@@ -1605,53 +1648,71 @@ export function App() {
                       <h3>
                         <I n="speaker" size={17} /> {selModel ? '编辑型号' : '新建型号'}
                       </h3>
-                      <div className="desc">{selModel ? '修改型号配置；已关联设备重启后生效。' : '维护音箱型号的指令与播放配置；创建后可在「设备服务」中选择。'}</div>                      <div className="fld">
-                        <label>型号名称</label>
-                        <input value={modelDraft.name} placeholder="例如：小米 AI 音箱第一代" onChange={(e) => setModelDraft({ ...modelDraft, name: e.target.value })} />
-                      </div>
-                      <div className="fld">
-                        <label>型号标识</label>
-                        <input value={modelDraft.did} placeholder="例如：X08E" onChange={(e) => setModelDraft({ ...modelDraft, did: e.target.value })} />
-                        <span className="hint">硬件型号标识（did 前缀），如 X08E、L05B</span>
-                      </div>
-                      <div className="fld">
-                        <label>简介</label>
-                        <input value={modelDraft.desc} placeholder="可选" onChange={(e) => setModelDraft({ ...modelDraft, desc: e.target.value })} />
-                      </div>
-                      <div className="fld">
-                        <label>图片地址</label>
-                        <input value={modelDraft.imageUrl} placeholder="可选，填写设备图片 URL（http/https）" onChange={(e) => setModelDraft({ ...modelDraft, imageUrl: e.target.value })} />
-                      </div>
-                      {(
-                        [
-                          ['播放指令', 'ttsCommand', 2, '硬件播放指令数字序列，如 5、1'],
-                          ['唤醒命令', 'wakeUpCommand', 2, '硬件唤醒命令数字序列，如 5、1'],
-                          ['播放检测命令', 'playingCommand', 3, '查询播放状态命令数字序列，如 3、1、1（部分型号可留空）'],
-                        ] as [string, keyof typeof modelDraft, number, string][]
-                      ).map(([label, key, count, hint]) => (
-                        <div className="fld" key={key as string}>
-                          <label>{label}</label>
-                          <div className="arr-in">
-                            {(modelDraft[key] as string[]).map((v, i) => (
-                              <input
-                                key={i}
-                                className="arr-input"
-                                value={v}
-                                placeholder={`数字 ${i + 1}`}
-                                onChange={(e) => setModelDraft({ ...modelDraft, [key]: (modelDraft[key] as string[]).map((x, j) => (j === i ? e.target.value : x)) })}
-                              />
-                            ))}
+                      <div className="desc">{selModel ? '修改型号配置；已关联设备重启后生效。' : '维护音箱型号的指令与播放配置；创建后可在「设备服务」中选择。'}</div>
+                      <div className="grp">
+                        <h4>基本信息</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>型号名称</label>
+                            <input value={modelDraft.name} placeholder="例如：小米 AI 音箱第一代" onChange={(e) => setModelDraft({ ...modelDraft, name: e.target.value })} />
                           </div>
-                          <span className="hint">{hint}（{count} 位数字）</span>
+                          <div className="fld">
+                            <label>型号标识</label>
+                            <input value={modelDraft.did} placeholder="例如：X08E" onChange={(e) => setModelDraft({ ...modelDraft, did: e.target.value })} />
+                            <span className="hint">硬件型号标识（did 前缀），如 X08E、L05B</span>
+                          </div>
                         </div>
-                      ))}
-                      <div className="fld">
-                        <label>连续对话</label>
-                        <label className="switch">
-                          <input type="checkbox" checked={!!modelDraft.consecutive} onChange={(e) => setModelDraft({ ...modelDraft, consecutive: e.target.checked })} />
-                          <span className="track" />
-                        </label>
-                        <span className="hint">启用后音箱可连续对话，无需每次唤醒</span>
+                        <div className="row">
+                          <div className="fld">
+                            <label>简介</label>
+                            <input value={modelDraft.desc} placeholder="可选" onChange={(e) => setModelDraft({ ...modelDraft, desc: e.target.value })} />
+                          </div>
+                          <div className="fld">
+                            <label>图片地址</label>
+                            <input value={modelDraft.imageUrl} placeholder="可选，填写设备图片 URL（http/https）" onChange={(e) => setModelDraft({ ...modelDraft, imageUrl: e.target.value })} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grp">
+                        <h4>硬件指令</h4>
+                        {(
+                          [
+                            ['播放指令', 'ttsCommand', 2, '硬件播放指令数字序列，如 5、1'],
+                            ['唤醒命令', 'wakeUpCommand', 2, '硬件唤醒命令数字序列，如 5、1'],
+                            ['播放检测命令', 'playingCommand', 3, '查询播放状态命令数字序列，如 3、1、1（部分型号可留空）'],
+                          ] as [string, keyof typeof modelDraft, number, string][]
+                        ).map(([label, key, count, hint]) => (
+                          <div className="row" key={key as string}>
+                            <div className="fld">
+                              <label>{label}</label>
+                              <div className="arr-in">
+                                {(modelDraft[key] as string[]).map((v, i) => (
+                                  <input
+                                    key={i}
+                                    className="arr-input"
+                                    value={v}
+                                    placeholder={`数字 ${i + 1}`}
+                                    onChange={(e) => setModelDraft({ ...modelDraft, [key]: (modelDraft[key] as string[]).map((x, j) => (j === i ? e.target.value : x)) })}
+                                  />
+                                ))}
+                              </div>
+                              <span className="hint">{hint}（{count} 位数字）</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grp">
+                        <h4>连续对话</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>连续对话</label>
+                            <label className="switch">
+                              <input type="checkbox" checked={!!modelDraft.consecutive} onChange={(e) => setModelDraft({ ...modelDraft, consecutive: e.target.checked })} />
+                              <span className="track" />
+                            </label>
+                            <span className="hint">启用后音箱可连续对话，无需每次唤醒</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="acts">
                         <span className="sp" />
@@ -1724,6 +1785,9 @@ export function App() {
                     <div className="form-card">
                       <h3>
                         <I n="speaker" size={17} /> 设备详情
+                        <span className="refs">
+                          {devices.find((x) => x.id === selDev)?.running ? '服务运行中 · 变更绑定后需重启' : '服务未启动 · 变更绑定后需重启'}
+                        </span>
                       </h3>
                       <div className="desc">设备绑定信息；变更绑定后需重启设备生效。</div>
                       <div className="ro">
@@ -1737,108 +1801,130 @@ export function App() {
                             </div>
                           ) : null
                         })()}
-                        <div className="rr">
-                          <span className="k">设备名称</span>
-                          <span className="v">{devices.find((x) => x.id === selDev)?.alias || '—'}</span>
+                        <div className="grp">
+                          <h4>基本信息</h4>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">设备名称</span>
+                              <span className="v">{devices.find((x) => x.id === selDev)?.alias || '—'}</span>
+                            </div>
+                            <div className="rr">
+                              <span className="k">设备 ID</span>
+                              <span className="v">{devices.find((x) => x.id === selDev)?.did || '—'}</span>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">设备型号</span>
+                              <span className="v">
+                                {(() => {
+                                  const ref = devices.find((x) => x.id === selDev)?.speakerModel
+                                  const m = ref ? models.find((x) => x.id === ref || x.name === ref) : null
+                                  return m ? `${m.name}（${m.did}）` : ref || '—'
+                                })()}
+                              </span>
+                            </div>
+                            <div className="rr">
+                              <span className="k">服务状态</span>
+                              <span className="v">
+                                {(() => {
+                                  const d = devices.find((x) => x.id === selDev)
+                                  return d ? (
+                                    <span className={'tag' + (d.running ? ' accent' : ' neu')}>{d.running ? '运行中' : '未启动'}</span>
+                                  ) : (
+                                    '—'
+                                  )
+                                })()}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">设备 ID</span>
-                          <span className="v">{devices.find((x) => x.id === selDev)?.did || '—'}</span>
-                        </div>
-                        <div className="rr">
-                          <span className="k">设备型号</span>
-                          <span className="v">
+                        <div className="grp">
+                          <h4>型号指令</h4>
+                          <div className="row">
                             {(() => {
                               const ref = devices.find((x) => x.id === selDev)?.speakerModel
                               const m = ref ? models.find((x) => x.id === ref || x.name === ref) : null
-                              return m ? `${m.name}（${m.did}）` : ref || '—'
-                            })()}
-                          </span>
-                        </div>
-                        <div className="rr">
-                          <span className="k">服务状态</span>
-                          <span className="v">
-                            {(() => {
-                              const d = devices.find((x) => x.id === selDev)
-                              return d ? (
-                                <span className={'tag' + (d.running ? ' accent' : ' neu')}>{d.running ? '运行中' : '未启动'}</span>
-                              ) : (
-                                '—'
+                              if (!m) return null
+                              return (
+                                <div className="rr">
+                                  <span className="k">型号指令</span>
+                                  <span className="v">
+                                    {[
+                                      m.ttsCommand?.length ? `播放指令：${m.ttsCommand.join('、')}` : null,
+                                      m.wakeUpCommand?.length ? `唤醒命令：${m.wakeUpCommand.join('、')}` : null,
+                                      m.playingCommand?.length ? `播放检测命令：${m.playingCommand.join('、')}` : null,
+                                      m.consecutive ? '连续对话已启用' : '连续对话未启用',
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </span>
+                                </div>
                               )
                             })()}
-                          </span>
+                          </div>
                         </div>
-                        {(() => {
-                          const ref = devices.find((x) => x.id === selDev)?.speakerModel
-                          const m = ref ? models.find((x) => x.id === ref || x.name === ref) : null
-                          if (!m) return null
-                          return (
+                        <div className="grp">
+                          <h4>绑定</h4>
+                          <div className="row">
                             <div className="rr">
-                              <span className="k">型号指令</span>
-                              <span className="v">
-                                {[
-                                  m.ttsCommand?.length ? `播放指令：${m.ttsCommand.join('、')}` : null,
-                                  m.wakeUpCommand?.length ? `唤醒命令：${m.wakeUpCommand.join('、')}` : null,
-                                  m.playingCommand?.length ? `播放检测命令：${m.playingCommand.join('、')}` : null,
-                                  m.consecutive ? '连续对话已启用' : '连续对话未启用',
-                                ]
-                                  .filter(Boolean)
-                                  .join(' · ')}
-                              </span>
+                              <span className="k">云端账号</span>
+                              <span className="v">{accounts.find((a) => a.id === devices.find((x) => x.id === selDev)?.accountId)?.name || '默认账号'}</span>
                             </div>
-                          )
-                        })()}
-                        <div className="rr">
-                          <span className="k">云端账号</span>
-                          <span className="v">{accounts.find((a) => a.id === devices.find((x) => x.id === selDev)?.accountId)?.name || '默认账号'}</span>
+                            <div className="rr">
+                              <span className="k">对话角色</span>
+                              <span className="v">{roles.find((r) => r.id === devices.find((x) => x.id === selDev)?.roleId)?.name || '未指定'}</span>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="rr">
+                              <span className="k">服务绑定</span>
+                              <span className="v">思考服务 · 语音服务 由对话角色统一提供</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rr">
-                          <span className="k">对话角色</span>
-                          <span className="v">{roles.find((r) => r.id === devices.find((x) => x.id === selDev)?.roleId)?.name || '未指定'}</span>
+                        <div className="grp">
+                          <h4>连续对话</h4>
+                          {(() => {
+                            const ref = devices.find((x) => x.id === selDev)?.speakerModel
+                            const m = ref ? models.find((x) => x.id === ref || x.name === ref) : null
+                            const meta = devices.find((x) => x.id === selDev)
+                            if (!m && !meta) return null
+                            return (
+                              <>
+                                <div className="row">
+                                  <div className="rr">
+                                    <span className="k">连续对话</span>
+                                    <span className="v">
+                                      {(() => {
+                                        if (!m) return '—'
+                                        if (!m.consecutive) return '未启用（型号不支持）'
+                                        return m.playingCommand?.length ? '启用 · 支持播放状态检测' : '启用 · 依赖 Mina 检测播放状态'
+                                      })()}
+                                    </span>
+                                  </div>
+                                  <div className="rr">
+                                    <span className="k">对话超时</span>
+                                    <span className="v">{meta?.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
+                                  </div>
+                                </div>
+                                <div className="row">
+                                  <div className="rr">
+                                    <span className="k">会话群</span>
+                                    <span className="v">
+                                      {(() => {
+                                        const meta = devices.find((x) => x.id === selDev)
+                                        if (!meta?.roomRef) return '—'
+                                        const rm = rooms.find((x) => x.id === meta.roomRef)
+                                        return rm ? `${rm.name}${rm.description ? ' · ' + rm.description : ''}` : meta.roomRef
+                                      })()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
-                        <div className="rr">
-                          <span className="k">服务绑定</span>
-                          <span className="v">思考服务 · 语音服务 由对话角色统一提供</span>
-                        </div>
-                        {(() => {
-                          const ref = devices.find((x) => x.id === selDev)?.speakerModel
-                          const m = ref ? models.find((x) => x.id === ref || x.name === ref) : null
-                          const meta = devices.find((x) => x.id === selDev)
-                          if (!m && !meta) return null
-                          return (
-                            <>
-                              <div className="rr">
-                                <span className="k">连续对话</span>
-                                <span className="v">
-                                  {(() => {
-                                    if (!m) return '—'
-                                    if (!m.consecutive) return '未启用（型号不支持）'
-                                    return m.playingCommand?.length ? '启用 · 支持播放状态检测' : '启用 · 依赖 Mina 检测播放状态'
-                                  })()}
-                                </span>
-                              </div>
-                              <div className="rr">
-                                <span className="k">对话超时</span>
-                                <span className="v">{meta?.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
-                              </div>
-                              <div className="rr">
-                                <span className="k">会话群</span>
-                                <span className="v">
-                                  {(() => {
-                                    const meta = devices.find((x) => x.id === selDev)
-                                    if (!meta?.roomRef) return '—'
-                                    const rm = rooms.find((x) => x.id === meta.roomRef)
-                                    return rm ? `${rm.name}${rm.description ? ' · ' + rm.description : ''}` : meta.roomRef
-                                  })()}
-                                </span>
-                              </div>
-                            </>
-                          )
-                        })()}
-                      </div>
-                      <div className="sum">
-                        <I n="info" size={14} />
-                        {devices.find((x) => x.id === selDev)?.running ? '服务运行中 · 变更绑定后需重启' : '服务未启动 · 变更绑定后需重启'}
                       </div>
                       <div className="acts">
                         <span className="sp" />
@@ -1857,27 +1943,36 @@ export function App() {
                     <div className="form-card">
                       <h3>
                         <I n="speaker" size={17} /> {selDev ? '编辑设备' : '新建设备'}
+                        <span className="refs">{selDev ? (devices.find((x) => x.id === selDev)?.running ? '服务运行中 · 修改绑定后需重启' : '服务未启动 · 修改绑定后需重启') : '新建设备：从云端账号拉取选择，保存后立即选中'}</span>
                       </h3>
                       <div className="desc">{selDev ? '修改设备绑定；已变更的绑定需重启设备生效。' : '填入音箱 did 与绑定关系；创建后可重启设备生效。'}</div>
-                      <div className="fld">
-                        <label>设备名称</label>
-                        <input value={devDraft.alias} placeholder="例如：客餐厅音箱" onChange={(e) => setDevDraft({ ...devDraft, alias: e.target.value })} />
-                      </div>
-                      <div className="fld">
-                        <label>设备 ID</label>
-                        {selDev ? (
-                          <input value={devDraft.did} placeholder="例如：小爱音箱Pro" onChange={(e) => setDevDraft({ ...devDraft, did: e.target.value })} />
-                        ) : (
-                          <div className="ro" style={{ minHeight: 40, alignItems: 'center' }}>
-                            <span className="v" style={{ fontSize: 13.5, color: devDraft.did ? 'var(--ink-1)' : 'var(--ink-3)' }}>
-                              {devDraft.did || '请先从下方云端账号拉取选择'}
-                            </span>
+                      <div className="grp">
+                        <h4>基本信息</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>设备名称</label>
+                            <input value={devDraft.alias} placeholder="例如：客餐厅音箱" onChange={(e) => setDevDraft({ ...devDraft, alias: e.target.value })} />
                           </div>
-                        )}
-                        <span className="hint">小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。</span>
+                          <div className="fld">
+                            <label>设备 ID</label>
+                            {selDev ? (
+                              <input value={devDraft.did} placeholder="例如：小爱音箱Pro" onChange={(e) => setDevDraft({ ...devDraft, did: e.target.value })} />
+                            ) : (
+                              <div className="ro" style={{ minHeight: 40, alignItems: 'center' }}>
+                                <span className="v" style={{ fontSize: 13.5, color: devDraft.did ? 'var(--ink-1)' : 'var(--ink-3)' }}>
+                                  {devDraft.did || '请先从下方云端账号拉取选择'}
+                                </span>
+                              </div>
+                            )}
+                            <span className="hint">小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="fld">
-                        <label>设备型号</label>
+                      <div className="grp">
+                        <h4>设备型号</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>设备型号</label>
                         <div className="model-pick">
                           <input
                             value={
@@ -1942,96 +2037,107 @@ export function App() {
                           )
                         })()}
                       </div>
-                      <div className="fld">
-                        <label>云端账号</label>
-                        <select
-                          value={devDraft.accountId}
-                          onChange={(e) => {
-                            setDevDraft({ ...devDraft, accountId: e.target.value, did: '', speakerModel: '' })
-                            setDevPull({ loading: false, err: '', list: null })
-                          }}
-                        >
-                          <option value="">未指定（使用默认账号）</option>
-                          {accounts.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.name}（{a.miUserId}）
-                            </option>
-                          ))}
-                        </select>
+                        </div>
                       </div>
-                      {!selDev && (
-                        <div className="fld">
-                          <label>从账号拉取</label>
-                          <div className="pull-dev">
-                            <button className="btn" onClick={() => doPullDev(devDraft.accountId)} disabled={!devDraft.accountId || devPull.loading}>
-                              <I n="refresh" /> {devPull.loading ? '拉取中…' : '拉取设备列表'}
-                            </button>
-                            {devPull.err && (
-                              <div className="notice err" style={{ marginTop: 8 }}>
-                                <I n="warning" size={15} /> {devPull.err}
-                              </div>
-                            )}
-                            {devPull.list && (
-                              <div className="pick-list" style={{ marginTop: 8 }}>
-                                {devPull.list.map((d) => {
-                                  const m = models.find((x) => x.did.toLowerCase() === (d.hardware || '').toLowerCase())
-                                  const bound = !!devices.find((x) => x.accountId === devDraft.accountId && x.did === d.miotDID)
-                                  return (
-                                    <div
-                                      className={'pl' + (devDraft.did === d.miotDID ? ' on' : '') + (bound ? ' off' : '')}
-                                      key={d.miotDID}
-                                      onClick={() => {
-                                        if (bound) return
-                                        setDevDraft({ ...devDraft, alias: d.name || d.alias, did: d.miotDID, speakerModel: m ? m.id : devDraft.speakerModel })
-                                      }}
-                                    >
-                                      <span className="ic">
-                                        <I n="speaker" />
-                                      </span>
-                                      <span>
-                                        <b>{d.name || d.alias}</b>
-                                        <span>
-                                          {m ? m.name : d.hardware || '未知型号'} · {d.presence === 'online' ? '在线' : '离线'}
-                                        </span>
-                                      </span>
-                                      {bound ? <span className="tag neu">已接入</span> : devDraft.did === d.miotDID && <I n="check" size={18} />}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            <span className="hint">从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。</span>
+                      <div className="grp">
+                        <h4>绑定</h4>
+                        <div className="row">
+                          <div className="fld">
+                            <label>云端账号</label>
+                            <select
+                              value={devDraft.accountId}
+                              onChange={(e) => {
+                                setDevDraft({ ...devDraft, accountId: e.target.value, did: '', speakerModel: '' })
+                                setDevPull({ loading: false, err: '', list: null })
+                              }}
+                            >
+                              <option value="">未指定（使用默认账号）</option>
+                              {accounts.map((a) => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name}（{a.miUserId}）
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="fld">
+                            <label>对话角色</label>
+                            <select value={devDraft.roleId} onChange={(e) => setDevDraft({ ...devDraft, roleId: e.target.value })}>
+                              <option value="">未指定</option>
+                              {roles.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="hint">选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。</span>
                           </div>
                         </div>
-                      )}
-                      <div className="fld">
-                        <label>对话角色</label>
-                        <select value={devDraft.roleId} onChange={(e) => setDevDraft({ ...devDraft, roleId: e.target.value })}>
-                          <option value="">未指定</option>
-                          {roles.map((r) => (
-                            <option key={r.id} value={r.id}>
-                              {r.name}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="hint">选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。</span>
-                      </div>
-                      <div className="fld">
-                        <label>连续对话超时（秒）</label>
-                        <input value={devDraft.exitKeepAliveAfter || '30'} placeholder="默认 30" onChange={(e) => setDevDraft({ ...devDraft, exitKeepAliveAfter: e.target.value })} />
-                        <span className="hint">连续对话中无响应多久自动退出唤醒模式，默认 30 秒</span>
-                      </div>
-                      <div className="fld">
-                        <label>会话群</label>
-                        <select value={devDraft.roomRef} onChange={(e) => setDevDraft({ ...devDraft, roomRef: e.target.value })}>
-                          <option value="">未指定</option>
-                          {rooms.map((rm) => (
-                            <option key={rm.id} value={rm.id}>
-                              {rm.name}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="hint">对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建</span>
+                        {!selDev && (
+                          <div className="row">
+                            <div className="fld">
+                              <label>从账号拉取</label>
+                              <div className="pull-dev">
+                                <button className="btn" onClick={() => doPullDev(devDraft.accountId)} disabled={!devDraft.accountId || devPull.loading}>
+                                  <I n="refresh" /> {devPull.loading ? '拉取中…' : '拉取设备列表'}
+                                </button>
+                                {devPull.err && (
+                                  <div className="notice err" style={{ marginTop: 8 }}>
+                                    <I n="warning" size={15} /> {devPull.err}
+                                  </div>
+                                )}
+                                {devPull.list && (
+                                  <div className="pick-list" style={{ marginTop: 8 }}>
+                                    {devPull.list.map((d) => {
+                                      const m = models.find((x) => x.did.toLowerCase() === (d.hardware || '').toLowerCase())
+                                      const bound = !!devices.find((x) => x.accountId === devDraft.accountId && x.did === d.miotDID)
+                                      return (
+                                        <div
+                                          className={'pl' + (devDraft.did === d.miotDID ? ' on' : '') + (bound ? ' off' : '')}
+                                          key={d.miotDID}
+                                          onClick={() => {
+                                            if (bound) return
+                                            setDevDraft({ ...devDraft, alias: d.name || d.alias, did: d.miotDID, speakerModel: m ? m.id : devDraft.speakerModel })
+                                          }}
+                                        >
+                                          <span className="ic">
+                                            <I n="speaker" />
+                                          </span>
+                                          <span>
+                                            <b>{d.name || d.alias}</b>
+                                            <span>
+                                              {m ? m.name : d.hardware || '未知型号'} · {d.presence === 'online' ? '在线' : '离线'}
+                                            </span>
+                                          </span>
+                                          {bound ? <span className="tag neu">已接入</span> : devDraft.did === d.miotDID && <I n="check" size={18} />}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                                <span className="hint">从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div className="row">
+                          <div className="fld">
+                            <label>连续对话超时（秒）</label>
+                            <input value={devDraft.exitKeepAliveAfter || '30'} placeholder="默认 30" onChange={(e) => setDevDraft({ ...devDraft, exitKeepAliveAfter: e.target.value })} />
+                            <span className="hint">连续对话中无响应多久自动退出唤醒模式，默认 30 秒</span>
+                          </div>
+                          <div className="fld">
+                            <label>会话群</label>
+                            <select value={devDraft.roomRef} onChange={(e) => setDevDraft({ ...devDraft, roomRef: e.target.value })}>
+                              <option value="">未指定</option>
+                              {rooms.map((rm) => (
+                                <option key={rm.id} value={rm.id}>
+                                  {rm.name}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="hint">对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建</span>
+                          </div>
+                        </div>
                       </div>
                       {(() => {
                         const m = models.find((x) => x.id === devDraft.speakerModel)
@@ -2052,12 +2158,6 @@ export function App() {
                         }
                         return null
                       })()}
-                      {selDev && (
-                        <div className="sum">
-                          <I n="info" size={14} />
-                          {devices.find((x) => x.id === selDev)?.running ? '服务运行中 · 修改绑定后需重启' : '服务未启动 · 修改绑定后需重启'}
-                        </div>
-                      )}
                       <div className="acts">
                         <span className="sp" />
                         <button className="btn ghost" onClick={() => (selDev ? setDevEdit(false) : devices.length ? selectDev(devices[0].id) : setDevDraft(null))}>
@@ -2171,33 +2271,44 @@ export function App() {
                       <div className="form-card">
                         <h3>
                           <I n="bolt" size={17} /> 思考服务详情
+                          <span className="refs">
+                            被 {thinkUsage(selThink)} 台设备引用 · 修改模型 / 温度后热生效
+                          </span>
                         </h3>
                         <div className="desc">音箱「大脑」的模型配置；修改后绑定设备热生效。</div>
                         <div className="ro">
-                          <div className="rr">
-                            <span className="k">服务名称</span>
-                            <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.name || '—'}</span>
+                          <div className="grp">
+                            <h4>基本信息</h4>
+                            <div className="row">
+                              <div className="rr">
+                                <span className="k">服务名称</span>
+                                <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.name || '—'}</span>
+                              </div>
+                              <div className="rr">
+                                <span className="k">供应商</span>
+                                <span className="v">{PROVIDERS[thinkSvcs.find((s) => s.id === selThink)?.provider || ''] || thinkSvcs.find((s) => s.id === selThink)?.provider || '—'}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="rr">
-                            <span className="k">供应商</span>
-                            <span className="v">{PROVIDERS[thinkSvcs.find((s) => s.id === selThink)?.provider || ''] || thinkSvcs.find((s) => s.id === selThink)?.provider || '—'}</span>
+                          <div className="grp">
+                            <h4>模型配置</h4>
+                            <div className="row">
+                              <div className="rr">
+                                <span className="k">模型端点</span>
+                                <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.model || '—'}</span>
+                              </div>
+                              <div className="rr">
+                                <span className="k">API Key</span>
+                                <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.apiKey ? '已保存' : '未配置'}</span>
+                              </div>
+                            </div>
+                            <div className="row">
+                              <div className="rr">
+                                <span className="k">温度</span>
+                                <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.temperature ?? 0.7}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="rr">
-                            <span className="k">模型端点</span>
-                            <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.model || '—'}</span>
-                          </div>
-                          <div className="rr">
-                            <span className="k">API Key</span>
-                            <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.apiKey ? '已保存' : '未配置'}</span>
-                          </div>
-                          <div className="rr">
-                            <span className="k">温度</span>
-                            <span className="v">{thinkSvcs.find((s) => s.id === selThink)?.temperature ?? 0.7}</span>
-                          </div>
-                        </div>
-                        <div className="sum">
-                          <I n="info" size={14} />
-                          被 {thinkUsage(selThink)} 台设备引用 · 修改模型 / 温度后热生效
                         </div>
                         <div className="acts">
                           <span className="sp" />
@@ -2213,61 +2324,70 @@ export function App() {
                       <div className="form-card">
                         <h3>
                           <I n="bolt" size={17} /> {selThink ? '编辑思考服务' : '新建思考服务'}
+                          <span className="refs">{selThink ? `被 ${thinkUsage(selThink)} 台设备引用 · 修改模型 / 温度后热生效` : '配置模型供应商与端点，作为音箱的「大脑」'}</span>
                         </h3>
                         <div className="desc">{selThink ? '修改大脑配置；已绑定设备热生效。' : '配置模型供应商与端点，作为音箱的「大脑」。'}</div>
-                        <div className="fld">
-                          <label>服务名称</label>
-                          <input value={thinkDraft.name} placeholder="例如：豆包 Doubao-Seed" onChange={(e) => setThinkDraft({ ...thinkDraft, name: e.target.value })} />
+                        <div className="grp">
+                          <h4>基本信息</h4>
+                          <div className="row">
+                            <div className="fld">
+                              <label>服务名称</label>
+                              <input value={thinkDraft.name} placeholder="例如：豆包 Doubao-Seed" onChange={(e) => setThinkDraft({ ...thinkDraft, name: e.target.value })} />
+                            </div>
+                            <div className="fld">
+                              <label>供应商</label>
+                              <select
+                                value={thinkDraft.provider}
+                                onChange={(e) => {
+                                  const p = e.target.value
+                                  const preset = PROVIDER_PRESETS[p]
+                                  const prev = PROVIDER_PRESETS[thinkDraft.provider]
+                                  setThinkDraft({
+                                    ...thinkDraft,
+                                    provider: p,
+                                    baseUrl: preset?.baseUrl || '',
+                                    model: thinkDraft.model && thinkDraft.model !== prev?.model ? thinkDraft.model : preset?.model || '',
+                                  })
+                                }}
+                              >
+                                {Object.entries(PROVIDERS).map(([k, label]) => (
+                                  <option key={k} value={k}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
                         </div>
-                        <div className="fld">
-                          <label>供应商</label>
-                          <select
-                            value={thinkDraft.provider}
-                            onChange={(e) => {
-                              const p = e.target.value
-                              const preset = PROVIDER_PRESETS[p]
-                              const prev = PROVIDER_PRESETS[thinkDraft.provider]
-                              setThinkDraft({
-                                ...thinkDraft,
-                                provider: p,
-                                baseUrl: preset?.baseUrl || '',
-                                model: thinkDraft.model && thinkDraft.model !== prev?.model ? thinkDraft.model : preset?.model || '',
-                              })
-                            }}
-                          >
-                            {Object.entries(PROVIDERS).map(([k, label]) => (
-                              <option key={k} value={k}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="fld">
-                          <label>接口地址</label>
-                          {thinkDraft.provider === 'custom' ? (
-                            <input value={thinkDraft.baseUrl} placeholder="https://api.example.com/v1" onChange={(e) => setThinkDraft({ ...thinkDraft, baseUrl: e.target.value })} />
-                          ) : (
-                            <input value={thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''} readOnly disabled placeholder="选择供应商后自动填充" />
-                          )}
-                          <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出</span>
-                        </div>
-                        <div className="fld">
-                          <label>模型端点</label>
-                          <input value={thinkDraft.model} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setThinkDraft({ ...thinkDraft, model: e.target.value })} />
-                          <span className="hint">切换供应商自动带出示例模型，可修改</span>
-                        </div>
-                        <div className="fld">
-                          <label>API Key</label>
-                          <input value={thinkDraft.apiKey} placeholder={selThink ? '留空则保留原 Key' : 'ark- 开头的密钥'} onChange={(e) => setThinkDraft({ ...thinkDraft, apiKey: e.target.value })} />
-                        </div>
-                        <div className="fld">
-                          <label>温度</label>
-                          <input value={thinkDraft.temperature} onChange={(e) => setThinkDraft({ ...thinkDraft, temperature: e.target.value })} />
-                          <span className="hint">取值范围 0–1，越高回答越发散</span>
-                        </div>
-                        <div className="sum">
-                          <I n="info" size={14} />
-                          {selThink && `被 ${thinkUsage(selThink)} 台设备引用 · `}修改模型 / 温度后热生效
+                        <div className="grp">
+                          <h4>模型配置</h4>
+                          <div className="row">
+                            <div className="fld">
+                              <label>接口地址</label>
+                              {thinkDraft.provider === 'custom' ? (
+                                <input value={thinkDraft.baseUrl} placeholder="https://api.example.com/v1" onChange={(e) => setThinkDraft({ ...thinkDraft, baseUrl: e.target.value })} />
+                              ) : (
+                                <input value={thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''} readOnly disabled placeholder="选择供应商后自动填充" />
+                              )}
+                              <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出</span>
+                            </div>
+                            <div className="fld">
+                              <label>模型端点</label>
+                              <input value={thinkDraft.model} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setThinkDraft({ ...thinkDraft, model: e.target.value })} />
+                              <span className="hint">切换供应商自动带出示例模型，可修改</span>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="fld">
+                              <label>API Key</label>
+                              <input value={thinkDraft.apiKey} placeholder={selThink ? '留空则保留原 Key' : 'ark- 开头的密钥'} onChange={(e) => setThinkDraft({ ...thinkDraft, apiKey: e.target.value })} />
+                            </div>
+                            <div className="fld">
+                              <label>温度</label>
+                              <input value={thinkDraft.temperature} onChange={(e) => setThinkDraft({ ...thinkDraft, temperature: e.target.value })} />
+                              <span className="hint">取值范围 0–1，越高回答越发散</span>
+                            </div>
+                          </div>
                         </div>
                         <div className="acts">
                           <span className="sp" />
@@ -2331,25 +2451,34 @@ export function App() {
                       <div className="form-card">
                         <h3>
                           <I n="mic" size={17} /> 语音服务详情
+                          <span className="refs">
+                            被 {voiceUsage(selVoice)} 台设备引用 · 支持热切「把声音换成…」
+                          </span>
                         </h3>
                         <div className="desc">为对话角色提供音色的配置；修改后绑定设备支持热切。</div>
                         <div className="ro">
-                          <div className="rr">
-                            <span className="k">服务名称</span>
-                            <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.name || '—'}</span>
+                          <div className="grp">
+                            <h4>基本信息</h4>
+                            <div className="row">
+                              <div className="rr">
+                                <span className="k">服务名称</span>
+                                <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.name || '—'}</span>
+                              </div>
+                              <div className="rr">
+                                <span className="k">供应商</span>
+                                <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.builtin ? '默认语音' : TTS_ENGINES[voiceSvcs.find((s) => s.id === selVoice)?.provider || ''] || voiceSvcs.find((s) => s.id === selVoice)?.provider || '—'}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="rr">
-                            <span className="k">供应商</span>
-                            <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.builtin ? '默认语音' : TTS_ENGINES[voiceSvcs.find((s) => s.id === selVoice)?.provider || ''] || voiceSvcs.find((s) => s.id === selVoice)?.provider || '—'}</span>
+                          <div className="grp">
+                            <h4>音色</h4>
+                            <div className="row">
+                              <div className="rr">
+                                <span className="k">音色 ID</span>
+                                <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.voiceId || '默认音色'}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="rr">
-                            <span className="k">音色 ID</span>
-                            <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.voiceId || '默认音色'}</span>
-                          </div>
-                        </div>
-                        <div className="sum">
-                          <I n="info" size={14} />
-                          被 {voiceUsage(selVoice)} 台设备引用 · 支持热切「把声音换成…」
                         </div>
                         <div className="acts">
                           <span className="sp" />
@@ -2365,76 +2494,89 @@ export function App() {
                       <div className="form-card">
                         <h3>
                           <I n="mic" size={17} /> {selVoice ? '编辑语音服务' : '新建语音服务'}
+                          <span className="refs">{selVoice ? `被 ${voiceUsage(selVoice)} 台设备引用 · 支持热切「把声音换成…」` : '接入第三方语音模型，为对话角色提供音色'}</span>
                         </h3>
                         <div className="desc">{selVoice ? '修改音色配置；已绑定设备支持热切。' : '接入第三方语音模型，为对话角色提供音色。'}</div>
-                        <div className="fld">
-                          <label>服务名称</label>
-                          <input value={voiceDraft.name} placeholder="例如：豆包语音" onChange={(e) => setVoiceDraft({ ...voiceDraft, name: e.target.value })} />
-                        </div>
-                        <div className="fld">
-                          <label>供应商</label>
-                          <select value={voiceDraft.provider} onChange={(e) => setVoiceDraft({ ...voiceDraft, provider: e.target.value })}>
-                            {Object.entries(TTS_ENGINES)
-                              .filter(([k]) => k !== 'builtin')
-                              .map(([k, label]) => (
-                                <option key={k} value={k}>
-                                  {label}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        <div className="fld">
-                          <label>音色 ID</label>
-                          <input value={voiceDraft.voiceId} placeholder="例如：zh-CN-XiaoxiaoNeural" onChange={(e) => setVoiceDraft({ ...voiceDraft, voiceId: e.target.value })} />
-                          <span className="hint">留空使用该引擎的默认音色</span>
-                        </div>
-                        {voiceDraft.provider === 'edge' && (
-                          <div className="fld">
-                            <label>访问令牌（可选）</label>
-                            <input value={voiceDraft.edgeToken} placeholder="留空由 Edge 自动获取" onChange={(e) => setVoiceDraft({ ...voiceDraft, edgeToken: e.target.value })} />
-                            <span className="hint">Edge 大声朗读为免费服务，一般无需填写</span>
+                        <div className="grp">
+                          <h4>基本信息</h4>
+                          <div className="row">
+                            <div className="fld">
+                              <label>服务名称</label>
+                              <input value={voiceDraft.name} placeholder="例如：豆包语音" onChange={(e) => setVoiceDraft({ ...voiceDraft, name: e.target.value })} />
+                            </div>
+                            <div className="fld">
+                              <label>供应商</label>
+                              <select value={voiceDraft.provider} onChange={(e) => setVoiceDraft({ ...voiceDraft, provider: e.target.value })}>
+                                {Object.entries(TTS_ENGINES)
+                                  .filter(([k]) => k !== 'builtin')
+                                  .map(([k, label]) => (
+                                    <option key={k} value={k}>
+                                      {label}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
                           </div>
-                        )}
-                        {voiceDraft.provider === 'volcano' && (
-                          <>
+                        </div>
+                        <div className="grp">
+                          <h4>音色配置</h4>
+                          <div className="row">
                             <div className="fld">
-                              <label>App ID</label>
-                              <input value={voiceDraft.volcanoAppId} placeholder="火山引擎语音合成 App ID" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoAppId: e.target.value })} />
+                              <label>音色 ID</label>
+                              <input value={voiceDraft.voiceId} placeholder="例如：zh-CN-XiaoxiaoNeural" onChange={(e) => setVoiceDraft({ ...voiceDraft, voiceId: e.target.value })} />
+                              <span className="hint">留空使用该引擎的默认音色</span>
                             </div>
-                            <div className="fld">
-                              <label>访问令牌</label>
-                              <input value={voiceDraft.volcanoToken} placeholder="火山引擎 Access Token" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoToken: e.target.value })} />
-                            </div>
-                          </>
-                        )}
-                        {voiceDraft.provider === 'openai' && (
-                          <>
-                            <div className="fld">
-                              <label>API Key</label>
-                              <input value={voiceDraft.openaiKey} placeholder="OpenAI API Key" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiKey: e.target.value })} />
-                            </div>
-                            <div className="fld">
-                              <label>模型（可选）</label>
-                              <input value={voiceDraft.openaiModel} placeholder="tts-1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiModel: e.target.value })} />
-                              <span className="hint">留空使用 tts-1</span>
-                            </div>
-                            <div className="fld">
-                              <label>接口地址（可选）</label>
-                              <input value={voiceDraft.openaiBaseUrl} placeholder="https://api.openai.com/v1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiBaseUrl: e.target.value })} />
-                              <span className="hint">支持任意 OpenAI 兼容 TTS 端点</span>
-                            </div>
-                          </>
-                        )}
-                        {voiceDraft.provider === 'custom' && (
-                          <div className="fld">
-                            <label>TTS 配置（JSON）</label>
-                            <textarea value={voiceDraft.customJson} placeholder='{"edge":{"trustedToken":"…"}}' onChange={(e) => setVoiceDraft({ ...voiceDraft, customJson: e.target.value })} rows={5} />
-                            <span className="hint">高级用法：直接填写 mi-gpt TTSConfig JSON</span>
+                            {voiceDraft.provider === 'edge' && (
+                              <div className="fld">
+                                <label>访问令牌（可选）</label>
+                                <input value={voiceDraft.edgeToken} placeholder="留空由 Edge 自动获取" onChange={(e) => setVoiceDraft({ ...voiceDraft, edgeToken: e.target.value })} />
+                                <span className="hint">Edge 大声朗读为免费服务，一般无需填写</span>
+                              </div>
+                            )}
+                            {voiceDraft.provider === 'volcano' && (
+                              <div className="fld">
+                                <label>App ID</label>
+                                <input value={voiceDraft.volcanoAppId} placeholder="火山引擎语音合成 App ID" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoAppId: e.target.value })} />
+                              </div>
+                            )}
+                            {voiceDraft.provider === 'openai' && (
+                              <div className="fld">
+                                <label>API Key</label>
+                                <input value={voiceDraft.openaiKey} placeholder="OpenAI API Key" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiKey: e.target.value })} />
+                              </div>
+                            )}
                           </div>
-                        )}
-                        <div className="sum">
-                          <I n="info" size={14} />
-                          {selVoice && `被 ${voiceUsage(selVoice)} 台设备引用 · `}支持热切「把声音换成…」
+                          {voiceDraft.provider === 'volcano' && (
+                            <div className="row">
+                              <div className="fld">
+                                <label>访问令牌</label>
+                                <input value={voiceDraft.volcanoToken} placeholder="火山引擎 Access Token" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoToken: e.target.value })} />
+                              </div>
+                            </div>
+                          )}
+                          {voiceDraft.provider === 'openai' && (
+                            <div className="row">
+                              <div className="fld">
+                                <label>模型（可选）</label>
+                                <input value={voiceDraft.openaiModel} placeholder="tts-1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiModel: e.target.value })} />
+                                <span className="hint">留空使用 tts-1</span>
+                              </div>
+                              <div className="fld">
+                                <label>接口地址（可选）</label>
+                                <input value={voiceDraft.openaiBaseUrl} placeholder="https://api.openai.com/v1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiBaseUrl: e.target.value })} />
+                                <span className="hint">支持任意 OpenAI 兼容 TTS 端点</span>
+                              </div>
+                            </div>
+                          )}
+                          {voiceDraft.provider === 'custom' && (
+                            <div className="row">
+                              <div className="fld">
+                                <label>TTS 配置（JSON）</label>
+                                <textarea value={voiceDraft.customJson} placeholder='{"edge":{"trustedToken":"…"}}' onChange={(e) => setVoiceDraft({ ...voiceDraft, customJson: e.target.value })} rows={5} />
+                                <span className="hint">高级用法：直接填写 mi-gpt TTSConfig JSON</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="acts">
                           <span className="sp" />
@@ -3045,13 +3187,18 @@ function RoomsView(props: {
                 <I n="users" size={17} /> {creating ? '新建会话群' : '编辑会话群'}
               </h3>
               <div className="desc">{creating ? '创建后可到「设备服务」中为音箱关联此会话群。' : '修改会话群信息；关联设备重启后生效。'}</div>
-              <div className="fld">
-                <label>会话群名称</label>
-                <input value={draft.name} placeholder="例如：客厅会话" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-              </div>
-              <div className="fld">
-                <label>会话群描述</label>
-                <input value={draft.description} placeholder="例如：家庭日常闲聊场景" onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+              <div className="grp">
+                <h4>基本信息</h4>
+                <div className="row">
+                  <div className="fld">
+                    <label>会话群名称</label>
+                    <input value={draft.name} placeholder="例如：客厅会话" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                  </div>
+                  <div className="fld">
+                    <label>会话群描述</label>
+                    <input value={draft.description} placeholder="例如：家庭日常闲聊场景" onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                  </div>
+                </div>
               </div>
               <div className="acts">
                 <span className="sp" />
@@ -3067,30 +3214,37 @@ function RoomsView(props: {
             <div className="form-card">
               <h3>
                 <I n="users" size={17} /> 会话群详情
+                <span className="refs">多台设备共用同一会话群，共享对话记忆；变更后需重启关联设备生效。</span>
               </h3>
               <div className="desc">对话记忆的上下文归属；被设备引用后删除前需先解绑。</div>
               <div className="ro">
-                <div className="rr">
-                  <span className="k">会话群名称</span>
-                  <span className="v">{sel.name}</span>
+                <div className="grp">
+                  <h4>基本信息</h4>
+                  <div className="row">
+                    <div className="rr">
+                      <span className="k">会话群名称</span>
+                      <span className="v">{sel.name}</span>
+                    </div>
+                    <div className="rr">
+                      <span className="k">会话群描述</span>
+                      <span className="v">{sel.description || '—'}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="rr">
-                  <span className="k">会话群描述</span>
-                  <span className="v">{sel.description || '—'}</span>
+                <div className="grp">
+                  <h4>关联设备</h4>
+                  <div className="row">
+                    <div className="rr">
+                      <span className="k">关联设备</span>
+                      <span className="v">
+                        {(() => {
+                          const used = props.devices.filter((d) => d.roomRef === sel.id)
+                          return used.length ? used.map((d) => d.alias).join('、') : '未关联'
+                        })()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="rr">
-                  <span className="k">关联设备</span>
-                  <span className="v">
-                    {(() => {
-                      const used = props.devices.filter((d) => d.roomRef === sel.id)
-                      return used.length ? used.map((d) => d.alias).join('、') : '未关联'
-                    })()}
-                  </span>
-                </div>
-              </div>
-              <div className="sum">
-                <I n="info" size={14} />
-                多台设备共用同一会话群，共享对话记忆；变更后需重启关联设备生效。
               </div>
               <div className="acts">
                 <span className="sp" />

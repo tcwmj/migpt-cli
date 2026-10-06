@@ -1382,14 +1382,16 @@ td .ops .icon-btn svg {
 }
 /* 表单分组统一：移除橙色横幅背景，分组名下方加与横幅等宽的分割线，
    橙色竖条保留在文字左侧（absolute 外移 10px），分组名文字与输入项 label 左对齐 */
-.rform .grp h4 {
+.rform .grp h4,
+.form-card .grp h4 {
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   padding: 4px 0 6px;
 }
-.rform .grp h4::before {
+.rform .grp h4::before,
+.form-card .grp h4::before {
   position: absolute;
   left: -10px;
   top: 50%;
@@ -1423,20 +1425,25 @@ td .ops .icon-btn svg {
 .form-card h3.acct-dev {
   margin: 18px 0 10px;
 }
-/* 角色详情页：属性值左对齐，k/v 固定间距，单行属性占半宽 */
-.rform.rview .ro {
-  gap: 0; /* 分组间距由 .grp 自身 margin 决定，与编辑页完全一致，避免 .ro gap 叠加 */
-}
-.rform.rview .ro .rr {
+/* 详情页属性对齐统一（角色页与其他配置页同规范）：
+   属性名固定 100px 列宽，值左对齐，首文字垂直对齐；单行最多两个属性由 .row 网格承担 */
+.rform.rview .ro .rr,
+.form-card .ro .rr {
   justify-content: flex-start;
   gap: 12px;
 }
-.rform.rview .ro .rr .v {
+.rform.rview .ro .rr .v,
+.form-card .ro .rr .v {
   text-align: left;
 }
-/* 属性名称固定列宽（与编辑页 label 同规格），使所有属性值首文字垂直对齐 */
-.rform.rview .ro .rr .k {
+.rform.rview .ro .rr .k,
+.form-card .ro .rr .k {
   width: 100px;
+}
+/* 分组间距由 .grp 自身 margin 决定（与编辑页一致），.ro 不再叠加 gap */
+.rform.rview .ro,
+.form-card .ro {
+  gap: 0;
 }
 /* 账号设备：账号详情页云端设备列表 */
 .dev-pull {
@@ -2156,7 +2163,8 @@ td .ops .icon-btn svg {
   font-size: 16px;
   margin: 0 0 10px;
 }
-.rform h3 .refs {
+.rform h3 .refs,
+.form-card h3 .refs {
   margin-left: auto;
   max-width: 62%;
   overflow: hidden;
