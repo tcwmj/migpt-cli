@@ -104,11 +104,16 @@ export interface Role {
   callAIKeywords: string[]
   wakeUpKeywords: string[]
   exitKeywords: string[]
+  /** 检测1/检测2：说出继续词保持对话、停止词结束对话（已并入唤醒/退出关键词真实生效） */
+  checkContinueKeywords?: string[]
+  checkNotContinueKeywords?: string[]
   onEnterAI: string[]
   onExitAI: string[]
   onAIAsking: string[]
   onAIReplied: string[]
   onAIError: string[]
+  /** 连续对话无响应自动退出时间（秒，默认 30） */
+  exitKeepAliveAfter?: number
   thinkServiceId?: string
   voiceId?: string
 }
@@ -233,6 +238,18 @@ export const deleteAccount = (id: string) =>
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
+
+// 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
+export interface PulledDevice {
+  name: string
+  alias: string
+  deviceID: string
+  miotDID: string
+  hardware: string
+  presence: string
+}
+export const pullDevices = (accountId: string) =>
+  post<{ devices: PulledDevice[] }>(`/api/accounts/${accountId}/pull-devices`)
 
 // ── AI 角色 ─────────────────────────────────────────────────
 export const getRoles = () =>

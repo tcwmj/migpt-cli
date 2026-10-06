@@ -473,7 +473,6 @@ svg {
 }
 
 .kpi:hover {
-  border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 10px 26px rgba(80, 60, 30, 0.1);
 }
@@ -1158,6 +1157,157 @@ td .ops .icon-btn svg {
   margin-bottom: 16px;
 }
 
+/* 分组配置区（表单与详情通用）：基本信息 / 模型服务 / 单次对话 / 连续对话 / 提示语
+   分组名称位于卡片外围上方（保留橙色竖条），底色为浅橙横幅；
+   编辑表单分组无边框，详情页分组保留细边框区分只读卡片 */
+.grp {
+  position: relative;
+  border: none;
+  border-radius: var(--r-m);
+  padding: 16px 14px 0;
+  margin-top: 46px;
+  margin-bottom: 15px;
+  background: var(--bg);
+}
+.ro .grp {
+  border: 1px solid var(--line);
+}
+.grp h4 {
+  position: absolute;
+  top: -30px;
+  left: 14px;
+  right: 14px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  background: var(--panel-2);
+  border-radius: var(--r-s);
+}
+.grp h4::before {
+  content: '';
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+/* 编辑表单：label 与输入框同一行，hint 换行在控件下方
+   label 全部固定 100px，输入框起点与长度按布局档位对齐 */
+.grp .fld {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 10px;
+  margin-bottom: 12px;
+}
+.grp .fld label {
+  width: 100px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.grp .fld input,
+.grp .fld textarea,
+.grp .fld select {
+  flex: 1 1 calc(100% - 110px);
+  min-width: 0;
+}
+/* 提示信息改为 label 右侧的 tooltip 符号，悬浮显示 */
+.grp .fld label .tip {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+  width: 15px;
+  height: 15px;
+  line-height: 15px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  cursor: help;
+  vertical-align: 1px;
+  flex-shrink: 0;
+}
+.grp .fld label .tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 300px;
+  white-space: normal;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--ink-1);
+  color: #fff;
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  font-weight: 400;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+  z-index: 40;
+  pointer-events: none;
+  box-shadow: var(--shadow-pop);
+}
+.grp .fld label .tip:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+/* 双列 row：label 与输入框沿用统一的 100px 对齐规格 */
+.grp .row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+@media (max-width: 760px) {
+  .grp .row {
+    grid-template-columns: 1fr;
+  }
+}
+/* 详情页：分组卡片内的行分隔线 */
+.grp .rr {
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 9px;
+  margin-bottom: 9px;
+}
+.grp .rr:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+/* 详情页双列：row 容器带分隔线，列内 rr 不再单独画线 */
+.ro .grp .row {
+  padding-bottom: 9px;
+  border-bottom: 1px dashed var(--line);
+  margin-bottom: 9px;
+}
+.ro .grp .row .rr {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+/* 详情页值支持换行显示（人设描述等含 \n 的字段） */
+.ro .rr .v {
+  white-space: pre-line;
+}
+
 .rform .bind .pick {
   flex: 1;
   border: 1px solid var(--line);
@@ -1475,6 +1625,18 @@ td .ops .icon-btn svg {
   background: #fff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 4px;
+  transform-origin: top center;
+  animation: pickIn 0.16s ease both;
+}
+@keyframes pickIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .model-pick .pick-li {
@@ -1636,6 +1798,16 @@ td .ops .icon-btn svg {
   gap: 8px;
   font-size: 16px;
   margin: 0 0 10px;
+}
+.rform h3 .refs {
+  margin-left: auto;
+  max-width: 62%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-3);
 }
 
 .form-card .ro,
@@ -3065,6 +3237,7 @@ td .ops .icon-btn svg {
   white-space: pre-wrap;
   word-break: break-all;
   color: #c9c2b8;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .syslog-line.warn {
@@ -3319,6 +3492,29 @@ td .ops .icon-btn svg {
   transform: translateY(-1px);
 }
 
+/* 下拉框统一过渡：弹出面板为浏览器系统控件不可动画，控件本体提供 hover/focus 反馈 */
+.form-card .fld select,
+.rform .fld select,
+.modal .fld select,
+.wiz .wf select {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+.form-card .fld select:hover,
+.rform .fld select:hover,
+.modal .fld select:hover,
+.wiz .wf select:hover {
+  border-color: var(--accent);
+}
+.form-card .fld select:focus,
+.rform .fld select:focus,
+.modal .fld select:focus,
+.wiz .wf select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(217, 100, 42, 0.14);
+}
+
 /* ══ 全局操作动效（v12）：覆盖所有用户操作的进入/切换/按压/退场 ══ */
 /* 1. 按钮按压反馈 */
 .btn:active {
@@ -3510,6 +3706,12 @@ td .ops .icon-btn svg {
   border-radius: var(--r-l);
   overflow: hidden;
   padding: 2px 0;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+.pcard-set:hover {
+  box-shadow: 0 10px 30px -18px rgba(31, 23, 16, 0.25);
+  transform: translateY(-1px);
+  border-color: var(--line-2);
 }
 
 .pcard-block h4 {

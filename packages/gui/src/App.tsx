@@ -6,6 +6,7 @@ import type {
   DeviceDetail,
   DeviceRow,
   LogEntry,
+  PulledDevice,
   Role,
   Room,
   SpeakerModel,
@@ -132,14 +133,39 @@ const avatarOf = (name: string) => {
   return robotImg
 }
 
+/** 思考服务供应商（与 mi-gpt 原版一致：自定义 + 8 家官方） */
 const PROVIDERS: Record<string, string> = {
-  doubao: '豆包（火山方舟）',
-  deepseek: 'DeepSeek',
+  custom: '自定义',
+  openai: 'OpenAI',
+  zhipu: '智谱 AI',
+  doubao: '豆包',
   qwen: '通义千问',
-  openai: 'OpenAI 兼容',
-  moonshot: 'Moonshot',
-  zhipu: '智谱',
-  custom: '自定义 OpenAI 兼容',
+  deepseek: 'DeepSeek',
+  yi: '零一万物（万知）',
+  baichuan: '百川智能（百小应）',
+  moonshot: 'Moonshot (Kimi)',
+}
+
+/** 供应商 → 默认接口地址与示例模型（切换供应商时自动带出，可覆盖） */
+const PROVIDER_PRESETS: Record<string, { baseUrl: string; model: string }> = {
+  custom: { baseUrl: '', model: '' },
+  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  zhipu: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
+  doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seed-1-8k' },
+  qwen: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  yi: { baseUrl: 'https://api.lingyiwanwu.com/v1', model: 'yi-large' },
+  baichuan: { baseUrl: 'https://api.baichuan-ai.com/v1', model: 'baichuan-ai-4' },
+  moonshot: { baseUrl: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
+}
+
+/** 语音服务 TTS 引擎（对应 mi-gpt-tts 支持能力；builtin = 默认语音） */
+const TTS_ENGINES: Record<string, string> = {
+  builtin: '默认语音',
+  edge: 'Edge 大声朗读',
+  volcano: '火山（豆包）',
+  openai: 'OpenAI',
+  custom: '自定义',
 }
 
 /* ══ 登录页 ══ */
@@ -261,10 +287,21 @@ export function App() {
   const [acctDraft, setAcctDraft] = useState<{ name: string; miUserId: string; passToken: string } | null>(null)
   const [acctEdit, setAcctEdit] = useState(false)
   const [selThink, setSelThink] = useState<string | null>(null)
-  const [thinkDraft, setThinkDraft] = useState<{ name: string; provider: string; model: string; apiKey: string; temperature: string } | null>(null)
+  const [thinkDraft, setThinkDraft] = useState<{ name: string; provider: string; model: string; apiKey: string; temperature: string; baseUrl: string } | null>(null)
   const [thinkEdit, setThinkEdit] = useState(false)
   const [selVoice, setSelVoice] = useState<string | null>(null)
-  const [voiceDraft, setVoiceDraft] = useState<{ name: string; provider: string; voiceId: string } | null>(null)
+  const [voiceDraft, setVoiceDraft] = useState<{
+    name: string
+    provider: string
+    voiceId: string
+    edgeToken: string
+    volcanoAppId: string
+    volcanoToken: string
+    openaiKey: string
+    openaiModel: string
+    openaiBaseUrl: string
+    customJson: string
+  } | null>(null)
   const [voiceEdit, setVoiceEdit] = useState(false)
   const [devEdit, setDevEdit] = useState(false)
   const [confirm, setConfirm] = useState<{ title: string; msg: string; onOk: () => void } | null>(null)
@@ -294,13 +331,32 @@ export function App() {
   const selectThink = (id: string | null) => {
     setSelThink(id)
     const s = id ? thinkSvcs.find((x) => x.id === id) : null
-    setThinkDraft({ name: s?.name || '', provider: s?.provider || 'doubao', model: s?.model || '', apiKey: '', temperature: String(s?.temperature ?? 0.7) })
+    setThinkDraft({
+      name: s?.name || '',
+      provider: s?.provider || 'doubao',
+      model: s?.model || PROVIDER_PRESETS[s?.provider || 'doubao']?.model || '',
+      apiKey: '',
+      temperature: String(s?.temperature ?? 0.7),
+      baseUrl: s?.baseUrl || PROVIDER_PRESETS[s?.provider || '']?.baseUrl || '',
+    })
     setThinkEdit(id === null)
   }
   const selectVoice = (id: string | null) => {
     setSelVoice(id)
     const s = id ? voiceSvcs.find((x) => x.id === id) : null
-    setVoiceDraft({ name: s?.name || '', provider: s?.provider || 'doubao', voiceId: s?.voiceId || '' })
+    const tts = s?.tts || {}
+    setVoiceDraft({
+      name: s?.name || '',
+      provider: s?.provider || 'edge',
+      voiceId: s?.voiceId || '',
+      edgeToken: tts.edge?.trustedToken || '',
+      volcanoAppId: tts.volcano?.appId || '',
+      volcanoToken: tts.volcano?.accessToken || '',
+      openaiKey: tts.openai?.apiKey || '',
+      openaiModel: tts.openai?.model || '',
+      openaiBaseUrl: tts.openai?.baseUrl || '',
+      customJson: s?.tts ? JSON.stringify(s.tts, null, 2) : '',
+    })
     setVoiceEdit(id === null)
   }
 
@@ -351,6 +407,7 @@ export function App() {
     if (!thinkDraft) return
     try {
       const out: Record<string, unknown> = { name: thinkDraft.name, provider: thinkDraft.provider, model: thinkDraft.model, temperature: parseFloat(thinkDraft.temperature) || 0.7 }
+      out.baseUrl = thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''
       if (thinkDraft.apiKey) out.apiKey = thinkDraft.apiKey
       if (selThink) {
         await api.updateThinkService(selThink, out)
@@ -397,6 +454,35 @@ export function App() {
     try {
       const out: Record<string, unknown> = { name: voiceDraft.name, provider: voiceDraft.provider }
       if (voiceDraft.voiceId) out.voiceId = voiceDraft.voiceId
+      const tts: Record<string, unknown> = {}
+      if (voiceDraft.provider === 'edge') {
+        tts.edge = voiceDraft.edgeToken ? { trustedToken: voiceDraft.edgeToken } : {}
+      } else if (voiceDraft.provider === 'volcano') {
+        if (!voiceDraft.volcanoAppId || !voiceDraft.volcanoToken) {
+          showToast('火山引擎需填写 App ID 与访问令牌')
+          return
+        }
+        tts.volcano = { appId: voiceDraft.volcanoAppId, accessToken: voiceDraft.volcanoToken }
+      } else if (voiceDraft.provider === 'openai') {
+        if (!voiceDraft.openaiKey) {
+          showToast('OpenAI TTS 需填写 API Key')
+          return
+        }
+        tts.openai = {
+          apiKey: voiceDraft.openaiKey,
+          ...(voiceDraft.openaiModel ? { model: voiceDraft.openaiModel } : {}),
+          ...(voiceDraft.openaiBaseUrl ? { baseUrl: voiceDraft.openaiBaseUrl } : {}),
+        }
+      } else if (voiceDraft.provider === 'custom') {
+        try {
+          const j = JSON.parse(voiceDraft.customJson || '{}')
+          Object.assign(tts, j)
+        } catch {
+          showToast('自定义 TTS 配置不是合法 JSON')
+          return
+        }
+      }
+      if (Object.keys(tts).length) out.tts = tts as never
       if (selVoice) {
         await api.updateVoiceService(selVoice, out)
         showToast('语音服务已保存，绑定设备支持热切')
@@ -552,13 +638,13 @@ export function App() {
       },
     })
   }
+  /* 统一「左列表 + 右详情/新建」：进入页面后默认选中列表第一个（列表为排序后的 filterModels） */
   useEffect(() => {
-    if (!selModel && models.length) {
-      const m = models[0]
-      setSelModel(m.id)
+    if (!selModel && filterModels.length) {
+      setSelModel(filterModels[0].id)
       setModelEdit(false)
     }
-  }, [models]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [models, query, modelFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* 统一「左列表 + 右详情/新建」：进入页面后默认选中第一个 */
   useEffect(() => {
@@ -573,7 +659,7 @@ export function App() {
       setSelThink(thinkSvcs[0].id)
       const s = thinkSvcs[0]
       setThinkEdit(false)
-      setThinkDraft({ name: s.name, provider: s.provider, model: s.model || '', apiKey: '', temperature: String(s.temperature ?? 0.7) })
+      setThinkDraft({ name: s.name, provider: s.provider, model: s.model || PROVIDER_PRESETS[s.provider]?.model || '', apiKey: '', temperature: String(s.temperature ?? 0.7), baseUrl: s.baseUrl || PROVIDER_PRESETS[s.provider]?.baseUrl || '' })
     }
   }, [thinkSvcs]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -581,7 +667,7 @@ export function App() {
       setSelVoice(voiceSvcs[0].id)
       const s = voiceSvcs[0]
       setVoiceEdit(false)
-      setVoiceDraft({ name: s.name, provider: s.provider, voiceId: s.voiceId || '' })
+      setVoiceDraft({ name: s.name, provider: s.provider, voiceId: s.voiceId || '', edgeToken: s.tts?.edge?.trustedToken || '', volcanoAppId: s.tts?.volcano?.appId || '', volcanoToken: s.tts?.volcano?.accessToken || '', openaiKey: s.tts?.openai?.apiKey || '', openaiModel: s.tts?.openai?.model || '', openaiBaseUrl: s.tts?.openai?.baseUrl || '', customJson: s.tts ? JSON.stringify(s.tts, null, 2) : '' })
     }
   }, [voiceSvcs]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -604,6 +690,11 @@ export function App() {
   const [modal, setModal] = useState<ModalState | null>(null)
   const [modelPickQ, setModelPickQ] = useState('')
   const [modelPickOpen, setModelPickOpen] = useState(false)
+  const [devPull, setDevPull] = useState<{ loading: boolean; err: string; list: PulledDevice[] | null }>({
+    loading: false,
+    err: '',
+    list: null,
+  })
   const [wizard, setWizard] = useState<null | { step: number; accountId: string; alias: string; did: string; model: string; roleId: string }>(null)
 
   useEffect(() => {
@@ -884,6 +975,23 @@ export function App() {
     return err.message || '操作失败'
   }
 
+  /* 从云端账号拉取音箱设备列表（新建设备 / 三步向导复用） */
+  const doPullDev = async (accountId: string) => {
+    if (!accountId) return
+    setDevPull({ loading: true, err: '', list: null })
+    try {
+      const r = await api.pullDevices(accountId)
+      const list = r.devices || []
+      if (!list.length) {
+        setDevPull({ loading: false, err: '该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确', list: [] })
+        return
+      }
+      setDevPull({ loading: false, err: '', list })
+    } catch (e) {
+      setDevPull({ loading: false, err: errText(e), list: null })
+    }
+  }
+
   const filterDevices = useMemo(() => {
     if (!query) return devices
     const q = query.toLowerCase()
@@ -927,6 +1035,26 @@ export function App() {
     const custom = list.filter((m) => !m.builtin).sort((a, b) => a.createdAt - b.createdAt)
     return [...builtin, ...custom]
   }, [models, query, modelFilter])
+
+  /* 切换顶部分组后默认选中对应分组列表第一个（与其他菜单页面规则一致） */
+  const switchModelFilter = (f: 'all' | 'consec' | 'plain') => {
+    setModelFilter(f)
+    const q = query.toLowerCase()
+    const list = models.filter((m) => {
+      if (q && !(m.name + m.did).toLowerCase().includes(q)) return false
+      if (f === 'consec' && !m.consecutive) return false
+      if (f === 'plain' && m.consecutive) return false
+      return true
+    })
+    const builtin = list.filter((m) => m.builtin).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    const custom = list.filter((m) => !m.builtin).sort((a, b) => a.createdAt - a.createdAt)
+    const first = [...builtin, ...custom][0]
+    if (first) {
+      setSelModel(first.id)
+      setModelEdit(false)
+      setModelDraft(null)
+    }
+  }
 
   /* ══ 渲染 ══ */
   if (!authed) {
@@ -1088,9 +1216,9 @@ export function App() {
                     <span className="sub">3 步完成接入</span>
                   </b>
                   {[
-                    ['连接账号', '选择已有云端账号，或新建并填入小米手机号与 passToken', girlImg],
-                    ['选择设备', '选择已有音箱，或新建设备并绑定账号与房间', catImg],
-                    ['对话服务', '选择已有对话角色、思考服务与语音服务，或一键新建', closeImg],
+                    ['连接账号', '选择已有云端账号，或新建并填入小米 ID 与 passToken', girlImg],
+                    ['选择设备', '从云端账号拉取音箱列表，选择要接入的设备', catImg],
+                    ['对话服务', '选择已有对话角色，或新建角色绑定人设', closeImg],
                   ].map(([t, d, img], i) => (
                     <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                       <span className="step-pic" style={{ backgroundImage: `url(${img})` }} />
@@ -1225,9 +1353,9 @@ export function App() {
           {view === 'models' && (
             <section data-view="models" className="on">
               <div className="filters">
-                <span className={'chip' + (modelFilter === 'all' ? ' on' : '')} onClick={() => setModelFilter('all')}>全部型号</span>
-                <span className={'chip' + (modelFilter === 'consec' ? ' on' : '')} onClick={() => setModelFilter('consec')}>支持连续对话</span>
-                <span className={'chip' + (modelFilter === 'plain' ? ' on' : '')} onClick={() => setModelFilter('plain')}>无法连续对话</span>
+                <span className={'chip' + (modelFilter === 'all' ? ' on' : '')} onClick={() => switchModelFilter('all')}>全部型号</span>
+                <span className={'chip' + (modelFilter === 'consec' ? ' on' : '')} onClick={() => switchModelFilter('consec')}>支持连续对话</span>
+                <span className={'chip' + (modelFilter === 'plain' ? ' on' : '')} onClick={() => switchModelFilter('plain')}>无法连续对话</span>
                 <span className="sp">
                   <span className="count">共 {filterModels.length} 个</span>
                 </span>
@@ -1606,8 +1734,16 @@ export function App() {
                       </div>
                       <div className="fld">
                         <label>设备 ID</label>
-                        <input value={devDraft.did} placeholder="例如：小爱音箱Pro" onChange={(e) => setDevDraft({ ...devDraft, did: e.target.value })} />
-                        <span className="hint">小爱音箱 ID 或名称。填写你通过小爱音箱 APP 连接音箱时设置的名称即可，例如“小爱音箱Pro”。</span>
+                        {selDev ? (
+                          <input value={devDraft.did} placeholder="例如：小爱音箱Pro" onChange={(e) => setDevDraft({ ...devDraft, did: e.target.value })} />
+                        ) : (
+                          <div className="ro" style={{ minHeight: 40, alignItems: 'center' }}>
+                            <span className="v" style={{ fontSize: 13.5, color: devDraft.did ? 'var(--ink-1)' : 'var(--ink-3)' }}>
+                              {devDraft.did || '请先从下方云端账号拉取选择'}
+                            </span>
+                          </div>
+                        )}
+                        <span className="hint">小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。</span>
                       </div>
                       <div className="fld">
                         <label>设备型号</label>
@@ -1677,7 +1813,13 @@ export function App() {
                       </div>
                       <div className="fld">
                         <label>云端账号</label>
-                        <select value={devDraft.accountId} onChange={(e) => setDevDraft({ ...devDraft, accountId: e.target.value })}>
+                        <select
+                          value={devDraft.accountId}
+                          onChange={(e) => {
+                            setDevDraft({ ...devDraft, accountId: e.target.value, did: '', speakerModel: '' })
+                            setDevPull({ loading: false, err: '', list: null })
+                          }}
+                        >
                           <option value="">未指定（使用默认账号）</option>
                           {accounts.map((a) => (
                             <option key={a.id} value={a.id}>
@@ -1686,6 +1828,49 @@ export function App() {
                           ))}
                         </select>
                       </div>
+                      {!selDev && (
+                        <div className="fld">
+                          <label>从账号拉取</label>
+                          <div className="pull-dev">
+                            <button className="btn" onClick={() => doPullDev(devDraft.accountId)} disabled={!devDraft.accountId || devPull.loading}>
+                              <I n="refresh" /> {devPull.loading ? '拉取中…' : '拉取设备列表'}
+                            </button>
+                            {devPull.err && (
+                              <div className="notice err" style={{ marginTop: 8 }}>
+                                <I n="warning" size={15} /> {devPull.err}
+                              </div>
+                            )}
+                            {devPull.list && (
+                              <div className="pick-list" style={{ marginTop: 8 }}>
+                                {devPull.list.map((d) => {
+                                  const m = models.find((x) => x.did.toLowerCase() === (d.hardware || '').toLowerCase())
+                                  return (
+                                    <div
+                                      className={'pl' + (devDraft.did === d.miotDID ? ' on' : '')}
+                                      key={d.miotDID}
+                                      onClick={() =>
+                                        setDevDraft({ ...devDraft, alias: d.name || d.alias, did: d.miotDID, speakerModel: m ? m.id : devDraft.speakerModel })
+                                      }
+                                    >
+                                      <span className="ic">
+                                        <I n="speaker" />
+                                      </span>
+                                      <span>
+                                        <b>{d.name || d.alias}</b>
+                                        <span>
+                                          {m ? m.name : d.hardware || '未知型号'} · {d.presence === 'online' ? '在线' : '离线'}
+                                        </span>
+                                      </span>
+                                      {devDraft.did === d.miotDID && <I n="check" size={18} />}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                            <span className="hint">从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="fld">
                         <label>对话角色</label>
                         <select value={devDraft.roleId} onChange={(e) => setDevDraft({ ...devDraft, roleId: e.target.value })}>
@@ -1903,7 +2088,20 @@ export function App() {
                         </div>
                         <div className="fld">
                           <label>供应商</label>
-                          <select value={thinkDraft.provider} onChange={(e) => setThinkDraft({ ...thinkDraft, provider: e.target.value })}>
+                          <select
+                            value={thinkDraft.provider}
+                            onChange={(e) => {
+                              const p = e.target.value
+                              const preset = PROVIDER_PRESETS[p]
+                              const prev = PROVIDER_PRESETS[thinkDraft.provider]
+                              setThinkDraft({
+                                ...thinkDraft,
+                                provider: p,
+                                baseUrl: preset?.baseUrl || '',
+                                model: thinkDraft.model && thinkDraft.model !== prev?.model ? thinkDraft.model : preset?.model || '',
+                              })
+                            }}
+                          >
                             {Object.entries(PROVIDERS).map(([k, label]) => (
                               <option key={k} value={k}>
                                 {label}
@@ -1912,8 +2110,18 @@ export function App() {
                           </select>
                         </div>
                         <div className="fld">
+                          <label>接口地址</label>
+                          {thinkDraft.provider === 'custom' ? (
+                            <input value={thinkDraft.baseUrl} placeholder="https://api.example.com/v1" onChange={(e) => setThinkDraft({ ...thinkDraft, baseUrl: e.target.value })} />
+                          ) : (
+                            <input value={thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''} readOnly disabled placeholder="选择供应商后自动填充" />
+                          )}
+                          <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出</span>
+                        </div>
+                        <div className="fld">
                           <label>模型端点</label>
                           <input value={thinkDraft.model} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setThinkDraft({ ...thinkDraft, model: e.target.value })} />
+                          <span className="hint">切换供应商自动带出示例模型，可修改</span>
                         </div>
                         <div className="fld">
                           <label>API Key</label>
@@ -1961,7 +2169,7 @@ export function App() {
                         </span>
                         <span className="txt">
                           <b>{s.name}</b>
-                          <span>{s.builtin ? 'builtin · 全局默认音色' : s.provider + (s.voiceId ? ' · ' + s.voiceId : '')}</span>
+                          <span>{s.builtin ? 'builtin · 全局默认音色' : (TTS_ENGINES[s.provider] || s.provider) + (s.voiceId ? ' · ' + s.voiceId : '')}</span>
                         </span>
                         {s.builtin ? (
                           <span className="tag">内置</span>
@@ -1999,7 +2207,7 @@ export function App() {
                           </div>
                           <div className="rr">
                             <span className="k">供应商</span>
-                            <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.builtin ? '小米内置' : PROVIDERS[voiceSvcs.find((s) => s.id === selVoice)?.provider || ''] || voiceSvcs.find((s) => s.id === selVoice)?.provider || '—'}</span>
+                            <span className="v">{voiceSvcs.find((s) => s.id === selVoice)?.builtin ? '默认语音' : TTS_ENGINES[voiceSvcs.find((s) => s.id === selVoice)?.provider || ''] || voiceSvcs.find((s) => s.id === selVoice)?.provider || '—'}</span>
                           </div>
                           <div className="rr">
                             <span className="k">音色 ID</span>
@@ -2033,18 +2241,64 @@ export function App() {
                         <div className="fld">
                           <label>供应商</label>
                           <select value={voiceDraft.provider} onChange={(e) => setVoiceDraft({ ...voiceDraft, provider: e.target.value })}>
-                            {Object.entries(PROVIDERS).map(([k, label]) => (
-                              <option key={k} value={k}>
-                                {label}
-                              </option>
-                            ))}
+                            {Object.entries(TTS_ENGINES)
+                              .filter(([k]) => k !== 'builtin')
+                              .map(([k, label]) => (
+                                <option key={k} value={k}>
+                                  {label}
+                                </option>
+                              ))}
                           </select>
                         </div>
                         <div className="fld">
                           <label>音色 ID</label>
                           <input value={voiceDraft.voiceId} placeholder="例如：zh-CN-XiaoxiaoNeural" onChange={(e) => setVoiceDraft({ ...voiceDraft, voiceId: e.target.value })} />
-                          <span className="hint">留空使用该供应商的默认音色</span>
+                          <span className="hint">留空使用该引擎的默认音色</span>
                         </div>
+                        {voiceDraft.provider === 'edge' && (
+                          <div className="fld">
+                            <label>访问令牌（可选）</label>
+                            <input value={voiceDraft.edgeToken} placeholder="留空由 Edge 自动获取" onChange={(e) => setVoiceDraft({ ...voiceDraft, edgeToken: e.target.value })} />
+                            <span className="hint">Edge 大声朗读为免费服务，一般无需填写</span>
+                          </div>
+                        )}
+                        {voiceDraft.provider === 'volcano' && (
+                          <>
+                            <div className="fld">
+                              <label>App ID</label>
+                              <input value={voiceDraft.volcanoAppId} placeholder="火山引擎语音合成 App ID" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoAppId: e.target.value })} />
+                            </div>
+                            <div className="fld">
+                              <label>访问令牌</label>
+                              <input value={voiceDraft.volcanoToken} placeholder="火山引擎 Access Token" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoToken: e.target.value })} />
+                            </div>
+                          </>
+                        )}
+                        {voiceDraft.provider === 'openai' && (
+                          <>
+                            <div className="fld">
+                              <label>API Key</label>
+                              <input value={voiceDraft.openaiKey} placeholder="OpenAI API Key" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiKey: e.target.value })} />
+                            </div>
+                            <div className="fld">
+                              <label>模型（可选）</label>
+                              <input value={voiceDraft.openaiModel} placeholder="tts-1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiModel: e.target.value })} />
+                              <span className="hint">留空使用 tts-1</span>
+                            </div>
+                            <div className="fld">
+                              <label>接口地址（可选）</label>
+                              <input value={voiceDraft.openaiBaseUrl} placeholder="https://api.openai.com/v1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiBaseUrl: e.target.value })} />
+                              <span className="hint">支持任意 OpenAI 兼容 TTS 端点</span>
+                            </div>
+                          </>
+                        )}
+                        {voiceDraft.provider === 'custom' && (
+                          <div className="fld">
+                            <label>TTS 配置（JSON）</label>
+                            <textarea value={voiceDraft.customJson} placeholder='{"edge":{"trustedToken":"…"}}' onChange={(e) => setVoiceDraft({ ...voiceDraft, customJson: e.target.value })} rows={5} />
+                            <span className="hint">高级用法：直接填写 mi-gpt TTSConfig JSON</span>
+                          </div>
+                        )}
                         <div className="sum">
                           <I n="info" size={14} />
                           {selVoice && `被 ${voiceUsage(selVoice)} 台设备引用 · `}支持热切「把声音换成…」
@@ -2259,6 +2513,16 @@ export function App() {
           draft={wizard}
           setDraft={(p) => setWizard({ ...wizard, ...p })}
           onClose={() => setWizard(null)}
+          onNewAccount={async (d) => {
+            const created = await api.createAccount(d)
+            await refreshAll()
+            return created
+          }}
+          onNewRole={async (d) => {
+            const created = await api.createRole(d)
+            await refreshAll()
+            return created
+          }}
           onFinish={async () => {
             try {
               await api.createDevice({
@@ -2722,6 +2986,9 @@ function RolesView(props: {
     callAIKeywords: [],
     wakeUpKeywords: ['小爱同学'],
     exitKeywords: [],
+    checkContinueKeywords: [],
+    checkNotContinueKeywords: [],
+    exitKeepAliveAfter: 30,
     onEnterAI: [],
     onExitAI: [],
     onAIAsking: [],
@@ -2810,9 +3077,6 @@ function RolesView(props: {
                 <b>{r.name}</b>
                 <span>{r.profile?.slice(0, 18) || '未填写人设'}</span>
               </span>
-              {r.id === selId && (
-                <I n="check" size={16} />
-              )}
             </div>
           ))}
           <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={startCreate}>
@@ -2825,53 +3089,88 @@ function RolesView(props: {
               <I n="chat" size={17} /> 角色详情
             </h3>
             <div className="ro">
-              <div className="rr">
-                <span className="k">角色名称</span>
-                <span className="v">{sel.name || '—'}</span>
+              <div className="grp">
+                <h4>基本信息</h4>
+                <div className="rr">
+                  <span className="k">角色名称</span>
+                  <span className="v">{sel.name || '—'}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">人设描述</span>
+                  <span className="v">{sel.profile || '未填写'}</span>
+                </div>
               </div>
-              <div className="rr">
-                <span className="k">人设描述</span>
-                <span className="v">{sel.profile || '未填写'}</span>
+              <div className="grp">
+                <h4>模型服务</h4>
+                <div className="rr">
+                  <span className="k">思考服务</span>
+                  <span className="v">{props.thinkSvcs.find((s) => s.id === sel.thinkServiceId)?.name || '跟随全局默认'}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">语音服务</span>
+                  <span className="v">{props.voiceSvcs.find((s) => s.id === sel.voiceId)?.name || '跟随全局默认'}</span>
+                </div>
               </div>
-              <div className="rr">
-                <span className="k">唤醒词</span>
-                <span className="v">{(sel.wakeUpKeywords || []).join('、') || '小爱同学'}</span>
+              <div className="grp">
+                <h4>单次对话</h4>
+                <div className="rr">
+                  <span className="k">调用关键词</span>
+                  <span className="v">{(sel.callAIKeywords || []).join('、') || '—'}</span>
+                </div>
               </div>
-              <div className="rr">
-                <span className="k">调用词（单次对话）</span>
-                <span className="v">{(sel.callAIKeywords || []).join('、') || '—'}</span>
+              <div className="grp">
+                <h4>连续对话</h4>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">唤醒关键词</span>
+                    <span className="v">{(sel.wakeUpKeywords || []).join('、') || '小爱同学'}</span>
+                  </div>
+                  <div className="rr">
+                    <span className="k">退出关键词</span>
+                    <span className="v">{(sel.exitKeywords || []).join('、') || '—'}</span>
+                  </div>
+                </div>
+                <div className="rr">
+                  <span className="k">自动退出时间</span>
+                  <span className="v">{sel.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
+                </div>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">继续对话检测</span>
+                    <span className="v">{(sel.checkContinueKeywords || []).join('、') || '—'}</span>
+                  </div>
+                  <div className="rr">
+                    <span className="k">停止对话检测</span>
+                    <span className="v">{(sel.checkNotContinueKeywords || []).join('、') || '—'}</span>
+                  </div>
+                </div>
               </div>
-              <div className="rr">
-                <span className="k">退出词（连续对话）</span>
-                <span className="v">{(sel.exitKeywords || []).join('、') || '—'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">进入 AI 提示语</span>
-                <span className="v">{(sel.onEnterAI || []).join('、') || '关闭'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">退出 AI 提示语</span>
-                <span className="v">{(sel.onExitAI || []).join('、') || '关闭'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">思考中提示语</span>
-                <span className="v">{(sel.onAIAsking || []).join('、') || '关闭'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">回复完提示语</span>
-                <span className="v">{(sel.onAIReplied || []).join('、') || '关闭'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">出错提示语</span>
-                <span className="v">{(sel.onAIError || []).join('、') || '关闭'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">思考服务</span>
-                <span className="v">{props.thinkSvcs.find((s) => s.id === sel.thinkServiceId)?.name || '跟随全局默认'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">语音服务</span>
-                <span className="v">{props.voiceSvcs.find((s) => s.id === sel.voiceId)?.name || '跟随全局默认'}</span>
+              <div className="grp">
+                <h4>提示语</h4>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">进入 AI</span>
+                    <span className="v">{(sel.onEnterAI || []).join('、') || '关闭'}</span>
+                  </div>
+                  <div className="rr">
+                    <span className="k">退出 AI</span>
+                    <span className="v">{(sel.onExitAI || []).join('、') || '关闭'}</span>
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="rr">
+                    <span className="k">AI 思考中</span>
+                    <span className="v">{(sel.onAIAsking || []).join('、') || '关闭'}</span>
+                  </div>
+                  <div className="rr">
+                    <span className="k">AI 回答完毕</span>
+                    <span className="v">{(sel.onAIReplied || []).join('、') || '关闭'}</span>
+                  </div>
+                </div>
+                <div className="rr">
+                  <span className="k">AI 出错</span>
+                  <span className="v">{(sel.onAIError || []).join('、') || '关闭'}</span>
+                </div>
               </div>
             </div>
             <div className="sum">
@@ -2893,108 +3192,150 @@ function RolesView(props: {
           <div className="rform" key={'role-e-' + (creating ? 'new' : sel?.id || 'new')}>
             <h3>
               <I n="chat" size={17} /> {creating ? '新建角色' : '编辑角色'}
+              <span className="refs">
+                本角色被 {usage.length} 台设备引用{usage.length ? '（' + usage.join(' · ') + '）' : ''}。人设与模型热生效；修改唤醒词需重启设备。
+              </span>
             </h3>
-            <div className="fld">
-              <label>角色名称</label>
-              <input value={draft.name} onChange={(e) => setF('name', e.target.value)} />
-            </div>
-            <div className="fld">
-              <label>人设描述</label>
-              <textarea value={draft.profile} onChange={(e) => setF('profile', e.target.value)} />
-              <span className="hint">供思考服务理解人格 · 热生效</span>
-            </div>
-            <div className="fld">
-              <label>唤醒词（连续对话）</label>
-              <input
-                value={(draft.wakeUpKeywords || []).join('、')}
-                onChange={(e) => setF('wakeUpKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-              <span className="hint">唤醒后免唤醒词连续对话 · 修改后需重启绑定该设备的设备</span>
-            </div>
-            <div className="fld">
-              <label>调用词（单次对话）</label>
-              <input
-                value={(draft.callAIKeywords || []).join('、')}
-                onChange={(e) => setF('callAIKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-              <span className="hint">每次提问都需以「小爱同学 + 调用词」开头，不会进入连续对话</span>
-            </div>
-            <div className="fld">
-              <label>退出词（连续对话）</label>
-              <input
-                value={(draft.exitKeywords || []).join('、')}
-                onChange={(e) => setF('exitKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-              <span className="hint">说出退出词即结束连续对话；留空时用唤醒词再唤回或等待超时</span>
-            </div>
-            <div className="fld">
-              <label>进入 AI 提示语</label>
-              <input
-                value={(draft.onEnterAI || []).join('、')}
-                onChange={(e) => setF('onEnterAI', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-              <span className="hint">进入连续对话时播报，留空即关闭该提示</span>
-            </div>
-            <div className="fld">
-              <label>退出 AI 提示语</label>
-              <input
-                value={(draft.onExitAI || []).join('、')}
-                onChange={(e) => setF('onExitAI', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-            </div>
-            <div className="fld">
-              <label>思考中提示语</label>
-              <input
-                value={(draft.onAIAsking || []).join('、')}
-                onChange={(e) => setF('onAIAsking', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-              <span className="hint">AI 开始回答前的过渡语，留空即关闭</span>
-            </div>
-            <div className="fld">
-              <label>回复完提示语</label>
-              <input
-                value={(draft.onAIReplied || []).join('、')}
-                onChange={(e) => setF('onAIReplied', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-            </div>
-            <div className="fld">
-              <label>出错提示语</label>
-              <input
-                value={(draft.onAIError || []).join('、')}
-                onChange={(e) => setF('onAIError', e.target.value.split(/[、,，]/).filter(Boolean))}
-              />
-              <span className="hint">AI 回答异常时播报，留空即关闭</span>
-            </div>
-            <div className="bind">
-              <div className="fld" style={{ marginBottom: 0 }}>
-                <label>思考服务</label>
-                <select value={draft.thinkServiceId || ''} onChange={(e) => setF('thinkServiceId', e.target.value || undefined)}>
-                  <option value="">（跟随全局默认：{thinkDefault?.name || '未设置'}）</option>
-                  {props.thinkSvcs.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name}
-                      {o.isDefault ? ' · 默认' : ''}
-                    </option>
-                  ))}
-                </select>
+            <div className="grp">
+              <h4>基本信息</h4>
+              <div className="row">
+                <div className="fld">
+                  <label>角色名称</label>
+                  <input value={draft.name} onChange={(e) => setF('name', e.target.value)} />
+                </div>
               </div>
-              <div className="fld" style={{ marginBottom: 0 }}>
-                <label>语音服务</label>
-                <select value={draft.voiceId || ''} onChange={(e) => setF('voiceId', e.target.value || undefined)}>
-                  <option value="">（跟随全局默认：{voiceDefault?.name || '未设置'}）</option>
-                  {props.voiceSvcs.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name}
-                      {o.isDefault ? ' · 默认' : ''}
-                    </option>
-                  ))}
-                </select>
+              <div className="row">
+                <div className="fld">
+                  <label>人设描述<span className="tip" data-tip="供思考服务理解人格 · 热生效">?</span></label>
+                  <textarea value={draft.profile} onChange={(e) => setF('profile', e.target.value)} />
+                </div>
               </div>
             </div>
-            <div className="sum">
-              <I n="info" size={14} />
-              {!creating && `本角色被 ${usage.length} 台设备引用${usage.length ? '（' + usage.join(' · ') + '）' : ''}。`}
-              人设与模型热生效；修改唤醒词需重启设备。
+            <div className="grp">
+              <h4>模型服务</h4>
+              <div className="row">
+                <div className="fld">
+                  <label>思考服务</label>
+                  <select value={draft.thinkServiceId || ''} onChange={(e) => setF('thinkServiceId', e.target.value || undefined)}>
+                    <option value="">（跟随全局默认：{thinkDefault?.name || '未设置'}）</option>
+                    {props.thinkSvcs.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                        {o.isDefault ? ' · 默认' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="fld">
+                  <label>语音服务</label>
+                  <select value={draft.voiceId || ''} onChange={(e) => setF('voiceId', e.target.value || undefined)}>
+                    <option value="">（跟随全局默认：{voiceDefault?.name || '未设置'}）</option>
+                    {props.voiceSvcs.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                        {o.isDefault ? ' · 默认' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="grp">
+              <h4>单次对话</h4>
+              <div className="row">
+                <div className="fld">
+                  <label>调用关键词<span className="tip" data-tip="每次提问都需以「小爱同学 + 调用词」开头，不会进入连续对话">?</span></label>
+                  <input
+                    value={(draft.callAIKeywords || []).join('、')}
+                    onChange={(e) => setF('callAIKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grp">
+              <h4>连续对话</h4>
+              <div className="row">
+                <div className="fld">
+                  <label>唤醒关键词<span className="tip" data-tip="唤醒后免唤醒词连续对话 · 修改后需重启绑定该设备的设备">?</span></label>
+                  <input
+                    value={(draft.wakeUpKeywords || []).join('、')}
+                    onChange={(e) => setF('wakeUpKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+                <div className="fld">
+                  <label>退出关键词<span className="tip" data-tip="说出退出词即结束连续对话；留空时用唤醒词再唤回或等待超时">?</span></label>
+                  <input
+                    value={(draft.exitKeywords || []).join('、')}
+                    onChange={(e) => setF('exitKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+              </div>
+              <div className="row">
+                <div className="fld">
+                  <label>自动退出时间<span className="tip" data-tip="连续对话中无响应超过该秒数自动退出，默认 30 秒">?</span></label>
+                  <input value={String(draft.exitKeepAliveAfter ?? 30)} placeholder="默认 30" onChange={(e) => setF('exitKeepAliveAfter', parseInt(e.target.value || '30', 10) || 30)} />
+                </div>
+              </div>
+              <div className="row">
+                <div className="fld">
+                  <label>继续对话检测<span className="tip" data-tip="说出继续词可保持连续对话；超时退出后再说出可重新进入">?</span></label>
+                  <input
+                    value={(draft.checkContinueKeywords || []).join('、')}
+                    onChange={(e) => setF('checkContinueKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+                <div className="fld">
+                  <label>停止对话检测<span className="tip" data-tip="说出停止词立即结束连续对话，等效于退出关键词">?</span></label>
+                  <input
+                    value={(draft.checkNotContinueKeywords || []).join('、')}
+                    onChange={(e) => setF('checkNotContinueKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grp">
+              <h4>提示语</h4>
+              <div className="row">
+                <div className="fld">
+                  <label>进入 AI<span className="tip" data-tip="进入连续对话时播报，留空即关闭该提示">?</span></label>
+                  <input
+                    value={(draft.onEnterAI || []).join('、')}
+                    onChange={(e) => setF('onEnterAI', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+                <div className="fld">
+                  <label>退出 AI<span className="tip" data-tip="退出连续对话时播报，留空即关闭">?</span></label>
+                  <input
+                    value={(draft.onExitAI || []).join('、')}
+                    onChange={(e) => setF('onExitAI', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+              </div>
+              <div className="row">
+                <div className="fld">
+                  <label>AI 思考中<span className="tip" data-tip="AI 开始回答前的过渡语，留空即关闭">?</span></label>
+                  <input
+                    value={(draft.onAIAsking || []).join('、')}
+                    onChange={(e) => setF('onAIAsking', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+                <div className="fld">
+                  <label>AI 回答完毕<span className="tip" data-tip="AI 回答结束后的收尾语，留空即关闭">?</span></label>
+                  <input
+                    value={(draft.onAIReplied || []).join('、')}
+                    onChange={(e) => setF('onAIReplied', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+              </div>
+              <div className="row">
+                <div className="fld">
+                  <label>AI 出错<span className="tip" data-tip="AI 回答异常时播报，留空即关闭">?</span></label>
+                  <input
+                    value={(draft.onAIError || []).join('、')}
+                    onChange={(e) => setF('onAIError', e.target.value.split(/[、,，]/).filter(Boolean))}
+                  />
+                </div>
+              </div>
             </div>
             <div className="acts">
               <span className="sp" />
@@ -3162,13 +3503,21 @@ function ModalShell(props: {
     } else if (props.modal.kind === 'think') {
       init.name = (p.name as string) || ''
       init.provider = (p.provider as string) || 'doubao'
-      init.model = (p.model as string) || ''
+      init.model = (p.model as string) || PROVIDER_PRESETS[init.provider]?.model || ''
       init.apiKey = ''
       init.temperature = String((p.temperature as number) ?? 0.7)
+      init.baseUrl = (p.baseUrl as string) || PROVIDER_PRESETS[init.provider]?.baseUrl || ''
     } else if (props.modal.kind === 'voice') {
       init.name = (p.name as string) || ''
-      init.provider = (p.provider as string) || 'doubao'
+      init.provider = (p.provider as string) || 'edge'
       init.voiceId = (p.voiceId as string) || ''
+      const tts = (p.tts as Record<string, any>) || {}
+      init.edgeToken = tts.edge?.trustedToken || ''
+      init.volcanoAppId = tts.volcano?.appId || ''
+      init.volcanoToken = tts.volcano?.accessToken || ''
+      init.openaiKey = tts.openai?.apiKey || ''
+      init.openaiModel = tts.openai?.model || ''
+      init.openaiBaseUrl = tts.openai?.baseUrl || ''
     } else if (props.modal.kind === 'role') {
       init.name = (p.name as string) || ''
       init.profile = (p.profile as string) || ''
@@ -3201,10 +3550,40 @@ function ModalShell(props: {
       out = { name: v.name, miUserId: v.miUserId, passToken: v.passToken }
     } else if (modal.kind === 'think') {
       out = { name: v.name, provider: v.provider, model: v.model, temperature: parseFloat(v.temperature) || 0.7 }
+      out.baseUrl = v.baseUrl || PROVIDER_PRESETS[v.provider]?.baseUrl || ''
       if (v.apiKey) out.apiKey = v.apiKey
     } else if (modal.kind === 'voice') {
       out = { name: v.name, provider: v.provider }
       if (v.voiceId) out.voiceId = v.voiceId
+      const tts: Record<string, unknown> = {}
+      if (v.provider === 'edge') {
+        tts.edge = v.edgeToken ? { trustedToken: v.edgeToken } : {}
+      } else if (v.provider === 'volcano') {
+        if (!v.volcanoAppId || !v.volcanoToken) {
+          setV({ ...v, err: '火山引擎需填写 App ID 与访问令牌' })
+          return
+        }
+        tts.volcano = { appId: v.volcanoAppId, accessToken: v.volcanoToken }
+      } else if (v.provider === 'openai') {
+        if (!v.openaiKey) {
+          setV({ ...v, err: 'OpenAI TTS 需填写 API Key' })
+          return
+        }
+        tts.openai = {
+          apiKey: v.openaiKey,
+          ...(v.openaiModel ? { model: v.openaiModel } : {}),
+          ...(v.openaiBaseUrl ? { baseUrl: v.openaiBaseUrl } : {}),
+        }
+      } else if (v.provider === 'custom') {
+        try {
+          const j = JSON.parse(v.customJson || '{}')
+          Object.assign(tts, j)
+        } catch {
+          setV({ ...v, err: '自定义 TTS 配置不是合法 JSON' })
+          return
+        }
+      }
+      if (Object.keys(tts).length) out.tts = tts as never
     } else if (modal.kind === 'role') {
       out = { name: v.name, profile: v.profile }
     } else if (modal.kind === 'pwd') {
@@ -3266,7 +3645,15 @@ function ModalShell(props: {
             </div>
             <div className="fld">
               <label>供应商</label>
-              <select value={v.provider || 'doubao'} onChange={(e) => setV({ ...v, provider: e.target.value })}>
+              <select
+                value={v.provider || 'doubao'}
+                onChange={(e) => {
+                  const p = e.target.value
+                  const preset = PROVIDER_PRESETS[p]
+                  const prev = PROVIDER_PRESETS[v.provider || '']
+                  setV({ ...v, provider: p, baseUrl: preset?.baseUrl || '', model: v.model && v.model !== prev?.model ? v.model : preset?.model || '' })
+                }}
+              >
                 {Object.entries(PROVIDERS).map(([k, label]) => (
                   <option key={k} value={k}>
                     {label}
@@ -3275,8 +3662,18 @@ function ModalShell(props: {
               </select>
             </div>
             <div className="fld">
+              <label>接口地址</label>
+              {v.provider === 'custom' ? (
+                <input value={v.baseUrl || ''} placeholder="https://api.example.com/v1" onChange={(e) => setV({ ...v, baseUrl: e.target.value })} />
+              ) : (
+                <input value={v.baseUrl || PROVIDER_PRESETS[v.provider || '']?.baseUrl || ''} readOnly disabled placeholder="选择供应商后自动填充" />
+              )}
+              <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址</span>
+            </div>
+            <div className="fld">
               <label>模型端点</label>
               <input value={v.model || ''} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setV({ ...v, model: e.target.value })} />
+              <span className="hint">切换供应商自动带出示例模型，可修改</span>
             </div>
             <div className="fld">
               <label>API Key</label>
@@ -3298,18 +3695,62 @@ function ModalShell(props: {
             </div>
             <div className="fld">
               <label>供应商</label>
-              <select value={v.provider || 'doubao'} onChange={(e) => setV({ ...v, provider: e.target.value })}>
-                <option value="doubao">豆包语音</option>
-                <option value="edge">Edge-TTS</option>
-                <option value="openai">OpenAI TTS</option>
-                <option value="custom">自定义</option>
+              <select value={v.provider || 'edge'} onChange={(e) => setV({ ...v, provider: e.target.value })}>
+                {Object.entries(TTS_ENGINES)
+                  .filter(([k]) => k !== 'builtin')
+                  .map(([k, label]) => (
+                    <option key={k} value={k}>
+                      {label}
+                    </option>
+                  ))}
               </select>
             </div>
             <div className="fld">
               <label>音色</label>
               <input value={v.voiceId || ''} placeholder="选择或输入音色 ID" onChange={(e) => setV({ ...v, voiceId: e.target.value })} />
-              <span className="hint">可配置多套音色，角色与设备中选择</span>
+              <span className="hint">留空使用该引擎的默认音色</span>
             </div>
+            {v.provider === 'edge' && (
+              <div className="fld">
+                <label>访问令牌（可选）</label>
+                <input value={v.edgeToken || ''} placeholder="留空由 Edge 自动获取" onChange={(e) => setV({ ...v, edgeToken: e.target.value })} />
+              </div>
+            )}
+            {v.provider === 'volcano' && (
+              <>
+                <div className="fld">
+                  <label>App ID</label>
+                  <input value={v.volcanoAppId || ''} placeholder="火山引擎语音合成 App ID" onChange={(e) => setV({ ...v, volcanoAppId: e.target.value })} />
+                </div>
+                <div className="fld">
+                  <label>访问令牌</label>
+                  <input value={v.volcanoToken || ''} placeholder="火山引擎 Access Token" onChange={(e) => setV({ ...v, volcanoToken: e.target.value })} />
+                </div>
+              </>
+            )}
+            {v.provider === 'openai' && (
+              <>
+                <div className="fld">
+                  <label>API Key</label>
+                  <input value={v.openaiKey || ''} placeholder="OpenAI API Key" onChange={(e) => setV({ ...v, openaiKey: e.target.value })} />
+                </div>
+                <div className="fld">
+                  <label>模型（可选）</label>
+                  <input value={v.openaiModel || ''} placeholder="tts-1" onChange={(e) => setV({ ...v, openaiModel: e.target.value })} />
+                </div>
+                <div className="fld">
+                  <label>接口地址（可选）</label>
+                  <input value={v.openaiBaseUrl || ''} placeholder="https://api.openai.com/v1" onChange={(e) => setV({ ...v, openaiBaseUrl: e.target.value })} />
+                </div>
+              </>
+            )}
+            {v.provider === 'custom' && (
+              <div className="fld">
+                <label>TTS 配置（JSON）</label>
+                <textarea rows={4} value={v.customJson || ''} placeholder='{"edge":{"trustedToken":"…"}}' onChange={(e) => setV({ ...v, customJson: e.target.value })} />
+                <span className="hint">高级用法：直接填写 mi-gpt TTSConfig JSON</span>
+              </div>
+            )}
           </>
         )}
 
@@ -3479,6 +3920,8 @@ function Wizard(props: {
   setDraft: (p: Partial<{ step: number; accountId: string; alias: string; did: string; model: string; roleId: string }>) => void
   onClose: () => void
   onFinish: () => void
+  onNewAccount: (d: { name: string; miUserId: string; passToken: string }) => Promise<Account>
+  onNewRole: (d: { name: string; profile?: string }) => Promise<Role>
 }) {
   const { draft } = props
   const [closing, setClosing] = useState(false)
@@ -3490,16 +3933,77 @@ function Wizard(props: {
       props.onClose()
     }, 200)
   }
+  const [pulling, setPulling] = useState(false)
+  const [pullErr, setPullErr] = useState('')
+  const [pulled, setPulled] = useState<PulledDevice[] | null>(null)
+  const [newAcct, setNewAcct] = useState(false)
+  const [naDraft, setNaDraft] = useState({ name: '', miUserId: '', passToken: '' })
+  const [naBusy, setNaBusy] = useState(false)
+  const [naErr, setNaErr] = useState('')
+  const [newRole, setNewRole] = useState(false)
+  const [nrDraft, setNrDraft] = useState({ name: '', profile: '' })
+  const [nrBusy, setNrBusy] = useState(false)
+  const [nrErr, setNrErr] = useState('')
   const step = draft.step
+  const selAcct = props.accounts.find((a) => a.id === draft.accountId)
+  const load = useCallback((accountId: string) => {
+    if (!accountId) return
+    setPulling(true)
+    setPullErr('')
+    setPulled(null)
+    api
+      .pullDevices(accountId)
+      .then((r) => {
+        const list = r.devices || []
+        setPulled(list)
+        if (!list.length) setPullErr('该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确')
+      })
+      .catch((e) => setPullErr((e as Error).message || '拉取设备失败'))
+      .finally(() => setPulling(false))
+  }, [])
+  useEffect(() => {
+    if (step === 1 && draft.accountId) load(draft.accountId)
+  }, [step, draft.accountId, load])
+  const saveNa = async () => {
+    if (naBusy) return
+    setNaBusy(true)
+    setNaErr('')
+    try {
+      const created = await props.onNewAccount(naDraft)
+      props.setDraft({ accountId: created.id })
+      setNewAcct(false)
+      setNaDraft({ name: '', miUserId: '', passToken: '' })
+    } catch (e) {
+      setNaErr((e as Error).message || '新建账号失败')
+    } finally {
+      setNaBusy(false)
+    }
+  }
+  const saveNr = async () => {
+    if (nrBusy) return
+    setNrBusy(true)
+    setNrErr('')
+    try {
+      const created = await props.onNewRole({ name: nrDraft.name, profile: nrDraft.profile })
+      props.setDraft({ roleId: created.id })
+      setNewRole(false)
+      setNrDraft({ name: '', profile: '' })
+    } catch (e) {
+      setNrErr((e as Error).message || '新建角色失败')
+    } finally {
+      setNrBusy(false)
+    }
+  }
   const canNext =
     (step === 0 && !!draft.accountId) ||
-    (step === 1 && !!draft.alias && !!draft.did) ||
+    (step === 1 && !!draft.did) ||
     step === 2
   const finish = () => {
     if (closing) return
     if (step === 2) close(props.onFinish)
     else if (canNext) props.setDraft({ step: step + 1 })
   }
+  const modelOf = (hardware: string) => props.models.find((x) => x.did.toLowerCase() === (hardware || '').toLowerCase())
   return (
     <div className={'wizard on' + (closing ? ' closing' : '')}>
       <div className="wiz">
@@ -3516,13 +4020,13 @@ function Wizard(props: {
         </div>
         <div className="wb">
           <div className={'step' + (step === 0 ? ' on' : '')}>
-            <h4>选择云端账号</h4>
-            <div className="desc">这台音箱归哪个小米账号管？</div>
+            <h4>连接云端账号</h4>
+            <div className="desc">这台音箱归哪个小米账号管？可选择已有账号，或新建账号。</div>
             <div className="pick-list">
               {props.accounts.length === 0 && (
                 <div className="empty" style={{ padding: '20px' }}>
                   <b>还没有云端账号</b>
-                  <span>请先到「云端账号」接入小米账号。</span>
+                  <span>请先接入小米账号，或在下方新建。</span>
                 </div>
               )}
               {props.accounts.map((a) => (
@@ -3540,56 +4044,104 @@ function Wizard(props: {
                 </div>
               ))}
             </div>
+            {!newAcct ? (
+              <button className="btn" style={{ justifyContent: 'center', marginTop: 10, width: '100%' }} onClick={() => setNewAcct(true)}>
+                <I n="plus" /> 新建账号
+              </button>
+            ) : (
+              <div className="new-acct" style={{ marginTop: 10 }}>
+                <div className="fld">
+                  <label>账号名称</label>
+                  <input value={naDraft.name} placeholder="例如：默认账号" onChange={(e) => setNaDraft({ ...naDraft, name: e.target.value })} />
+                </div>
+                <div className="fld">
+                  <label>小米 ID</label>
+                  <input value={naDraft.miUserId} placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱" onChange={(e) => setNaDraft({ ...naDraft, miUserId: e.target.value })} />
+                </div>
+                <div className="fld">
+                  <label>云端会话凭证 passToken</label>
+                  <textarea rows={2} value={naDraft.passToken} placeholder="从米家 / 小爱获取的 token" onChange={(e) => setNaDraft({ ...naDraft, passToken: e.target.value })} />
+                  <span className="hint">请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。</span>
+                </div>
+                {naErr && (
+                  <div className="notice err">
+                    <I n="warning" size={15} /> {naErr}
+                  </div>
+                )}
+                <div className="acts" style={{ marginTop: 10 }}>
+                  <span className="sp" />
+                  <button className="btn ghost" onClick={() => setNewAcct(false)}>
+                    取消
+                  </button>
+                  <button className="btn primary" disabled={naBusy || !naDraft.name || !naDraft.miUserId || !naDraft.passToken} onClick={saveNa}>
+                    {naBusy ? '保存中…' : '保存并选择'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div className={'step' + (step === 1 ? ' on' : '')}>
-            <h4>填写设备信息</h4>
-            <div className="desc">这台音箱的标识与型号；did 需与账号下设备一致。</div>
-            <div className="fld">
-              <label>设备别名</label>
-              <input
-                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-m)', padding: '8px 12px', font: 'inherit', background: 'var(--panel-2)' }}
-                value={draft.alias}
-                placeholder="例如：客餐厅音箱"
-                onChange={(e) => props.setDraft({ alias: e.target.value })}
-              />
-            </div>
-            <div className="fld">
-              <label>设备 did</label>
-              <input
-                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-m)', padding: '8px 12px', font: 'inherit', background: 'var(--panel-2)' }}
-                value={draft.did}
-                placeholder="例如：小米AI音箱@客餐厅"
-                onChange={(e) => props.setDraft({ did: e.target.value })}
-              />
-            </div>
-            <div className="fld">
-              <label>型号</label>
-              <select
-                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-m)', padding: '8px 12px', font: 'inherit', background: 'var(--panel-2)' }}
-                value={draft.model}
-                onChange={(e) => props.setDraft({ model: e.target.value })}
-              >
-                <option value="">（选择型号）</option>
-                {props.models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}（{m.did}）
-                  </option>
-                ))}
-              </select>
-              {(() => {
-                const m = props.models.find((x) => x.id === draft.model)
-                if (!m) return null
-                return (
-                  <div className="hint" style={{ marginTop: 6 }}>
-                    播放指令 {m.ttsCommand?.length ? m.ttsCommand.join('、') : '—'} · 唤醒命令 {m.wakeUpCommand?.length ? m.wakeUpCommand.join('、') : '—'} · 连续对话 {m.consecutive ? '启用' : '未启用'}
+            <h4>选择设备</h4>
+            <div className="desc">从账号下拉取音箱列表，选择要接入的设备；设备 ID 与型号自动识别。</div>
+            {!selAcct ? (
+              <div className="empty" style={{ padding: '20px' }}>
+                <b>请先选择云端账号</b>
+                <span>回到上一步选择或新建账号。</span>
+              </div>
+            ) : (
+              <>
+                <div className="fld">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 12.5, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selAcct.name}（{selAcct.miUserId}）
+                    </span>
+                    <button className="btn" onClick={() => load(draft.accountId)} disabled={pulling}>
+                      <I n="refresh" /> 重新读取
+                    </button>
                   </div>
-                )
-              })()}
-            </div>
+                </div>
+                {pulling && <div className="hint">正在从小米云端拉取设备…</div>}
+                {pullErr && (
+                  <div className="notice err">
+                    <I n="warning" size={15} /> {pullErr}
+                  </div>
+                )}
+                {pulled && pulled.length > 0 && (
+                  <div className="pick-list">
+                    {pulled.map((d) => {
+                      const m = modelOf(d.hardware)
+                      return (
+                        <div
+                          className={'pl' + (draft.did === d.miotDID ? ' on' : '')}
+                          key={d.miotDID}
+                          onClick={() => props.setDraft({ alias: d.name || d.alias, did: d.miotDID, model: m ? m.id : draft.model })}
+                        >
+                          <span className="ic">
+                            <I n="speaker" />
+                          </span>
+                          <span>
+                            <b>{d.name || d.alias}</b>
+                            <span>
+                              {m ? m.name : d.hardware || '未知型号'} · {d.presence === 'online' ? '在线' : '离线'}
+                            </span>
+                          </span>
+                          {draft.did === d.miotDID && <I n="check" size={18} />}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {draft.did && (
+                  <div className="sum" style={{ marginTop: 8 }}>
+                    <I n="check" size={14} /> 已选择：{draft.alias}（{draft.did}）{modelOf(draft.model || '') ? '' : ' · 未命中内置型号，可在「设备型号」核对'}
+                  </div>
+                )}
+              </>
+            )}
           </div>
           <div className={'step' + (step === 2 ? ' on' : '')}>
-            <h4>绑定角色</h4>
-            <div className="desc">这台音箱用谁的人设、谁的大脑、谁的嗓子？</div>
+            <h4>绑定对话角色</h4>
+            <div className="desc">这台音箱用谁的人设？思考服务与语音服务由角色统一提供，可选择已有角色或新建。</div>
             <div className="pick-list">
               {props.roles.map((r) => (
                 <div className={'pl' + (draft.roleId === r.id ? ' on' : '')} key={r.id} onClick={() => props.setDraft({ roleId: r.id })}>
@@ -3604,10 +4156,41 @@ function Wizard(props: {
               {props.roles.length === 0 && (
                 <div className="empty" style={{ padding: '20px' }}>
                   <b>还没有对话角色</b>
-                  <span>可先跳过，稍后在「对话角色」创建并绑定。</span>
+                  <span>可新建角色并绑定；思考服务与语音服务可在角色中后续配置。</span>
                 </div>
               )}
             </div>
+            {!newRole ? (
+              <button className="btn" style={{ justifyContent: 'center', marginTop: 10, width: '100%' }} onClick={() => setNewRole(true)}>
+                <I n="plus" /> 新建角色
+              </button>
+            ) : (
+              <div className="new-acct" style={{ marginTop: 10 }}>
+                <div className="fld">
+                  <label>角色名称</label>
+                  <input value={nrDraft.name} placeholder="例如：小爱同学" onChange={(e) => setNrDraft({ ...nrDraft, name: e.target.value })} />
+                </div>
+                <div className="fld">
+                  <label>人设描述</label>
+                  <textarea rows={3} value={nrDraft.profile} placeholder="例如：你叫小爱，是这家人的智能助手…" onChange={(e) => setNrDraft({ ...nrDraft, profile: e.target.value })} />
+                  <span className="hint">创建后可到「对话角色」补充思考服务与语音服务；留空则跟随全局默认。</span>
+                </div>
+                {nrErr && (
+                  <div className="notice err">
+                    <I n="warning" size={15} /> {nrErr}
+                  </div>
+                )}
+                <div className="acts" style={{ marginTop: 10 }}>
+                  <span className="sp" />
+                  <button className="btn ghost" onClick={() => setNewRole(false)}>
+                    取消
+                  </button>
+                  <button className="btn primary" disabled={nrBusy || !nrDraft.name} onClick={saveNr}>
+                    {nrBusy ? '保存中…' : '保存并绑定'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="wf">

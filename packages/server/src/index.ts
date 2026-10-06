@@ -2,6 +2,8 @@ import path from 'node:path'
 import express from 'express'
 import open from 'open'
 import os from 'node:os'
+import https from 'node:https'
+import { createHash } from 'node:crypto'
 import {
   getAllStatus,
   run,
@@ -41,6 +43,20 @@ const _origLog = console.log.bind(console)
 const _origInfo = console.info.bind(console)
 const _origWarn = console.warn.bind(console)
 const _origError = console.error.bind(console)
+
+// 同名唯一校验：同一实体的实例名称全局唯一（忽略大小写与首尾空白）。
+// 返回冲突提示文本，无冲突返回 null。
+function assertUniqueName<T extends { id: string; name?: string }>(
+  list: T[],
+  name: string | undefined,
+  excludeId: string | undefined,
+  label: string,
+): string | null {
+  const n = (name || '').trim()
+  if (!n) return null
+  const hit = list.find((x) => x.id !== excludeId && (x.name || '').trim().toLowerCase() === n.toLowerCase())
+  return hit ? `${label}「${n}」已存在，名称需唯一` : null
+}
 function _fmtLogArgs(args: any[]): string {
   return args
     .map((a) => {
@@ -103,11 +119,16 @@ interface Role {
   callAIKeywords: string[]
   wakeUpKeywords: string[]
   exitKeywords: string[]
+  /** 检测1/检测2：说出继续词保持对话、停止词结束对话（已并入唤醒/退出关键词真实生效） */
+  checkContinueKeywords?: string[]
+  checkNotContinueKeywords?: string[]
   onEnterAI: string[]
   onExitAI: string[]
   onAIAsking: string[]
   onAIReplied: string[]
   onAIError: string[]
+  /** 连续对话无响应自动退出时间（秒，默认 30） */
+  exitKeepAliveAfter?: number
   /** 该角色默认引用的思考服务（设备未覆盖时生效） */
   thinkServiceId?: string
   /** 该角色默认引用的语音服务（设备未覆盖时生效） */
@@ -218,6 +239,9 @@ const ROLE_DEFAULTS = {
   callAIKeywords: ['请', '你', '傻妞'],
   wakeUpKeywords: ['打开', '进入', '召唤'],
   exitKeywords: ['关闭', '退出', '再见'],
+  checkContinueKeywords: [],
+  checkNotContinueKeywords: [],
+  exitKeepAliveAfter: 30,
   onEnterAI: ['你好，我是傻妞，很高兴认识你'],
   onExitAI: ['傻妞已退出'],
   onAIAsking: ['让我先想想', '请稍等'],
@@ -337,6 +361,8 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
   qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   moonshot: 'https://api.moonshot.cn/v1',
   zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  yi: 'https://api.lingyiwanwu.com/v1',
+  baichuan: 'https://api.baichuan-ai.com/v1',
 }
 
 async function getDeviceMeta(id: string): Promise<DeviceMeta | undefined> {
@@ -378,7 +404,7 @@ function appendLog(id: string, line: string) {
 // ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话日志」页联调 ──
 const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
   { q: '小爱同学，今天天气怎么样', a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。', sys: '思考服务命中角色默认（豆包 Doubao-Seed）' },
-  { q: '帮我设一个 30 分钟的番茄钟', a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。', sys: '语音音色由角色指定（小米内置）' },
+  { q: '帮我设一个 30 分钟的番茄钟', a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。', sys: '语音音色由角色指定（默认语音）' },
   { q: '播放点轻音乐', a: '为你播放《Lofi 清晨电台》，音量已调到 30%。', sys: '' },
   { q: '小爱同学，国庆周边有什么好玩的', a: '苏州周边推荐：拙政园、平江路夜游、金鸡湖音乐喷泉，今天人流量较大建议错峰出行。', sys: '语音音色热切换成功（豆包语音）' },
 ]
@@ -390,18 +416,138 @@ function demoTs(d: Date): string {
 
 async function seedBuiltinVoice() {
   const list = await getVoiceServices()
+  // 存量迁移：旧名「小米内置」→「默认语音」（历史数据可能存在多条 builtin，全部统一改名）
+  let changed = false
+  for (const v of list) {
+    if (v.builtin && v.name === '小米内置') {
+      v.name = '默认语音'
+      changed = true
+    }
+  }
+  if (changed) {
+    await writeJson(voiceServicesFile, list)
+    console.log('已更新内置语音服务名称：默认语音')
+    return
+  }
   if (!list.some((v) => v.builtin)) {
     list.unshift({
       id: 'builtin-mi',
-      name: '小米内置',
+      name: '默认语音',
       provider: 'builtin',
       builtin: true,
       isDefault: list.length === 0,
       createdAt: Date.now(),
     })
     await writeJson(voiceServicesFile, list)
-    console.log('已初始化内置语音服务：小米内置')
+    console.log('已初始化内置语音服务：默认语音')
   }
+}
+
+// ── 小米 micoapi：凭 小米ID + passToken 拉取账号下音箱设备列表 ──
+// 协议（已用真实账号冒烟验证）：
+//   ① serviceLogin?sid=micoapi&_json=true 携带 cookie{userId, passToken} 免密建立登录态
+//   ② clientSign=SHA1(nonce+ssecurity) 换取 serviceToken
+//   ③ api2.mina.mi.com/admin/v2/device_list 返回账号下小爱音箱列表
+interface PulledDevice {
+  name: string
+  alias: string
+  deviceID: string
+  miotDID: string
+  hardware: string
+  presence: string
+}
+function _httpsReq(
+  method: string,
+  url: string,
+  headers: Record<string, string>,
+  cookieStr?: string,
+): Promise<{ status: number; body: string; setCookies: string[] }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url)
+    const opts: Record<string, any> = {
+      method,
+      hostname: u.hostname,
+      port: 443,
+      path: u.pathname + u.search,
+      headers: { ...headers },
+      rejectUnauthorized: false,
+    }
+    if (cookieStr) opts.headers['Cookie'] = cookieStr
+    const r = https.request(opts, (res) => {
+      const chunks: Buffer[] = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('end', () =>
+        resolve({
+          status: res.statusCode || 0,
+          body: Buffer.concat(chunks).toString('utf8'),
+          setCookies: (res.headers['set-cookie'] || []) as string[],
+        }),
+      )
+    })
+    r.on('error', reject)
+    r.end()
+  })
+}
+function _stripJson(body: string): string {
+  return body.startsWith('&&&START&&&') ? body.slice('&&&START&&&'.length) : body
+}
+async function pullMicoDevices(miUserId: string, passToken: string): Promise<PulledDevice[]> {
+  const deviceId = 'android_' + nanoid(16)
+  const ua =
+    'Mozilla/5.0 (Linux; Android 10; 000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.6045.193 Mobile Safari/537.36 /XiaoMi/HybridView/ micoSoundboxApp/i appVersion/A_2.4.40'
+
+  // ① 免密登录态
+  const loginCookie = `sdkVersion=3.9; deviceId=${deviceId}; userId=${miUserId}; passToken=${passToken}`
+  let r = await _httpsReq(
+    'GET',
+    'https://account.xiaomi.com/pass/serviceLogin?sid=micoapi&_json=true',
+    { 'User-Agent': ua },
+    loginCookie,
+  )
+  const raw = _stripJson(r.body)
+  const resp: any = JSON.parse(raw)
+  if (resp.code !== 0) {
+    throw new Error(`登录态无效（code=${resp.code} ${resp.description || resp.message || ''}），请重新验证 passToken`)
+  }
+  // nonce 可能超出 JS 安全整数，须取原文
+  const nonceMatch = raw.match(/"nonce"\s*:\s*(\d+)/)
+  const nonce = nonceMatch ? nonceMatch[1] : String(resp.nonce)
+
+  // ② 换 serviceToken
+  const clientSign = createHash('sha1').update(`nonce=${nonce}&${resp.ssecurity}`).digest('base64')
+  r = await _httpsReq('GET', `${resp.location}&clientSign=${encodeURIComponent(clientSign)}`, { 'User-Agent': ua })
+  let serviceToken = ''
+  for (const c of r.setCookies) {
+    const name = c.split(';')[0].split('=')[0].trim()
+    if (name === 'serviceToken') serviceToken = c.split(';')[0].split('=').slice(1).join('=')
+  }
+  if (!serviceToken) {
+    throw new Error('获取 serviceToken 失败（可能触发异地登录验证），请重新验证 passToken')
+  }
+
+  // ③ 设备列表
+  const ua2 =
+    'MiHome/6.0.103 (com.xiaomi.mihome; build:6.0.103.1; iOS 14.4.0) Alamofire/6.0.103 MICO/iOSApp/appStore/6.0.103'
+  const requestId = 'app_ios_' + nanoid(16)
+  const apiCookie = `userId=${miUserId}; serviceToken=${serviceToken}; PassportDeviceId=${deviceId}; countryCode=CN; locale=zh_CN; timezone=GMT+08:00`
+  r = await _httpsReq(
+    'GET',
+    `https://api2.mina.mi.com/admin/v2/device_list?master=0&requestId=${requestId}`,
+    { 'User-Agent': ua2, Referer: 'https://userprofile.mina.mi.com/dialogue-note/index.html' },
+    apiCookie,
+  )
+  const apiResp: any = JSON.parse(_stripJson(r.body))
+  if (apiResp.code !== 0) {
+    throw new Error(`拉取设备列表失败（code=${apiResp.code} ${apiResp.message || ''}）`)
+  }
+  return (apiResp.data || []).map((d: any) => ({
+    name: d.name || d.alias || '',
+    alias: d.alias || '',
+    deviceID: d.deviceID || d.deviceId || '',
+    miotDID: String(d.miotDID || ''),
+    hardware: d.hardware || '',
+    presence: d.presence || 'offline',
+  }))
 }
 
 /**
@@ -698,12 +844,19 @@ async function seedDemoLogs() {
 }
 
 // ── 用角色的默认配置展开设备初始 migptgui.json ─────────────────────
+/** 去重合并关键词列表（用于把检测词并入唤醒/退出关键词，使其真实生效） */
+function mergeKW(...lists: (string[] | undefined)[]): string[] {
+  const s = new Set<string>()
+  for (const l of lists) if (l) for (const e of l) if (e && e.trim()) s.add(e.trim())
+  return [...s]
+}
+
 function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
   return {
     config: {
       bot: {
         name: role?.name || '傻妞',
-        profile: role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。',
+        profile: (role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。').replace(/\\n/g, '\n'),
       },
       master: {
         name: '主人',
@@ -714,13 +867,16 @@ function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
         password: account?.miPassword || '',
         switchSpeakerKeywords: ['把声音换成'],
         callAIKeywords: role?.callAIKeywords || ROLE_DEFAULTS.callAIKeywords,
-        wakeUpKeywords: role?.wakeUpKeywords || ROLE_DEFAULTS.wakeUpKeywords,
-        exitKeywords: role?.exitKeywords || ROLE_DEFAULTS.exitKeywords,
+        // 检测1（继续对话）并入唤醒关键词：连续对话中说出继续词保持对话、超时后说出仍可重新进入
+        wakeUpKeywords: mergeKW(role?.wakeUpKeywords, role?.checkContinueKeywords, ROLE_DEFAULTS.wakeUpKeywords),
+        // 检测2（停止对话）并入退出关键词：连续对话中说出停止词立即结束
+        exitKeywords: mergeKW(role?.exitKeywords, role?.checkNotContinueKeywords, ROLE_DEFAULTS.exitKeywords),
         onEnterAI: role?.onEnterAI || ROLE_DEFAULTS.onEnterAI,
         onExitAI: role?.onExitAI || ROLE_DEFAULTS.onExitAI,
         onAIAsking: role?.onAIAsking || ROLE_DEFAULTS.onAIAsking,
         onAIReplied: role?.onAIReplied || ROLE_DEFAULTS.onAIReplied,
         onAIError: role?.onAIError || ROLE_DEFAULTS.onAIError,
+        exitKeepAliveAfter: role?.exitKeepAliveAfter ?? ROLE_DEFAULTS.exitKeepAliveAfter,
       },
     },
     env: {
@@ -825,7 +981,7 @@ async function resolveBindings(meta: DeviceMeta): Promise<DeviceBindings> {
       name: voice?.name || '未配置',
       detail: voice
         ? voice.builtin
-          ? '小米内置'
+          ? '默认语音'
           : `${voice.provider} · ${voice.voiceId || '默认音色'}`
         : undefined,
       source: voiceSource,
@@ -1095,6 +1251,12 @@ export function runServer(options?: {
       res.status(400).json({ error: '名称与云端账号数字 ID 必填' })
       return
     }
+    const accounts = await getAccounts()
+    const dup = assertUniqueName(accounts, body.name, undefined, '账号名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const account: Account = {
       id: nanoid(8),
       name: body.name,
@@ -1103,7 +1265,6 @@ export function runServer(options?: {
       passToken: body.passToken,
       createdAt: Date.now(),
     }
-    const accounts = await getAccounts()
     accounts.push(account)
     await writeJson(accountsFile, accounts)
     res.json(account)
@@ -1117,6 +1278,11 @@ export function runServer(options?: {
       return
     }
     const body = req.body as Partial<Account>
+    const dup = assertUniqueName(accounts, body.name, req.params.id, '账号名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     accounts[idx] = {
       ...accounts[idx],
       name: body.name ?? accounts[idx].name,
@@ -1147,6 +1313,28 @@ export function runServer(options?: {
     accounts.splice(idx, 1)
     await writeJson(accountsFile, accounts)
     res.json({ success: true })
+  })
+
+  // 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
+  app.post('/api/accounts/:id/pull-devices', async (req, res) => {
+    const accounts = await getAccounts()
+    const account = accounts.find((a) => a.id === req.params.id)
+    if (!account) {
+      res.status(404).json({ error: '账号不存在' })
+      return
+    }
+    if (!account.miUserId || !account.passToken) {
+      res.status(400).json({ error: '请先填写云端账号数字 ID 与会话凭证（passToken）' })
+      return
+    }
+    try {
+      const devices = await pullMicoDevices(account.miUserId, account.passToken)
+      res.json({ devices })
+    } catch (e: any) {
+      console.error('拉取设备失败', e)
+      _pushSysLog('ERROR', `拉取账号设备失败：${e?.message || e}`)
+      res.status(502).json({ error: `拉取设备失败：${e?.message || e}` })
+    }
   })
 
   // 兼容旧版：/api/settings 读写第一个（默认）账号
@@ -1188,16 +1376,26 @@ export function runServer(options?: {
   })
 
   // ── AI 角色 ───────────────────────────────────────────────────
+  // 归一化人设描述：兼容旧版存储的字面 `\n`，统一转为真实换行符
+  const normProfile = (s?: string) => (s || '').replace(/\\n/g, '\n')
+
   app.get('/api/roles', async (req, res) => {
-    res.json(await getRoles())
+    const roles = await getRoles()
+    res.json(roles.map((r) => ({ ...r, profile: normProfile(r.profile) })))
   })
 
   app.post('/api/roles', async (req, res) => {
     const roles = await getRoles()
+    const dup = assertUniqueName(roles, req.body?.name, undefined, '角色名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const role: Role = {
       id: nanoid(8),
       ...ROLE_DEFAULTS,
       ...req.body,
+      profile: normProfile(req.body.profile),
     }
     roles.push(role)
     await writeJson(rolesFile, roles)
@@ -1211,7 +1409,12 @@ export function runServer(options?: {
       res.status(404).json({ error: '角色不存在' })
       return
     }
-    roles[idx] = { ...roles[idx], ...req.body, id: req.params.id }
+    const dup = assertUniqueName(roles, req.body?.name, req.params.id, '角色名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
+    roles[idx] = { ...roles[idx], ...req.body, id: req.params.id, profile: normProfile(req.body.profile ?? roles[idx].profile) }
     await writeJson(rolesFile, roles)
     res.json(roles[idx])
   })
@@ -1251,6 +1454,11 @@ export function runServer(options?: {
       return
     }
     const list = await getThinkServices()
+    const dup = assertUniqueName(list, body.name, undefined, '思考服务名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const svc: ThinkService = {
       id: nanoid(8),
       name: body.name,
@@ -1280,6 +1488,11 @@ export function runServer(options?: {
       return
     }
     const body = req.body as Partial<ThinkService>
+    const dup = assertUniqueName(list, body.name, req.params.id, '思考服务名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const wasDefault = list[idx].isDefault
     list[idx] = { ...list[idx], ...body, id: req.params.id }
     if (body.isDefault && !wasDefault) {
@@ -1332,6 +1545,11 @@ export function runServer(options?: {
       return
     }
     const list = await getVoiceServices()
+    const dup = assertUniqueName(list, body.name, undefined, '语音服务名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const svc: VoiceService = {
       id: nanoid(8),
       name: body.name,
@@ -1362,6 +1580,11 @@ export function runServer(options?: {
     const body = req.body as Partial<VoiceService>
     if (list[idx].builtin) {
       res.status(409).json({ error: '内建语音服务不可编辑' })
+      return
+    }
+    const dup = assertUniqueName(list, body.name, req.params.id, '语音服务名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
       return
     }
     const wasDefault = list[idx].isDefault
@@ -1421,6 +1644,11 @@ export function runServer(options?: {
       return
     }
     const list = await getSpeakerModels()
+    const dup = assertUniqueName(list, body.name, undefined, '型号名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const model: SpeakerModel = {
       id: nanoid(8),
       name: body.name,
@@ -1449,6 +1677,11 @@ export function runServer(options?: {
     const body = req.body as Partial<SpeakerModel>
     if (list[idx].builtin) {
       res.status(409).json({ error: '系统内置型号不可编辑' })
+      return
+    }
+    const dup = assertUniqueName(list, body.name, req.params.id, '型号名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
       return
     }
     list[idx] = { ...list[idx], ...body, id: req.params.id, builtin: list[idx].builtin }
@@ -1505,6 +1738,11 @@ export function runServer(options?: {
       return
     }
     const rooms = await getRooms()
+    const dup = assertUniqueName(rooms, body.name, undefined, '会话群名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const room: Room = {
       id: nanoid(8),
       name: body.name,
@@ -1524,6 +1762,11 @@ export function runServer(options?: {
       return
     }
     const body = req.body as Partial<Room>
+    const dup = assertUniqueName(rooms, body.name, req.params.id, '会话群名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     rooms[idx] = { ...rooms[idx], ...body, id: req.params.id }
     await writeJson(roomsFile, rooms)
     res.json(rooms[idx])
@@ -1579,6 +1822,12 @@ export function runServer(options?: {
       res.status(400).json({ error: '别名和设备 ID 必填' })
       return
     }
+    const metas = await listDeviceMetas()
+    const dup = assertUniqueName(metas, body.alias, undefined, '设备名称')
+    if (dup) {
+      res.status(409).json({ error: dup })
+      return
+    }
     const id = nanoid(8)
     const meta: DeviceMeta = {
       id,
@@ -1625,6 +1874,14 @@ export function runServer(options?: {
     }
     const body = req.body as { meta?: Partial<DeviceMeta>; config?: GuiConfig }
     if (body.meta) {
+      if (body.meta.alias !== undefined) {
+        const allMetas = await listDeviceMetas()
+        const dup = assertUniqueName(allMetas, body.meta.alias, id, '设备名称')
+        if (dup) {
+          res.status(409).json({ error: dup })
+          return
+        }
+      }
       const nextMeta: DeviceMeta = { ...meta, ...body.meta, id }
       await writeJson(path.join(devicesRoot, id, 'meta.json'), nextMeta)
       // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
