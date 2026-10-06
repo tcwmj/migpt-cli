@@ -1320,7 +1320,9 @@ export function App() {
                         <b>{a.name}</b>
                         <span>{a.miUserId} · {a === accounts[0] ? '默认' : '备用'}</span>
                       </span>
-                      <span className="badge">{accountUsage(a.id).length}</span>
+                      <span className="badge" title={`已接入数/设备总数：${accountUsage(a.id).length}/${acctDevs[a.id]?.list?.length ?? '—'}`}>
+                        {accountUsage(a.id).length}/{acctDevs[a.id]?.list?.length ?? '—'}
+                      </span>
                     </div>
                   ))}
                   <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={() => selectAcct(null)}>
@@ -1362,58 +1364,57 @@ export function App() {
                           <span className="k">关联设备</span>
                           <span className="v">{accountUsage(selAcct).length} 台</span>
                         </div>
-                        <div className="grp" style={{ marginBottom: 2 }}>
-                          <h4>
-                            <I n="speaker" size={14} /> 账号设备
-                            <span className="sp" />
-                            <button className="icbtn" title="刷新设备" onClick={() => loadAcctDevs(selAcct)}>
-                              <I n="arrowsClockwise" size={14} />
-                            </button>
-                          </h4>
-                          {(() => {
-                            const st = acctDevs[selAcct]
-                            if (!st || st.loading)
-                              return (
-                                <div className="dev-pull loading">
-                                  <span className="spin" /> 正在从云端读取设备…
-                                </div>
-                              )
-                            if (st.err)
-                              return (
-                                <div className="dev-pull err">
-                                  <I n="warn" size={15} />
-                                  {st.err}
-                                </div>
-                              )
-                            if (!st.list.length)
-                              return <div className="dev-pull empty">该账号下暂无音箱设备</div>
-                            return (
-                              <div className="dev-pull">
-                                {st.list.map((d) => {
-                                  const mm = models.find((m) => m.id === d.hardware || m.name === d.hardware || (m.did && d.hardware && d.hardware.startsWith(m.did)))
-                                  const bound = devices.find((x) => x.accountId === selAcct && x.did === d.miotDID)
-                                  return (
-                                    <div className="pd-row" key={d.miotDID || d.deviceID}>
-                                      <span className="ic t">
-                                        {mm?.imageUrl ? <img src={mm.imageUrl} alt="" className="thumb" /> : <I n="speaker" />}
-                                      </span>
-                                      <span className="txt">
-                                        <b>{d.alias || d.name}</b>
-                                        <span>
-                                          {d.miotDID ? d.miotDID + ' · ' : ''}
-                                          {mm?.name || d.hardware || '未知型号'}
-                                        </span>
-                                      </span>
-                                      <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>
-                                      <span className={'tag' + (bound ? ' accent' : ' neu')}>{bound ? '已接入' : '未接入'}</span>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )
-                          })()}
-                        </div>
                       </div>
+                      <h3 className="acct-dev">
+                        <I n="speaker" size={17} /> 账号设备
+                        <span className="sp" />
+                        <button className="icbtn" title="刷新设备" onClick={() => loadAcctDevs(selAcct)}>
+                          <I n="refresh" size={15} />
+                        </button>
+                      </h3>
+                      {(() => {
+                        const st = acctDevs[selAcct]
+                        if (!st || st.loading)
+                          return (
+                            <div className="dev-pull loading">
+                              <span className="spin" /> 正在从云端读取设备…
+                            </div>
+                          )
+                        if (st.err)
+                          return (
+                            <div className="dev-pull err">
+                              <I n="warn" size={15} />
+                              {st.err}
+                            </div>
+                          )
+                        if (!st.list.length)
+                          return <div className="dev-pull empty">该账号下暂无音箱设备</div>
+                        return (
+                          <div className="dev-pull">
+                            {st.list.map((d) => {
+                              const mm = models.find((m) => m.id === d.hardware || m.name === d.hardware || (m.did && d.hardware && d.hardware.startsWith(m.did)))
+                              const bound = devices.find((x) => x.accountId === selAcct && x.did === d.miotDID)
+                              return (
+                                <div className="pd-row" key={d.miotDID || d.deviceID}>
+                                  <span className="ic t">
+                                    {mm?.imageUrl ? <img src={mm.imageUrl} alt="" className="thumb" /> : <I n="speaker" />}
+                                  </span>
+                                  <span className="txt">
+                                    <b>{d.alias || d.name}</b>
+                                    <span>
+                                      {mm?.name && mm.name !== d.hardware ? mm.name + ' · ' : ''}
+                                      {d.hardware || '未知型号'}
+                                      {d.miotDID ? ' · ' + d.miotDID : ''}
+                                    </span>
+                                  </span>
+                                  <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>
+                                  <span className={'tag' + (bound ? ' accent' : ' neu')}>{bound ? '已接入' : '未接入'}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                       <div className="acts">
                         <span className="sp" />
                         <button className="btn danger" onClick={() => delAcct(selAcct)}>

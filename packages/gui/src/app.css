@@ -1371,25 +1371,30 @@ td .ops .icon-btn svg {
   height: 13px;
   border-radius: 2px;
 }
-/* 分组标题右侧操作图标（账号设备刷新） */
-.rform .grp h4 .icbtn {
+/* 区块标题右侧操作图标（账号设备刷新） */
+.form-card h3 .icbtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   margin-left: auto;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 50%;
   background: transparent;
   color: var(--ink-3);
   cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.3s ease;
 }
-.rform .grp h4 .icbtn:hover {
+.form-card h3 .icbtn:hover {
   color: var(--accent);
   background: var(--amber-soft);
+  transform: rotate(30deg);
+}
+/* 账号设备区块：与账号详情同级标题 */
+.form-card h3.acct-dev {
+  margin: 18px 0 10px;
 }
 /* 角色详情页：属性值左对齐，k/v 固定间距，单行属性占半宽 */
 .rform.rview .ro .rr {
@@ -1398,6 +1403,10 @@ td .ops .icon-btn svg {
 }
 .rform.rview .ro .rr .v {
   text-align: left;
+}
+/* 属性名称固定列宽（与编辑页 label 同规格），使所有属性值首文字垂直对齐 */
+.rform.rview .ro .rr .k {
+  width: 100px;
 }
 /* 账号设备：账号详情页云端设备列表 */
 .dev-pull {
@@ -1451,6 +1460,7 @@ td .ops .icon-btn svg {
 .dev-pull.empty {
   padding: 14px 12px;
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
