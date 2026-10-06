@@ -41,6 +41,8 @@ const P: Record<string, string> = {
   gear: 'M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186,40.54a8,8,0,0,0-3.94-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.49L130.16,40Q128,40,125.84,40L107.2,25.11a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,73.89,34.51a8,8,0,0,0-3.93,6L67.32,64.27q-1.56,1.49-3,3L40.54,70a8,8,0,0,0-6,3.94,107.71,107.71,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L40,125.84Q40,128,40,130.16L25.11,148.8a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3L70,215.46a8,8,0,0,0,3.94,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L125.84,216q2.16.06,4.32,0l18.64,14.92a8,8,0,0,0,7.06,1.48,107.21,107.21,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3-3L215.46,186a8,8,0,0,0,6-3.94,107.71,107.71,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06Zm-16.1-6.5a73.93,73.93,0,0,1,0,8.68,8,8,0,0,0,1.74,5.48l14.19,17.73a91.57,91.57,0,0,1-6.23,15L187,173.11a8,8,0,0,0-5.1,2.64,74.11,74.11,0,0,1-6.14,6.14,8,8,0,0,0-2.64,5.1l-2.51,22.58a91.32,91.32,0,0,1-15,6.23l-17.74-14.19a8,8,0,0,0-5-1.75h-.48a73.93,73.93,0,0,1-8.68,0,8,8,0,0,0-5.48,1.74L100.45,215.8a91.57,91.57,0,0,1-15-6.23L82.89,187a8,8,0,0,0-2.64-5.1,74.11,74.11,0,0,1-6.14-6.14,8,8,0,0,0-5.1-2.64L46.43,170.6a91.32,91.32,0,0,1-6.23-15l14.19-17.74a8,8,0,0,0,1.74-5.48,73.93,73.93,0,0,1,0-8.68,8,8,0,0,0-1.74-5.48L40.2,100.45a91.57,91.57,0,0,1,6.23-15L69,82.89a8,8,0,0,0,5.1-2.64,74.11,74.11,0,0,1,6.14-6.14A8,8,0,0,0,82.89,69L85.4,46.43a91.32,91.32,0,0,1,15-6.23l17.74,14.19a8,8,0,0,0,5.48,1.74,73.93,73.93,0,0,1,8.68,0,8,8,0,0,0,5.48-1.74L155.55,40.2a91.57,91.57,0,0,1,15,6.23L173.11,69a8,8,0,0,0,2.64,5.1,74.11,74.11,0,0,1,6.14,6.14,8,8,0,0,0,5.1,2.64l22.58,2.51a91.32,91.32,0,0,1,6.23,15l-14.19,17.74A8,8,0,0,0,199.87,123.66Z',
   bolt: 'M248,124a56.11,56.11,0,0,0-32-50.61V72a48,48,0,0,0-88-26.49A48,48,0,0,0,40,72v1.39a56,56,0,0,0,0,101.2V176a48,48,0,0,0,88,26.49A48,48,0,0,0,216,176v-1.41A56.09,56.09,0,0,0,248,124ZM88,208a32,32,0,0,1-31.81-28.56A55.87,55.87,0,0,0,64,180h8a8,8,0,0,0,0-16H64A40,40,0,0,1,50.67,86.27,8,8,0,0,0,56,78.73V72a32,32,0,0,1,64,0v68.26A47.8,47.8,0,0,0,88,128a8,8,0,0,0,0,16,32,32,0,0,1,0,64Zm104-44h-8a8,8,0,0,0,0,16h8a55.87,55.87,0,0,0,7.81-.56A32,32,0,1,1,168,144a8,8,0,0,0,0-16,47.8,47.8,0,0,0-32,12.26V72a32,32,0,0,1,64,0v6.73a8,8,0,0,0,5.33,7.54A40,40,0,0,1,192,164Zm16-52a8,8,0,0,1-8,8h-4a36,36,0,0,1-36-36V80a8,8,0,0,1,16,0v4a20,20,0,0,0,20,20h4A8,8,0,0,1,208,112ZM60,120H56a8,8,0,0,1,0-16h4A20,20,0,0,0,80,84V80a8,8,0,0,1,16,0v4A36,36,0,0,1,60,120Z',
   mic: 'M56,96v64a8,8,0,0,1-16,0V96a8,8,0,0,1,16,0ZM88,24a8,8,0,0,0-8,8V224a8,8,0,0,0,16,0V32A8,8,0,0,0,88,24Zm40,32a8,8,0,0,0-8,8V192a8,8,0,0,0,16,0V64A8,8,0,0,0,128,56Zm40,32a8,8,0,0,0-8,8v64a8,8,0,0,0,16,0V96A8,8,0,0,0,168,88Zm40-16a8,8,0,0,0-8,8v96a8,8,0,0,0,16,0V80A8,8,0,0,0,208,72Z',
+  up: 'M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z',
+  down: 'M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z',
   search:
     'M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z',
   bell: 'M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z',
@@ -2858,6 +2860,7 @@ function LogsView(props: { devices: DeviceRow[]; models: SpeakerModel[] }) {
   const [logs, setLogs] = useState<LogEntry[] | null>(null)
   const [devFilter, setDevFilter] = useState('all')
   const [kindFilter, setKindFilter] = useState<'all' | 'user' | 'ai' | 'system'>('all')
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const load = useCallback(() => {
     setBusy(true)
@@ -2952,20 +2955,58 @@ function LogsView(props: { devices: DeviceRow[]; models: SpeakerModel[] }) {
           ) : (
             <div className="logs">
               {list.map((l, i) => (
-                <div className={'log' + (l.kind === 'user' ? ' q' : l.kind === 'ai' ? ' a' : '')} key={i}>
-                  <span className="t">{l.time || '--'}</span>
-                  <span className="who">
-                    <span className="tag accent">{selDevName}</span>
-                    <em className={'k k-' + l.kind}>{kindLabel[l.kind]}</em>
-                  </span>
-                  <span className="txt">{l.text}</span>
-                </div>
+                <LogRow
+                  key={i}
+                  l={l}
+                  multi={l.text.includes('\n')}
+                  devName={selDevName}
+                  kindLabel={kindLabel[l.kind]}
+                  onToggle={(open) => {
+                    setExpanded((prev) => {
+                      const next = new Set(prev)
+                      if (open) next.add(i)
+                      else next.delete(i)
+                      return next
+                    })
+                  }}
+                  open={expanded.has(i)}
+                />
               ))}
             </div>
           )}
         </section>
       </div>
     </section>
+  )
+}
+
+function LogRow(props: {
+  l: { time: string; kind: 'user' | 'ai' | 'system'; text: string }
+  multi: boolean
+  open: boolean
+  devName: string
+  kindLabel: string
+  onToggle: (open: boolean) => void
+}) {
+  const { l, multi, open, devName, kindLabel, onToggle } = props
+  return (
+    <div
+      className={'log' + (l.kind === 'user' ? ' q' : l.kind === 'ai' ? ' a' : '') + (multi ? ' expandable' : '') + (open ? ' open' : '')}
+      onClick={multi ? () => onToggle(!open) : undefined}
+      title={multi && !open ? '点击展开查看完整内容' : undefined}
+    >
+      <span className="t">{l.time || '--'}</span>
+      <span className="who">
+        <span className="tag accent">{devName}</span>
+        <em className={'k k-' + l.kind}>{kindLabel}</em>
+      </span>
+      <span className="txt">{l.text}</span>
+      {multi && (
+        <span className="more">
+          <I n={open ? 'up' : 'down'} size={12} />
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -3925,11 +3966,11 @@ function ModalShell(props: {
 
         {modal.kind === 'account' && (
           <>
-            <div className="fld">
+            <div className="fld row">
               <label>账号名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：默认账号" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>小米 ID<span className="req">*</span></label>
               <input value={v.miUserId || ''} placeholder="例如：1234567890" onChange={(e) => setV({ ...v, miUserId: e.target.value })} />
               <span className="hint">登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。</span>
@@ -3944,11 +3985,11 @@ function ModalShell(props: {
 
         {modal.kind === 'think' && (
           <>
-            <div className="fld">
+            <div className="fld row">
               <label>服务名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：豆包 Doubao-Seed" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>供应商<span className="req">*</span></label>
               <select
                 value={v.provider || 'doubao'}
@@ -3966,7 +4007,7 @@ function ModalShell(props: {
                 ))}
               </select>
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>接口地址</label>
               {v.provider === 'custom' ? (
                 <input value={v.baseUrl || ''} placeholder="https://api.example.com/v1" onChange={(e) => setV({ ...v, baseUrl: e.target.value })} />
@@ -3975,17 +4016,17 @@ function ModalShell(props: {
               )}
               <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址</span>
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>模型端点<span className="req">*</span></label>
               <input value={v.model || ''} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setV({ ...v, model: e.target.value })} />
               <span className="hint">切换供应商自动带出示例模型，可修改</span>
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>API Key</label>
               <input value={v.apiKey || ''} placeholder="ark-••••" onChange={(e) => setV({ ...v, apiKey: e.target.value })} />
               <span className="hint">{isEdit ? '留空则保留原 Key' : '仅服务端保存，面板不展示明文'}</span>
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>温度</label>
               <input value={v.temperature || '0.7'} onChange={(e) => setV({ ...v, temperature: e.target.value })} />
             </div>
@@ -3994,11 +4035,11 @@ function ModalShell(props: {
 
         {modal.kind === 'voice' && (
           <>
-            <div className="fld">
+            <div className="fld row">
               <label>服务名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：豆包语音" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>供应商<span className="req">*</span></label>
               <select value={v.provider || 'edge'} onChange={(e) => setV({ ...v, provider: e.target.value })}>
                 {Object.entries(TTS_ENGINES)
@@ -4010,24 +4051,24 @@ function ModalShell(props: {
                   ))}
               </select>
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>音色</label>
               <input value={v.voiceId || ''} placeholder="选择或输入音色 ID" onChange={(e) => setV({ ...v, voiceId: e.target.value })} />
               <span className="hint">留空使用该引擎的默认音色</span>
             </div>
             {v.provider === 'edge' && (
-              <div className="fld">
+              <div className="fld row">
                 <label>访问令牌</label>
                 <input value={v.edgeToken || ''} placeholder="留空由 Edge 自动获取" onChange={(e) => setV({ ...v, edgeToken: e.target.value })} />
               </div>
             )}
             {v.provider === 'volcano' && (
               <>
-                <div className="fld">
+                <div className="fld row">
                   <label>App ID<span className="req">*</span></label>
                   <input value={v.volcanoAppId || ''} placeholder="火山引擎语音合成 App ID" onChange={(e) => setV({ ...v, volcanoAppId: e.target.value })} />
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>访问令牌<span className="req">*</span></label>
                   <input value={v.volcanoToken || ''} placeholder="火山引擎 Access Token" onChange={(e) => setV({ ...v, volcanoToken: e.target.value })} />
                 </div>
@@ -4035,15 +4076,15 @@ function ModalShell(props: {
             )}
             {v.provider === 'openai' && (
               <>
-                <div className="fld">
+                <div className="fld row">
                   <label>API Key<span className="req">*</span></label>
                   <input value={v.openaiKey || ''} placeholder="OpenAI API Key" onChange={(e) => setV({ ...v, openaiKey: e.target.value })} />
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>模型</label>
                   <input value={v.openaiModel || ''} placeholder="tts-1" onChange={(e) => setV({ ...v, openaiModel: e.target.value })} />
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>接口地址</label>
                   <input value={v.openaiBaseUrl || ''} placeholder="https://api.openai.com/v1" onChange={(e) => setV({ ...v, openaiBaseUrl: e.target.value })} />
                 </div>
@@ -4061,7 +4102,7 @@ function ModalShell(props: {
 
         {modal.kind === 'role' && (
           <>
-            <div className="fld">
+            <div className="fld row">
               <label>角色名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：深夜电台 DJ" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
@@ -4107,7 +4148,7 @@ function ModalShell(props: {
               </div>
             ) : (
               <>
-                <div className="fld">
+                <div className="fld row">
                   <label>所属账号</label>
                   <select value={v.accountId || ''} onChange={(e) => setV({ ...v, accountId: e.target.value })}>
                     <option value="">（保持当前）</option>
@@ -4118,7 +4159,7 @@ function ModalShell(props: {
                     ))}
                   </select>
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>对话角色</label>
                   <select value={v.roleId || ''} onChange={(e) => setV({ ...v, roleId: e.target.value })}>
                     <option value="">（保持当前）</option>
@@ -4129,7 +4170,7 @@ function ModalShell(props: {
                     ))}
                   </select>
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>思考服务</label>
                   <select value={v.thinkServiceId || ''} onChange={(e) => setV({ ...v, thinkServiceId: e.target.value })}>
                     <option value="">（继承角色 / 全局默认）</option>
@@ -4141,7 +4182,7 @@ function ModalShell(props: {
                     ))}
                   </select>
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>语音服务（设备覆盖）</label>
                   <select value={v.voiceOverrideId || ''} onChange={(e) => setV({ ...v, voiceOverrideId: e.target.value })}>
                     <option value="">（继承角色 / 全局默认）</option>
@@ -4153,7 +4194,7 @@ function ModalShell(props: {
                     ))}
                   </select>
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>设备型号</label>
                   <select value={v.speakerModel || ''} onChange={(e) => setV({ ...v, speakerModel: e.target.value })}>
                     <option value="">（保持当前）</option>
@@ -4177,12 +4218,12 @@ function ModalShell(props: {
                     )
                   })()}
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>连续对话超时（秒）</label>
                   <input value={v.exitKeepAliveAfter || '30'} placeholder="默认 30" onChange={(e) => setV({ ...v, exitKeepAliveAfter: e.target.value })} />
                   <span className="hint">连续对话中无响应多久自动退出唤醒模式，默认 30 秒</span>
                 </div>
-                <div className="fld">
+                <div className="fld row">
                   <label>会话群</label>
                   <select value={v.roomRef || ''} onChange={(e) => setV({ ...v, roomRef: e.target.value })}>
                     <option value="">（保持当前）</option>

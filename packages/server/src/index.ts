@@ -2001,20 +2001,22 @@ export function runServer(options?: {
     }[] = []
     for (const [deviceId, buf] of logBuffers) {
       const meta = await getDeviceMeta(deviceId)
+      let cur: { time: string; kind: 'user' | 'ai' | 'system'; text: string } | null = null
       for (const line of buf.slice(-limit)) {
         const m = line.match(/^(\d{4}[\/-]\d{2}[\/-]\d{2} \d{2}:\d{2}:\d{2})/)
         const body = line.replace(/^\d{4}[\/-]\d{2}[\/-]\d{2} \d{2}:\d{2}:\d{2}\s*/, '')
-        let kind: 'user' | 'ai' | 'system' = 'system'
-        if (/^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/.test(body)) kind = 'user'
-        else if (/^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/.test(body)) kind = 'ai'
-        rows.push({
-          deviceId,
-          deviceAlias: meta?.alias || deviceId,
-          time: m ? m[1] : '',
-          kind,
-          text: body,
-        })
+        if (m) {
+          if (cur) rows.push({ deviceId, deviceAlias: meta?.alias || deviceId, ...cur })
+          let kind: 'user' | 'ai' | 'system' = 'system'
+          if (/^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/.test(body)) kind = 'user'
+          else if (/^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/.test(body)) kind = 'ai'
+          cur = { time: m[1], kind, text: body }
+        } else if (cur) {
+          // 无时间戳的续行并入上一条日志（同一条多行日志不拆成多条）
+          cur.text += '\n' + body
+        }
       }
+      if (cur) rows.push({ deviceId, deviceAlias: meta?.alias || deviceId, ...cur })
     }
     rows.sort((a, b) => (a.time < b.time ? 1 : -1))
     res.json({ total: rows.length, logs: rows.slice(0, limit) })

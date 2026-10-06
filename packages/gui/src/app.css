@@ -353,10 +353,11 @@ svg {
   width: 100%;
 }
 
-/* 侧栏折叠/展开把手：空心钝角三角形（顶角约120°），两态均贴右缘，展开尖朝左 / 收起尖朝右，完全镜像对称 */
+/* 侧栏折叠/展开把手：空心钝角三角形，骑在侧栏右边界上（以右边界为镜），
+   展开把手尖朝右、收起把手尖朝左，两态完全镜像对称 */
 .side-toggle {
   position: absolute;
-  right: 0;
+  right: -8px;
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
@@ -2716,7 +2717,7 @@ td .ops .icon-btn svg {
   color: var(--ink-3);
   font-size: 12.5px;
   line-height: 1.7;
-  margin-bottom: 0;
+  margin-bottom: 14px;
 }
 
 .modal .fld {
@@ -2736,15 +2737,21 @@ td .ops .icon-btn svg {
 .modal .fld.row {
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .modal .fld.row label {
-  width: 88px;
+  width: 110px;
   flex-shrink: 0;
 }
-.modal .fld.row input {
+.modal .fld.row input,
+.modal .fld.row select {
   flex: 1;
   min-width: 0;
+}
+.modal .fld.row .hint {
+  flex-basis: 100%;
+  margin-left: 122px;
+  margin-top: -2px;
 }
 
 .modal .fld input,
@@ -3555,18 +3562,19 @@ td .ops .icon-btn svg {
   margin-top: 16px;
 }
 
-/* 登录表单输入框：label 与输入框同行，图标前缀 + 聚焦态 */
+/* 登录表单输入框：label 与输入框同行，图标垂直居中于输入框左侧，视觉更舒展 */
 .login-card .fld.ic {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   position: relative;
   margin-bottom: 14px;
 }
 
 .login-card .fld.ic label {
-  width: 56px;
+  width: 64px;
   flex-shrink: 0;
+  text-align: right;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-2);
@@ -3575,8 +3583,9 @@ td .ops .icon-btn svg {
 
 .login-card .fld.ic > svg {
   position: absolute;
-  left: 66px;
-  bottom: 16px;
+  left: 78px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--ink-3);
   pointer-events: none;
   transition: color 0.15s ease;
@@ -3590,7 +3599,7 @@ td .ops .icon-btn svg {
   flex: 1;
   width: auto;
   height: 48px;
-  padding: 0 14px 0 38px;
+  padding: 0 14px 0 40px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
@@ -3816,6 +3825,47 @@ td .ops .icon-btn svg {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
+.log.expandable {
+  cursor: pointer;
+}
+
+.log .txt {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-1);
+  word-break: break-all;
+  white-space: pre-wrap;
+  cursor: default;
+}
+
+/* 跨行日志默认折叠为单行省略，点击展开显示完整内容 */
+.log.expandable .txt {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.log.expandable.open .txt {
+  -webkit-line-clamp: unset;
+  white-space: pre-wrap;
+  overflow: visible;
+}
+
+.log .more {
+  flex: none;
+  align-self: center;
+  color: var(--ink-3);
+  opacity: 0.75;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.log.expandable:hover .more {
+  color: var(--accent);
+  opacity: 1;
+}
+
 .log.q {
   background: rgba(217, 100, 42, 0.05);
   border-color: rgba(217, 100, 42, 0.18);
@@ -3869,13 +3919,6 @@ td .ops .icon-btn svg {
   color: var(--ink-2);
   background: var(--panel-2);
   border: 1px solid var(--line);
-}
-
-.log .txt {
-  flex: 1;
-  color: var(--ink-1);
-  word-break: break-all;
-  white-space: pre-wrap;
 }
 
 /* ══ 运行明细表 ══ */
