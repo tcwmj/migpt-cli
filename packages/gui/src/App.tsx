@@ -4079,15 +4079,15 @@ function ModalShell(props: {
 
         {modal.kind === 'pwd' && (
           <>
-            <div className="fld">
+            <div className="fld row">
               <label>当前密码<span className="req">*</span></label>
               <input type="password" value={v.old || ''} onChange={(e) => setV({ ...v, old: e.target.value })} />
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>新密码<span className="req">*</span></label>
               <input type="password" value={v.pwd || ''} onChange={(e) => setV({ ...v, pwd: e.target.value })} />
             </div>
-            <div className="fld">
+            <div className="fld row">
               <label>确认新密码<span className="req">*</span></label>
               <input type="password" value={v.pwd2 || ''} onChange={(e) => setV({ ...v, pwd2: e.target.value, err: '' })} />
             </div>
