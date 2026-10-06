@@ -1551,8 +1551,14 @@ td .ops .icon-btn svg {
 .grp .fld input,
 .grp .fld textarea,
 .grp .fld select {
-  flex: 1 1 calc(100% - 110px);
+  flex: 1 1 0;
   min-width: 0;
+}
+/* 必填标识 */
+.req {
+  color: var(--danger);
+  font-weight: 700;
+  margin-left: 2px;
 }
 /* 提示信息改为 label 右侧的 tooltip 符号，悬浮显示 */
 .grp .fld label .tip {
@@ -1882,6 +1888,23 @@ td .ops .icon-btn svg {
   flex-direction: column;
   gap: 5px;
   margin-bottom: 14px;
+}
+
+/* 分组表单字段：label 与输入框同行（与「对话角色」编辑页一致） */
+.form-card .grp .fld {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 10px;
+  margin-bottom: 12px;
+}
+.form-card .grp .fld > div:not(.fld-tags) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.form-card .grp .fld > .fld-tags {
+  flex: 1 1 100%;
+  min-width: 0;
 }
 
 .form-card .fld label {

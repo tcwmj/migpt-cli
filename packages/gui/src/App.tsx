@@ -202,12 +202,12 @@ function LoginPage({ onLogin, error }: { onLogin: (u: string, p: string) => Prom
             </div>
           )}
           <div className="fld ic">
-            <label>用户名</label>
+            <label>用户名<span className="req">*</span></label>
             <I n="user" size={15} />
             <input value={u} onChange={(e) => setU(e.target.value)} autoFocus placeholder="请输入用户名" />
           </div>
           <div className="fld ic">
-            <label>密码</label>
+            <label>密码<span className="req">*</span></label>
             <I n="lock" size={15} />
             <input
               type="password"
@@ -1450,13 +1450,12 @@ export function App() {
                         <h4>基本信息</h4>
                         <div className="row">
                           <div className="fld">
-                            <label>账号名称</label>
+                            <label>账号名称<span className="req">*</span></label>
                             <input value={acctDraft.name} placeholder="例如：默认账号" onChange={(e) => setAcctDraft({ ...acctDraft, name: e.target.value })} />
                           </div>
                           <div className="fld">
-                            <label>小米 ID</label>
+                            <label>小米 ID<span className="req">*</span><span className="tip" data-tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。">?</span></label>
                             <input value={acctDraft.miUserId} placeholder="例如：1234567890" onChange={(e) => setAcctDraft({ ...acctDraft, miUserId: e.target.value })} />
-                            <span className="hint">登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。</span>
                           </div>
                         </div>
                       </div>
@@ -1464,9 +1463,8 @@ export function App() {
                         <h4>凭据</h4>
                         <div className="row">
                           <div className="fld">
-                            <label>passToken</label>
+                            <label>passToken<span className="tip" data-tip={selAcct ? '留空则保留原凭据' : '异地登录安全验证时，会给出授权链接'}>?</span></label>
                             <textarea rows={4} value={acctDraft.passToken} placeholder={accounts.find((a) => a.id === selAcct)?.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setAcctDraft({ ...acctDraft, passToken: e.target.value })} />
-                            <span className="hint">{selAcct ? '留空则保留原凭据' : '异地登录安全验证时，会给出授权链接'}</span>
                           </div>
                         </div>
                       </div>
@@ -1653,13 +1651,12 @@ export function App() {
                         <h4>基本信息</h4>
                         <div className="row">
                           <div className="fld">
-                            <label>型号名称</label>
+                            <label>型号名称<span className="req">*</span></label>
                             <input value={modelDraft.name} placeholder="例如：小米 AI 音箱第一代" onChange={(e) => setModelDraft({ ...modelDraft, name: e.target.value })} />
                           </div>
                           <div className="fld">
-                            <label>型号标识</label>
+                            <label>型号标识<span className="req">*</span><span className="tip" data-tip="硬件型号标识（did 前缀），如 X08E、L05B">?</span></label>
                             <input value={modelDraft.did} placeholder="例如：X08E" onChange={(e) => setModelDraft({ ...modelDraft, did: e.target.value })} />
-                            <span className="hint">硬件型号标识（did 前缀），如 X08E、L05B</span>
                           </div>
                         </div>
                         <div className="row">
@@ -1684,7 +1681,7 @@ export function App() {
                         ).map(([label, key, count, hint]) => (
                           <div className="row" key={key as string}>
                             <div className="fld">
-                              <label>{label}</label>
+                              <label>{label}<span className="tip" data-tip={`${hint}（${count} 位数字）`}>?</span></label>
                               <div className="arr-in">
                                 {(modelDraft[key] as string[]).map((v, i) => (
                                   <input
@@ -1696,7 +1693,6 @@ export function App() {
                                   />
                                 ))}
                               </div>
-                              <span className="hint">{hint}（{count} 位数字）</span>
                             </div>
                           </div>
                         ))}
@@ -1705,12 +1701,11 @@ export function App() {
                         <h4>连续对话</h4>
                         <div className="row">
                           <div className="fld">
-                            <label>连续对话</label>
+                            <label>连续对话<span className="tip" data-tip="启用后音箱可连续对话，无需每次唤醒">?</span></label>
                             <label className="switch">
                               <input type="checkbox" checked={!!modelDraft.consecutive} onChange={(e) => setModelDraft({ ...modelDraft, consecutive: e.target.checked })} />
                               <span className="track" />
                             </label>
-                            <span className="hint">启用后音箱可连续对话，无需每次唤醒</span>
                           </div>
                         </div>
                       </div>
@@ -1950,11 +1945,11 @@ export function App() {
                         <h4>基本信息</h4>
                         <div className="row">
                           <div className="fld">
-                            <label>设备名称</label>
+                            <label>设备名称<span className="req">*</span></label>
                             <input value={devDraft.alias} placeholder="例如：客餐厅音箱" onChange={(e) => setDevDraft({ ...devDraft, alias: e.target.value })} />
                           </div>
                           <div className="fld">
-                            <label>设备 ID</label>
+                            <label>设备 ID<span className="req">*</span><span className="tip" data-tip="小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。">?</span></label>
                             {selDev ? (
                               <input value={devDraft.did} placeholder="例如：小爱音箱Pro" onChange={(e) => setDevDraft({ ...devDraft, did: e.target.value })} />
                             ) : (
@@ -1964,7 +1959,6 @@ export function App() {
                                 </span>
                               </div>
                             )}
-                            <span className="hint">小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。</span>
                           </div>
                         </div>
                       </div>
@@ -1972,7 +1966,7 @@ export function App() {
                         <h4>设备型号</h4>
                         <div className="row">
                           <div className="fld">
-                            <label>设备型号</label>
+                            <label>设备型号<span className="tip" data-tip="输入关键字可搜索型号；选择后自动带入该型号的指令与播放配置（可在「设备型号」维护）。">?</span></label>
                         <div className="model-pick">
                           <input
                             value={
@@ -2023,7 +2017,6 @@ export function App() {
                             </div>
                           )}
                         </div>
-                        <span className="hint">输入关键字可搜索型号；选择后自动带入该型号的指令与播放配置（可在「设备型号」维护）。</span>
                         {(() => {
                           const m = models.find((x) => x.id === devDraft.speakerModel)
                           if (!m) return null
@@ -2060,7 +2053,7 @@ export function App() {
                             </select>
                           </div>
                           <div className="fld">
-                            <label>对话角色</label>
+                            <label>对话角色<span className="tip" data-tip="选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。">?</span></label>
                             <select value={devDraft.roleId} onChange={(e) => setDevDraft({ ...devDraft, roleId: e.target.value })}>
                               <option value="">未指定</option>
                               {roles.map((r) => (
@@ -2069,13 +2062,12 @@ export function App() {
                                 </option>
                               ))}
                             </select>
-                            <span className="hint">选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。</span>
                           </div>
                         </div>
                         {!selDev && (
                           <div className="row">
                             <div className="fld">
-                              <label>从账号拉取</label>
+                              <label>从账号拉取<span className="tip" data-tip="从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。">?</span></label>
                               <div className="pull-dev">
                                 <button className="btn" onClick={() => doPullDev(devDraft.accountId)} disabled={!devDraft.accountId || devPull.loading}>
                                   <I n="refresh" /> {devPull.loading ? '拉取中…' : '拉取设备列表'}
@@ -2114,19 +2106,17 @@ export function App() {
                                     })}
                                   </div>
                                 )}
-                                <span className="hint">从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。</span>
                               </div>
                             </div>
                           </div>
                         )}
                         <div className="row">
                           <div className="fld">
-                            <label>连续对话超时（秒）</label>
+                            <label>连续对话超时（秒）<span className="tip" data-tip="连续对话中无响应多久自动退出唤醒模式，默认 30 秒">?</span></label>
                             <input value={devDraft.exitKeepAliveAfter || '30'} placeholder="默认 30" onChange={(e) => setDevDraft({ ...devDraft, exitKeepAliveAfter: e.target.value })} />
-                            <span className="hint">连续对话中无响应多久自动退出唤醒模式，默认 30 秒</span>
                           </div>
                           <div className="fld">
-                            <label>会话群</label>
+                            <label>会话群<span className="tip" data-tip="对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建">?</span></label>
                             <select value={devDraft.roomRef} onChange={(e) => setDevDraft({ ...devDraft, roomRef: e.target.value })}>
                               <option value="">未指定</option>
                               {rooms.map((rm) => (
@@ -2135,7 +2125,6 @@ export function App() {
                                 </option>
                               ))}
                             </select>
-                            <span className="hint">对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建</span>
                           </div>
                         </div>
                       </div>
@@ -2331,11 +2320,11 @@ export function App() {
                           <h4>基本信息</h4>
                           <div className="row">
                             <div className="fld">
-                              <label>服务名称</label>
+                              <label>服务名称<span className="req">*</span></label>
                               <input value={thinkDraft.name} placeholder="例如：豆包 Doubao-Seed" onChange={(e) => setThinkDraft({ ...thinkDraft, name: e.target.value })} />
                             </div>
                             <div className="fld">
-                              <label>供应商</label>
+                              <label>供应商<span className="req">*</span></label>
                               <select
                                 value={thinkDraft.provider}
                                 onChange={(e) => {
@@ -2363,18 +2352,16 @@ export function App() {
                           <h4>模型配置</h4>
                           <div className="row">
                             <div className="fld">
-                              <label>接口地址</label>
+                              <label>接口地址<span className="tip" data-tip="选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出">?</span></label>
                               {thinkDraft.provider === 'custom' ? (
                                 <input value={thinkDraft.baseUrl} placeholder="https://api.example.com/v1" onChange={(e) => setThinkDraft({ ...thinkDraft, baseUrl: e.target.value })} />
                               ) : (
                                 <input value={thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''} readOnly disabled placeholder="选择供应商后自动填充" />
                               )}
-                              <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出</span>
                             </div>
                             <div className="fld">
-                              <label>模型端点</label>
+                              <label>模型端点<span className="req">*</span><span className="tip" data-tip="切换供应商自动带出示例模型，可修改">?</span></label>
                               <input value={thinkDraft.model} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setThinkDraft({ ...thinkDraft, model: e.target.value })} />
-                              <span className="hint">切换供应商自动带出示例模型，可修改</span>
                             </div>
                           </div>
                           <div className="row">
@@ -2383,9 +2370,8 @@ export function App() {
                               <input value={thinkDraft.apiKey} placeholder={selThink ? '留空则保留原 Key' : 'ark- 开头的密钥'} onChange={(e) => setThinkDraft({ ...thinkDraft, apiKey: e.target.value })} />
                             </div>
                             <div className="fld">
-                              <label>温度</label>
+                              <label>温度<span className="tip" data-tip="取值范围 0–1，越高回答越发散">?</span></label>
                               <input value={thinkDraft.temperature} onChange={(e) => setThinkDraft({ ...thinkDraft, temperature: e.target.value })} />
-                              <span className="hint">取值范围 0–1，越高回答越发散</span>
                             </div>
                           </div>
                         </div>
@@ -2501,11 +2487,11 @@ export function App() {
                           <h4>基本信息</h4>
                           <div className="row">
                             <div className="fld">
-                              <label>服务名称</label>
+                              <label>服务名称<span className="req">*</span></label>
                               <input value={voiceDraft.name} placeholder="例如：豆包语音" onChange={(e) => setVoiceDraft({ ...voiceDraft, name: e.target.value })} />
                             </div>
                             <div className="fld">
-                              <label>供应商</label>
+                              <label>供应商<span className="req">*</span></label>
                               <select value={voiceDraft.provider} onChange={(e) => setVoiceDraft({ ...voiceDraft, provider: e.target.value })}>
                                 {Object.entries(TTS_ENGINES)
                                   .filter(([k]) => k !== 'builtin')
@@ -2522,26 +2508,24 @@ export function App() {
                           <h4>音色配置</h4>
                           <div className="row">
                             <div className="fld">
-                              <label>音色 ID</label>
+                              <label>音色 ID<span className="tip" data-tip="留空使用该引擎的默认音色">?</span></label>
                               <input value={voiceDraft.voiceId} placeholder="例如：zh-CN-XiaoxiaoNeural" onChange={(e) => setVoiceDraft({ ...voiceDraft, voiceId: e.target.value })} />
-                              <span className="hint">留空使用该引擎的默认音色</span>
                             </div>
                             {voiceDraft.provider === 'edge' && (
                               <div className="fld">
-                                <label>访问令牌（可选）</label>
+                                <label>访问令牌<span className="tip" data-tip="Edge 大声朗读为免费服务，一般无需填写">?</span></label>
                                 <input value={voiceDraft.edgeToken} placeholder="留空由 Edge 自动获取" onChange={(e) => setVoiceDraft({ ...voiceDraft, edgeToken: e.target.value })} />
-                                <span className="hint">Edge 大声朗读为免费服务，一般无需填写</span>
                               </div>
                             )}
                             {voiceDraft.provider === 'volcano' && (
                               <div className="fld">
-                                <label>App ID</label>
+                                <label>App ID<span className="req">*</span></label>
                                 <input value={voiceDraft.volcanoAppId} placeholder="火山引擎语音合成 App ID" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoAppId: e.target.value })} />
                               </div>
                             )}
                             {voiceDraft.provider === 'openai' && (
                               <div className="fld">
-                                <label>API Key</label>
+                                <label>API Key<span className="req">*</span></label>
                                 <input value={voiceDraft.openaiKey} placeholder="OpenAI API Key" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiKey: e.target.value })} />
                               </div>
                             )}
@@ -2549,7 +2533,7 @@ export function App() {
                           {voiceDraft.provider === 'volcano' && (
                             <div className="row">
                               <div className="fld">
-                                <label>访问令牌</label>
+                                <label>访问令牌<span className="req">*</span></label>
                                 <input value={voiceDraft.volcanoToken} placeholder="火山引擎 Access Token" onChange={(e) => setVoiceDraft({ ...voiceDraft, volcanoToken: e.target.value })} />
                               </div>
                             </div>
@@ -2557,23 +2541,20 @@ export function App() {
                           {voiceDraft.provider === 'openai' && (
                             <div className="row">
                               <div className="fld">
-                                <label>模型（可选）</label>
+                                <label>模型<span className="tip" data-tip="留空使用 tts-1">?</span></label>
                                 <input value={voiceDraft.openaiModel} placeholder="tts-1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiModel: e.target.value })} />
-                                <span className="hint">留空使用 tts-1</span>
                               </div>
                               <div className="fld">
-                                <label>接口地址（可选）</label>
+                                <label>接口地址<span className="tip" data-tip="支持任意 OpenAI 兼容 TTS 端点">?</span></label>
                                 <input value={voiceDraft.openaiBaseUrl} placeholder="https://api.openai.com/v1" onChange={(e) => setVoiceDraft({ ...voiceDraft, openaiBaseUrl: e.target.value })} />
-                                <span className="hint">支持任意 OpenAI 兼容 TTS 端点</span>
                               </div>
                             </div>
                           )}
                           {voiceDraft.provider === 'custom' && (
                             <div className="row">
                               <div className="fld">
-                                <label>TTS 配置（JSON）</label>
+                                <label>TTS 配置（JSON）<span className="tip" data-tip="高级用法：直接填写 mi-gpt TTSConfig JSON">?</span></label>
                                 <textarea value={voiceDraft.customJson} placeholder='{"edge":{"trustedToken":"…"}}' onChange={(e) => setVoiceDraft({ ...voiceDraft, customJson: e.target.value })} rows={5} />
-                                <span className="hint">高级用法：直接填写 mi-gpt TTSConfig JSON</span>
                               </div>
                             </div>
                           )}
@@ -3191,7 +3172,7 @@ function RoomsView(props: {
                 <h4>基本信息</h4>
                 <div className="row">
                   <div className="fld">
-                    <label>会话群名称</label>
+                    <label>会话群名称<span className="req">*</span></label>
                     <input value={draft.name} placeholder="例如：客厅会话" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
                   </div>
                   <div className="fld">
@@ -3512,7 +3493,7 @@ function RolesView(props: {
               <h4>基本信息</h4>
               <div className="row">
                 <div className="fld">
-                  <label>角色名称</label>
+                  <label>角色名称<span className="req">*</span></label>
                   <input value={draft.name} onChange={(e) => setF('name', e.target.value)} />
                 </div>
               </div>
@@ -3933,11 +3914,11 @@ function ModalShell(props: {
         {modal.kind === 'account' && (
           <>
             <div className="fld">
-              <label>账号名称</label>
+              <label>账号名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：默认账号" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
             <div className="fld">
-              <label>小米 ID</label>
+              <label>小米 ID<span className="req">*</span></label>
               <input value={v.miUserId || ''} placeholder="例如：1234567890" onChange={(e) => setV({ ...v, miUserId: e.target.value })} />
               <span className="hint">登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。</span>
             </div>
@@ -3952,11 +3933,11 @@ function ModalShell(props: {
         {modal.kind === 'think' && (
           <>
             <div className="fld">
-              <label>服务名称</label>
+              <label>服务名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：豆包 Doubao-Seed" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
             <div className="fld">
-              <label>供应商</label>
+              <label>供应商<span className="req">*</span></label>
               <select
                 value={v.provider || 'doubao'}
                 onChange={(e) => {
@@ -3983,7 +3964,7 @@ function ModalShell(props: {
               <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址</span>
             </div>
             <div className="fld">
-              <label>模型端点</label>
+              <label>模型端点<span className="req">*</span></label>
               <input value={v.model || ''} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setV({ ...v, model: e.target.value })} />
               <span className="hint">切换供应商自动带出示例模型，可修改</span>
             </div>
@@ -4002,11 +3983,11 @@ function ModalShell(props: {
         {modal.kind === 'voice' && (
           <>
             <div className="fld">
-              <label>服务名称</label>
+              <label>服务名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：豆包语音" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
             <div className="fld">
-              <label>供应商</label>
+              <label>供应商<span className="req">*</span></label>
               <select value={v.provider || 'edge'} onChange={(e) => setV({ ...v, provider: e.target.value })}>
                 {Object.entries(TTS_ENGINES)
                   .filter(([k]) => k !== 'builtin')
@@ -4024,18 +4005,18 @@ function ModalShell(props: {
             </div>
             {v.provider === 'edge' && (
               <div className="fld">
-                <label>访问令牌（可选）</label>
+                <label>访问令牌</label>
                 <input value={v.edgeToken || ''} placeholder="留空由 Edge 自动获取" onChange={(e) => setV({ ...v, edgeToken: e.target.value })} />
               </div>
             )}
             {v.provider === 'volcano' && (
               <>
                 <div className="fld">
-                  <label>App ID</label>
+                  <label>App ID<span className="req">*</span></label>
                   <input value={v.volcanoAppId || ''} placeholder="火山引擎语音合成 App ID" onChange={(e) => setV({ ...v, volcanoAppId: e.target.value })} />
                 </div>
                 <div className="fld">
-                  <label>访问令牌</label>
+                  <label>访问令牌<span className="req">*</span></label>
                   <input value={v.volcanoToken || ''} placeholder="火山引擎 Access Token" onChange={(e) => setV({ ...v, volcanoToken: e.target.value })} />
                 </div>
               </>
@@ -4043,15 +4024,15 @@ function ModalShell(props: {
             {v.provider === 'openai' && (
               <>
                 <div className="fld">
-                  <label>API Key</label>
+                  <label>API Key<span className="req">*</span></label>
                   <input value={v.openaiKey || ''} placeholder="OpenAI API Key" onChange={(e) => setV({ ...v, openaiKey: e.target.value })} />
                 </div>
                 <div className="fld">
-                  <label>模型（可选）</label>
+                  <label>模型</label>
                   <input value={v.openaiModel || ''} placeholder="tts-1" onChange={(e) => setV({ ...v, openaiModel: e.target.value })} />
                 </div>
                 <div className="fld">
-                  <label>接口地址（可选）</label>
+                  <label>接口地址</label>
                   <input value={v.openaiBaseUrl || ''} placeholder="https://api.openai.com/v1" onChange={(e) => setV({ ...v, openaiBaseUrl: e.target.value })} />
                 </div>
               </>
@@ -4069,7 +4050,7 @@ function ModalShell(props: {
         {modal.kind === 'role' && (
           <>
             <div className="fld">
-              <label>角色名称</label>
+              <label>角色名称<span className="req">*</span></label>
               <input value={v.name || ''} placeholder="例如：深夜电台 DJ" onChange={(e) => setV({ ...v, name: e.target.value })} />
             </div>
             <div className="fld">
@@ -4087,15 +4068,15 @@ function ModalShell(props: {
         {modal.kind === 'pwd' && (
           <>
             <div className="fld">
-              <label>当前密码</label>
+              <label>当前密码<span className="req">*</span></label>
               <input type="password" value={v.old || ''} onChange={(e) => setV({ ...v, old: e.target.value })} />
             </div>
             <div className="fld">
-              <label>新密码</label>
+              <label>新密码<span className="req">*</span></label>
               <input type="password" value={v.pwd || ''} onChange={(e) => setV({ ...v, pwd: e.target.value })} />
             </div>
             <div className="fld">
-              <label>确认新密码</label>
+              <label>确认新密码<span className="req">*</span></label>
               <input type="password" value={v.pwd2 || ''} onChange={(e) => setV({ ...v, pwd2: e.target.value, err: '' })} />
             </div>
             {v.err && (
@@ -4456,17 +4437,16 @@ function Wizard(props: {
                     </h3>
                     <div className="desc">{acctEdit && selAcct ? '更新名称或凭据；换绑账号后需重启受影响设备。' : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}</div>
                     <div className="fld">
-                      <label>账号名称</label>
+                      <label>账号名称<span className="req">*</span></label>
                       <input value={naDraft.name} placeholder="例如：默认账号" onChange={(e) => setNaDraft({ ...naDraft, name: e.target.value })} />
                     </div>
                     <div className="fld">
-                      <label>小米 ID</label>
+                      <label>小米 ID<span className="req">*</span><span className="tip" data-tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。">?</span></label>
                       <input value={naDraft.miUserId} placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱" onChange={(e) => setNaDraft({ ...naDraft, miUserId: e.target.value })} />
                     </div>
                     <div className="fld">
-                      <label>云端会话凭证 passToken</label>
+                      <label>云端会话凭证 passToken<span className="tip" data-tip={acctEdit && selAcct ? '留空则保留原凭据' : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'}>?</span></label>
                       <textarea rows={3} value={naDraft.passToken} placeholder={acctEdit && selAcct && selAcct.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setNaDraft({ ...naDraft, passToken: e.target.value })} />
-                      <span className="hint">{acctEdit && selAcct ? '留空则保留原凭据' : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'}</span>
                     </div>
                     {naErr && (
                       <div className="notice err">
@@ -4660,7 +4640,7 @@ function Wizard(props: {
                     </h3>
                     <div className="desc">{roleEdit && selRole ? '更新角色信息；服务留空则跟随全局默认。' : '角色名称必填；思考服务与语音服务可选，留空则跟随全局默认。'}</div>
                     <div className="fld">
-                      <label>角色名称</label>
+                      <label>角色名称<span className="req">*</span></label>
                       <input value={nrDraft.name} placeholder="例如：小爱同学" onChange={(e) => setNrDraft({ ...nrDraft, name: e.target.value })} />
                     </div>
                     <div className="fld">
