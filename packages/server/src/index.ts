@@ -41,6 +41,8 @@ import {
   writeJson,
   seedBuiltinVoice,
   seedBuiltinModels,
+  resetBuiltinModel,
+  resetBuiltinVoice,
   migrateRooms,
   seedDemoLogs,
 } from './store.js'
@@ -57,7 +59,6 @@ import {
   type SpeakerModel,
 } from './types.js'
 
-const dRoute = createDebug('@migptgui/server:route')
 const dAudio = createDebug('@migptgui/server:audio')
 
 export function runServer(options?: {
@@ -74,14 +75,15 @@ export function runServer(options?: {
 
   const app = express()
 
-  // 用于测试用户填写的对外地址是否正确
-  app.post('/ping', (req, res) => {
-    dRoute('进入 POST /ping')
+  // 健康检查 / 对外地址连通性测试：GET（Docker HEALTHCHECK）与 POST（面板测试）均支持
+  app.all('/ping', (_req, res) => {
     res.status(204).send()
   })
 
   // ── 多设备 TTS：/{ttsSecret}/tts/tts.mp3（小爱音箱访问，不能加 basicAuth）──
-  async function findDeviceBySecret(secret: string): Promise<DeviceMeta | undefined> {
+  async function findDeviceBySecret(
+    secret: string,
+  ): Promise<DeviceMeta | undefined> {
     const metas = await listDeviceMetas()
     return metas.find((m) => m.ttsSecret === secret)
   }
@@ -282,7 +284,9 @@ export function runServer(options?: {
       ...accounts[idx],
       name: body.name ?? accounts[idx].name,
       miUserId: body.miUserId ?? accounts[idx].miUserId,
-      ...(body.passToken !== undefined ? { miPassword: body.miPassword, passToken: body.passToken } : {}),
+      ...(body.passToken !== undefined
+        ? { miPassword: body.miPassword, passToken: body.passToken }
+        : {}),
     }
     await writeJson(accountsFile, accounts)
     res.json(accounts[idx])
@@ -319,7 +323,9 @@ export function runServer(options?: {
       return
     }
     if (!account.miUserId || !account.passToken) {
-      res.status(400).json({ error: '请先填写云端账号数字 ID 与会话凭证（passToken）' })
+      res
+        .status(400)
+        .json({ error: '请先填写云端账号数字 ID 与会话凭证（passToken）' })
       return
     }
     try {
@@ -404,12 +410,22 @@ export function runServer(options?: {
       res.status(404).json({ error: '角色不存在' })
       return
     }
-    const dup = assertUniqueName(roles, req.body?.name, req.params.id, '角色名称')
+    const dup = assertUniqueName(
+      roles,
+      req.body?.name,
+      req.params.id,
+      '角色名称',
+    )
     if (dup) {
       res.status(409).json({ error: dup })
       return
     }
-    roles[idx] = { ...roles[idx], ...req.body, id: req.params.id, profile: normProfile(req.body.profile ?? roles[idx].profile) }
+    roles[idx] = {
+      ...roles[idx],
+      ...req.body,
+      id: req.params.id,
+      profile: normProfile(req.body.profile ?? roles[idx].profile),
+    }
     await writeJson(rolesFile, roles)
     res.json(roles[idx])
   })
@@ -573,17 +589,18 @@ export function runServer(options?: {
       return
     }
     const body = req.body as Partial<VoiceService>
-    if (list[idx].builtin) {
-      res.status(409).json({ error: '内建语音服务不可编辑' })
-      return
-    }
     const dup = assertUniqueName(list, body.name, req.params.id, '语音服务名称')
     if (dup) {
       res.status(409).json({ error: dup })
       return
     }
     const wasDefault = list[idx].isDefault
-    list[idx] = { ...list[idx], ...body, id: req.params.id, builtin: list[idx].builtin }
+    list[idx] = {
+      ...list[idx],
+      ...body,
+      id: req.params.id,
+      builtin: list[idx].builtin,
+    }
     if (body.isDefault && !wasDefault) {
       for (const v of list) if (v.id !== req.params.id) v.isDefault = false
     }
@@ -625,6 +642,16 @@ export function runServer(options?: {
       list.filter((v) => v.id !== req.params.id),
     )
     res.json({ success: true })
+  })
+
+  // 重置内置语音服务为默认（仅 builtin 可用）
+  app.post('/api/voice-services/:id/reset', async (req, res) => {
+    const svc = await resetBuiltinVoice(req.params.id)
+    if (!svc) {
+      res.status(404).json({ error: '仅系统内置语音服务支持重置默认' })
+      return
+    }
+    res.json(svc)
   })
 
   // ── 音箱型号（设备的「硬件身份」配置）─────────────────────────
@@ -670,16 +697,17 @@ export function runServer(options?: {
       return
     }
     const body = req.body as Partial<SpeakerModel>
-    if (list[idx].builtin) {
-      res.status(409).json({ error: '系统内置型号不可编辑' })
-      return
-    }
     const dup = assertUniqueName(list, body.name, req.params.id, '型号名称')
     if (dup) {
       res.status(409).json({ error: dup })
       return
     }
-    list[idx] = { ...list[idx], ...body, id: req.params.id, builtin: list[idx].builtin }
+    list[idx] = {
+      ...list[idx],
+      ...body,
+      id: req.params.id,
+      builtin: list[idx].builtin,
+    }
     await writeJson(speakerModelsFile, list)
     res.json(list[idx])
   })
@@ -712,6 +740,16 @@ export function runServer(options?: {
       list.filter((m) => m.id !== req.params.id),
     )
     res.json({ success: true })
+  })
+
+  // 重置内置型号为官方默认值（仅 builtin 可用；用户改动可随时恢复）
+  app.post('/api/speaker-models/:id/reset', async (req, res) => {
+    const model = await resetBuiltinModel(req.params.id)
+    if (!model) {
+      res.status(404).json({ error: '仅系统内置型号支持重置默认' })
+      return
+    }
+    res.json(model)
   })
 
   // ── 会话群（对话记忆上下文归属，多设备共用）──────────────────────
@@ -794,9 +832,7 @@ export function runServer(options?: {
   app.get('/api/devices', async (req, res) => {
     const devices = await listDeviceMetas()
     const status = getAllStatus()
-    res.json(
-      devices.map((meta) => ({ ...meta, running: !!status[meta.id] })),
-    )
+    res.json(devices.map((meta) => ({ ...meta, running: !!status[meta.id] })))
   })
 
   app.post('/api/devices', async (req, res) => {
@@ -819,9 +855,13 @@ export function runServer(options?: {
     }
     const metas = await listDeviceMetas()
     // 唯一性按「账号」维度：同账号下设备 ID 唯一（防止同一设备多套配置）；不同账号允许相同 ID/名称（支持设备切换账号）
-    const sameAcct = body.accountId ? metas.filter((m) => m.accountId === body.accountId) : metas
+    const sameAcct = body.accountId
+      ? metas.filter((m) => m.accountId === body.accountId)
+      : metas
     if (sameAcct.some((m) => m.did === body.did)) {
-      res.status(409).json({ error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置' })
+      res
+        .status(409)
+        .json({ error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置' })
       return
     }
     const dup = assertUniqueName(sameAcct, body.alias, undefined, '设备名称')
@@ -876,17 +916,35 @@ export function runServer(options?: {
     const body = req.body as { meta?: Partial<DeviceMeta>; config?: GuiConfig }
     if (body.meta) {
       // 唯一性按「账号」维度校验（同账号 did 唯一 / 同账号内名称唯一），排除自身
-      if (body.meta.alias !== undefined || body.meta.did !== undefined || body.meta.accountId !== undefined) {
+      if (
+        body.meta.alias !== undefined ||
+        body.meta.did !== undefined ||
+        body.meta.accountId !== undefined
+      ) {
         const allMetas = await listDeviceMetas()
-        const nextAcct = body.meta.accountId !== undefined ? body.meta.accountId : meta.accountId
-        const sameAcct = nextAcct ? allMetas.filter((m) => m.accountId === nextAcct && m.id !== id) : allMetas.filter((m) => m.id !== id)
+        const nextAcct =
+          body.meta.accountId !== undefined
+            ? body.meta.accountId
+            : meta.accountId
+        const sameAcct = nextAcct
+          ? allMetas.filter((m) => m.accountId === nextAcct && m.id !== id)
+          : allMetas.filter((m) => m.id !== id)
         const nextDid = body.meta.did !== undefined ? body.meta.did : meta.did
         if (sameAcct.some((m) => m.did === nextDid)) {
-          res.status(409).json({ error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置' })
+          res
+            .status(409)
+            .json({
+              error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置',
+            })
           return
         }
         if (body.meta.alias !== undefined) {
-          const dup = assertUniqueName(sameAcct, body.meta.alias, id, '设备名称')
+          const dup = assertUniqueName(
+            sameAcct,
+            body.meta.alias,
+            id,
+            '设备名称',
+          )
           if (dup) {
             res.status(409).json({ error: dup })
             return
@@ -963,11 +1021,8 @@ export function runServer(options?: {
       dAudio('设置 TTS_BASE_URL 为：%s', config.env.TTS_BASE_URL)
     }
 
-    await run(
-      id,
-      config as unknown as RunConfig,
-      deviceCwd,
-      (deviceId, line) => appendLog(deviceId, line),
+    await run(id, config as unknown as RunConfig, deviceCwd, (deviceId, line) =>
+      appendLog(deviceId, line),
     )
 
     res.json({ success: true })
@@ -996,22 +1051,37 @@ export function runServer(options?: {
     }[] = []
     for (const [deviceId, buf] of logBuffers) {
       const meta = await getDeviceMeta(deviceId)
-      let cur: { time: string; kind: 'user' | 'ai' | 'system'; text: string } | null = null
+      let cur: {
+        time: string
+        kind: 'user' | 'ai' | 'system'
+        text: string
+      } | null = null
       for (const line of buf.slice(-limit)) {
         const m = line.match(/^(\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2})/)
-        const body = line.replace(/^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/, '')
+        const body = line.replace(
+          /^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/,
+          '',
+        )
         if (m) {
-          if (cur) rows.push({ deviceId, deviceAlias: meta?.alias || deviceId, ...cur })
+          if (cur)
+            rows.push({
+              deviceId,
+              deviceAlias: meta?.alias || deviceId,
+              ...cur,
+            })
           let kind: 'user' | 'ai' | 'system' = 'system'
-          if (/^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/.test(body)) kind = 'user'
-          else if (/^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/.test(body)) kind = 'ai'
+          if (/^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/.test(body))
+            kind = 'user'
+          else if (/^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/.test(body))
+            kind = 'ai'
           cur = { time: m[1], kind, text: body }
         } else if (cur) {
           // 无时间戳的续行并入上一条日志（同一条多行日志不拆成多条）
           cur.text += '\n' + body
         }
       }
-      if (cur) rows.push({ deviceId, deviceAlias: meta?.alias || deviceId, ...cur })
+      if (cur)
+        rows.push({ deviceId, deviceAlias: meta?.alias || deviceId, ...cur })
     }
     rows.sort((a, b) => (a.time < b.time ? 1 : -1))
     res.json({ total: rows.length, logs: rows.slice(0, limit) })
@@ -1023,7 +1093,9 @@ export function runServer(options?: {
     let arr = sysLogBuf.slice(-lines)
     if (arr.length < lines) {
       try {
-        const all = (await fs.readFile(systemLogFile, 'utf8')).split('\n').filter(Boolean)
+        const all = (await fs.readFile(systemLogFile, 'utf8'))
+          .split('\n')
+          .filter(Boolean)
         arr = all.slice(-lines)
       } catch {
         /* 日志文件尚未生成 */
@@ -1042,7 +1114,10 @@ export function runServer(options?: {
     try {
       const text = await fs.readFile(systemLogFile, 'utf8')
       res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-      res.setHeader('Content-Disposition', 'attachment; filename="migpt-system.log"')
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="migpt-system.log"',
+      )
       res.send(text)
     } catch {
       res.status(404).json({ error: '系统日志文件不存在' })
@@ -1133,7 +1208,10 @@ export function runServer(options?: {
     let migptConfig: GuiConfig | undefined
     try {
       migptConfig = JSON.parse(
-        await fs.readFile(path.join(defaultDeviceCwd, 'migptgui.json'), 'utf-8'),
+        await fs.readFile(
+          path.join(defaultDeviceCwd, 'migptgui.json'),
+          'utf-8',
+        ),
       )
     } catch {
       /* 不存在 */

@@ -1,5 +1,31 @@
 import { GuiConfig } from '@migptgui/options'
 import type { TTSConfig } from 'mi-gpt-tts'
+import type {
+  Account,
+  BindingRow,
+  DeviceBindings,
+  DeviceMeta,
+  PulledDevice,
+  Role,
+  Room as ContractRoom,
+  Settings,
+  SpeakerModel,
+  ThinkService,
+  VoiceService,
+} from '@migptgui/contracts'
+// 契约单一事实源：@migptgui/contracts（与 server 共享，修改契约两端同时生效）
+export type {
+  Account,
+  BindingRow,
+  DeviceBindings,
+  DeviceMeta,
+  PulledDevice,
+  Role,
+  Settings,
+  SpeakerModel,
+  ThinkService,
+  VoiceService,
+} from '@migptgui/contracts'
 
 // ── 登录认证（Basic Auth 凭据管理）──────────────────────────
 const CRED_KEY = 'migpt-auth'
@@ -71,126 +97,10 @@ function post<T>(url: string, body?: unknown): Promise<T> {
   }).then((r) => j<T>(r))
 }
 
-// ── 实体类型 ───────────────────────────────────────────────
-export interface DeviceMeta {
-  id: string
-  alias: string
-  did: string
-  speakerModel?: string
-  roleId?: string
-  accountId?: string
-  thinkServiceId?: string
-  voiceOverrideId?: string
-  /** 连续对话超时（秒），默认 30 */
-  exitKeepAliveAfter?: number
-  /** 会话群引用（Room 实体 id；多设备可共用同一会话群） */
-  roomRef?: string
-  /** 会话群名称（已迁移至 Room 实体，仅兼容旧数据） */
-  roomName?: string
-  /** 会话群描述（已迁移至 Room 实体，仅兼容旧数据） */
-  roomDescription?: string
-  ttsSecret: string
-  createdAt: number
-}
+// ── 实体类型（共享契约见文件头 @migptgui/contracts）─────────────
 
 export interface DeviceRow extends DeviceMeta {
   running: boolean
-}
-
-export interface Role {
-  id: string
-  name: string
-  profile: string
-  callAIKeywords: string[]
-  wakeUpKeywords: string[]
-  exitKeywords: string[]
-  /** 检测1/检测2：说出继续词保持对话、停止词结束对话（已并入唤醒/退出关键词真实生效） */
-  checkContinueKeywords?: string[]
-  checkNotContinueKeywords?: string[]
-  onEnterAI: string[]
-  onExitAI: string[]
-  onAIAsking: string[]
-  onAIReplied: string[]
-  onAIError: string[]
-  /** 连续对话无响应自动退出时间（秒，默认 30） */
-  exitKeepAliveAfter?: number
-  thinkServiceId?: string
-  voiceId?: string
-}
-
-/** 思考服务：音箱的「大脑」 */
-export interface ThinkService {
-  id: string
-  name: string
-  provider: string
-  model: string
-  apiKey: string
-  baseUrl?: string
-  temperature?: number
-  isDefault?: boolean
-  createdAt: number
-}
-
-/** 语音服务：音箱的「嗓子」 */
-export interface VoiceService {
-  id: string
-  name: string
-  provider: string
-  voiceId?: string
-  ttsCommand?: (number | undefined)[]
-  builtin?: boolean
-  isDefault?: boolean
-  tts?: TTSConfig
-  createdAt: number
-}
-
-/** 音箱型号：设备的「硬件身份」配置 */
-export interface SpeakerModel {
-  id: string
-  name: string
-  did: string
-  desc?: string
-  ttsCommand?: number[]
-  wakeUpCommand?: number[]
-  playingCommand?: number[]
-  consecutive?: boolean
-  /** 型号图片（内置型号为真实设备图 URL） */
-  imageUrl?: string
-  builtin?: boolean
-  createdAt: number
-}
-
-export interface Settings {
-  miUserId?: string
-  miPassword?: string
-  passToken?: string
-}
-
-export interface Account {
-  id: string
-  name: string
-  miUserId: string
-  miPassword?: string
-  passToken?: string
-  createdAt: number
-}
-
-/** 设备绑定链（来源标注） */
-export interface BindingRow {
-  key: 'account' | 'role' | 'think' | 'voice'
-  label: string
-  name: string
-  detail?: string
-  source: 'device' | 'role' | 'global'
-  sourceLabel: string
-}
-
-export interface DeviceBindings {
-  account?: Account
-  role?: Role
-  think?: ThinkService
-  voice?: VoiceService
-  rows: BindingRow[]
 }
 
 export interface DeviceDetail {
@@ -240,14 +150,6 @@ export const deleteAccount = (id: string) =>
   }).then((r) => j<{ success: boolean }>(r))
 
 // 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
-export interface PulledDevice {
-  name: string
-  alias: string
-  deviceID: string
-  miotDID: string
-  hardware: string
-  presence: string
-}
 export const pullDevices = (accountId: string) =>
   post<{ devices: PulledDevice[] }>(`/api/accounts/${accountId}/pull-devices`)
 
@@ -315,6 +217,13 @@ export const deleteVoiceService = (id: string) =>
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
+/** 重置内置语音服务为系统默认值（仅 builtin 可用） */
+export const resetVoiceService = (id: string) =>
+  fetch(`/api/voice-services/${id}/reset`, {
+    method: 'POST',
+    headers: headers(false),
+  }).then((r) => j<VoiceService>(r))
+
 // ── 音箱型号 ─────────────────────────────────────────────────
 export const getSpeakerModels = () =>
   fetch('/api/speaker-models', { headers: headers(false) }).then((r) =>
@@ -337,19 +246,21 @@ export const deleteSpeakerModel = (id: string) =>
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
+/** 重置内置型号为系统默认值（仅 builtin 可用） */
+export const resetSpeakerModel = (id: string) =>
+  fetch(`/api/speaker-models/${id}/reset`, {
+    method: 'POST',
+    headers: headers(false),
+  }).then((r) => j<SpeakerModel>(r))
+
 // ── 会话群（对话记忆上下文归属，多设备共用）───────────────────────
-export interface Room {
-  id: string
-  name: string
-  description?: string
-  createdAt: number
+/** 会话群（extends 共享契约；deviceCount 为前端聚合展示字段） */
+export interface Room extends ContractRoom {
   deviceCount?: number
 }
 
 export const getRooms = () =>
-  fetch('/api/rooms', { headers: headers(false) }).then((r) =>
-    j<Room[]>(r),
-  )
+  fetch('/api/rooms', { headers: headers(false) }).then((r) => j<Room[]>(r))
 
 export const createRoom = (r: Partial<Room>) =>
   fetch('/api/rooms', {
@@ -429,8 +340,8 @@ export interface LogEntry {
 }
 
 export const getLogs = (limit = 200) =>
-  fetch(`/api/logs?limit=${limit}`, { headers: headers(false) }).then(
-    (r) => j<{ total: number; logs: LogEntry[] }>(r),
+  fetch(`/api/logs?limit=${limit}`, { headers: headers(false) }).then((r) =>
+    j<{ total: number; logs: LogEntry[] }>(r),
   )
 
 // ── 系统日志（实时 + 下载）───────────────────────────────────
@@ -446,12 +357,15 @@ export const getSystemLogs = (lines = 300) =>
   )
 
 export const clearSystemLogs = () =>
-  fetch('/api/system/logs/clear', { method: 'POST', headers: headers(false) }).then(
-    (r) => j<{ success: boolean; error?: string }>(r),
-  )
+  fetch('/api/system/logs/clear', {
+    method: 'POST',
+    headers: headers(false),
+  }).then((r) => j<{ success: boolean; error?: string }>(r))
 
 export async function downloadSystemLogs(): Promise<void> {
-  const r = await fetch('/api/system/logs/download', { headers: headers(false) })
+  const r = await fetch('/api/system/logs/download', {
+    headers: headers(false),
+  })
   if (!r.ok) throw new Error('HTTP ' + r.status)
   const blob = await r.blob()
   const a = document.createElement('a')

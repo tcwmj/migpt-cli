@@ -42,6 +42,7 @@ export const SEARCH_HINT: Record<View, string> = {
   rooms: '搜索会话群名称 / 描述',
   logs: '搜索对话记录内容',
   syslogs: '搜索系统日志内容',
+  settings: '搜索设置项',
   profile: '搜索设置项',
 }
 
@@ -59,15 +60,30 @@ export const PROVIDERS: Record<string, string> = {
 }
 
 /** 供应商 → 默认接口地址与示例模型（切换供应商时自动带出，可覆盖） */
-export const PROVIDER_PRESETS: Record<string, { baseUrl: string; model: string }> = {
+export const PROVIDER_PRESETS: Record<
+  string,
+  { baseUrl: string; model: string }
+> = {
   custom: { baseUrl: '', model: '' },
   openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  zhipu: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
-  doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seed-1-8k' },
-  qwen: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+  zhipu: {
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    model: 'glm-4-flash',
+  },
+  doubao: {
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    model: 'doubao-seed-1-8k',
+  },
+  qwen: {
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    model: 'qwen-plus',
+  },
   deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
   yi: { baseUrl: 'https://api.lingyiwanwu.com/v1', model: 'yi-large' },
-  baichuan: { baseUrl: 'https://api.baichuan-ai.com/v1', model: 'baichuan-ai-4' },
+  baichuan: {
+    baseUrl: 'https://api.baichuan-ai.com/v1',
+    model: 'baichuan-ai-4',
+  },
   moonshot: { baseUrl: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
 }
 

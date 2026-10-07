@@ -24,10 +24,23 @@ import {
 } from './constants.ts'
 import { coverOf, avatarOf } from './utils.ts'
 import heroImg from './assets/speaker-hero-multi.jpg'
-import { AccountsView, DevicesView, HomeView, ModelsView, ProfileView, ServicesView } from './views.tsx'
+import {
+  AccountsView,
+  DevicesView,
+  HomeView,
+  ModelsView,
+  ProfileView,
+  ServicesView,
+} from './views.tsx'
 
 /* ══ 登录页 ══ */
-function LoginPage({ onLogin, error }: { onLogin: (u: string, p: string) => Promise<void>; error: string }) {
+function LoginPage({
+  onLogin,
+  error,
+}: {
+  onLogin: (u: string, p: string) => Promise<void>
+  error: string
+}) {
   const [u, setU] = useState('admin')
   const [p, setP] = useState('')
   const [busy, setBusy] = useState(false)
@@ -60,12 +73,21 @@ function LoginPage({ onLogin, error }: { onLogin: (u: string, p: string) => Prom
             </div>
           )}
           <div className="fld ic">
-            <label>用户名<span className="req">*</span></label>
+            <label>
+              用户名<span className="req">*</span>
+            </label>
             <I n="user" size={15} />
-            <input value={u} onChange={(e) => setU(e.target.value)} autoFocus placeholder="请输入用户名" />
+            <input
+              value={u}
+              onChange={(e) => setU(e.target.value)}
+              autoFocus
+              placeholder="请输入用户名"
+            />
           </div>
           <div className="fld ic">
-            <label>密码<span className="req">*</span></label>
+            <label>
+              密码<span className="req">*</span>
+            </label>
             <I n="lock" size={15} />
             <input
               type="password"
@@ -108,7 +130,9 @@ export function App() {
   const [view, setView] = useState<View>('home')
   const [settingTab, setSettingTab] = useState<'think' | 'voice'>('think')
   const [query, setQuery] = useState('')
-  const [sideOff, setSideOff] = useState<boolean>(() => localStorage.getItem('migpt-side-off') === '1')
+  const [sideOff, setSideOff] = useState<boolean>(
+    () => localStorage.getItem('migpt-side-off') === '1',
+  )
   useEffect(() => {
     localStorage.setItem('migpt-side-off', sideOff ? '1' : '0')
   }, [sideOff])
@@ -116,10 +140,21 @@ export function App() {
   const [bannerIdx, setBannerIdx] = useState(0)
 
   const [selAcct, setSelAcct] = useState<string | null>(null)
-  const [acctDraft, setAcctDraft] = useState<{ name: string; miUserId: string; passToken: string } | null>(null)
+  const [acctDraft, setAcctDraft] = useState<{
+    name: string
+    miUserId: string
+    passToken: string
+  } | null>(null)
   const [acctEdit, setAcctEdit] = useState(false)
   const [selThink, setSelThink] = useState<string | null>(null)
-  const [thinkDraft, setThinkDraft] = useState<{ name: string; provider: string; model: string; apiKey: string; temperature: string; baseUrl: string } | null>(null)
+  const [thinkDraft, setThinkDraft] = useState<{
+    name: string
+    provider: string
+    model: string
+    apiKey: string
+    temperature: string
+    baseUrl: string
+  } | null>(null)
   const [thinkEdit, setThinkEdit] = useState(false)
   const [selVoice, setSelVoice] = useState<string | null>(null)
   const [voiceDraft, setVoiceDraft] = useState<{
@@ -136,7 +171,11 @@ export function App() {
   } | null>(null)
   const [voiceEdit, setVoiceEdit] = useState(false)
   const [devEdit, setDevEdit] = useState(false)
-  const [confirm, setConfirm] = useState<{ title: string; msg: string; onOk: () => void } | null>(null)
+  const [confirm, setConfirm] = useState<{
+    title: string
+    msg: string
+    onOk: () => void
+  } | null>(null)
   const [confirmLeaving, setConfirmLeaving] = useState(false)
   const closeConfirm = (doIt?: boolean) => {
     if (confirmLeaving) return
@@ -157,7 +196,11 @@ export function App() {
   const selectAcct = (id: string | null) => {
     setSelAcct(id)
     const a = id ? accounts.find((x) => x.id === id) : null
-    setAcctDraft({ name: a?.name || '', miUserId: a?.miUserId || '', passToken: '' })
+    setAcctDraft({
+      name: a?.name || '',
+      miUserId: a?.miUserId || '',
+      passToken: '',
+    })
     setAcctEdit(id === null)
   }
   const selectThink = (id: string | null) => {
@@ -200,11 +243,19 @@ export function App() {
     }
     try {
       if (selAcct) {
-        await api.updateAccount(selAcct, { name: acctDraft.name, miUserId: acctDraft.miUserId, ...(acctDraft.passToken ? { passToken: acctDraft.passToken } : {}) })
+        await api.updateAccount(selAcct, {
+          name: acctDraft.name,
+          miUserId: acctDraft.miUserId,
+          ...(acctDraft.passToken ? { passToken: acctDraft.passToken } : {}),
+        })
         showToast('账号已保存，换绑账号需重启受影响设备')
         setAcctEdit(false)
       } else {
-        const created = await api.createAccount({ name: acctDraft.name, miUserId: acctDraft.miUserId, passToken: acctDraft.passToken })
+        const created = await api.createAccount({
+          name: acctDraft.name,
+          miUserId: acctDraft.miUserId,
+          passToken: acctDraft.passToken,
+        })
         showToast('账号已创建')
         await refreshAll()
         selectAcct(created.id)
@@ -218,7 +269,9 @@ export function App() {
   const delAcct = async (id: string) => {
     const used = accountUsage(id)
     if (used.length) {
-      showToast(`该账号正被 ${used.length} 台设备引用（${used.join('、')}），请先解除设备绑定`)
+      showToast(
+        `该账号正被 ${used.length} 台设备引用（${used.join('、')}），请先解除设备绑定`,
+      )
       return
     }
     const name = accounts.find((a) => a.id === id)?.name || '该账号'
@@ -246,8 +299,16 @@ export function App() {
       return
     }
     try {
-      const out: Record<string, unknown> = { name: thinkDraft.name, provider: thinkDraft.provider, model: thinkDraft.model, temperature: parseFloat(thinkDraft.temperature) || 0.7 }
-      out.baseUrl = thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''
+      const out: Record<string, unknown> = {
+        name: thinkDraft.name,
+        provider: thinkDraft.provider,
+        model: thinkDraft.model,
+        temperature: parseFloat(thinkDraft.temperature) || 0.7,
+      }
+      out.baseUrl =
+        thinkDraft.baseUrl ||
+        PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl ||
+        ''
       if (thinkDraft.apiKey) out.apiKey = thinkDraft.apiKey
       if (selThink) {
         await api.updateThinkService(selThink, out)
@@ -268,7 +329,9 @@ export function App() {
   const delThink = async (id: string) => {
     const roleRefs = roles.filter((r) => r.thinkServiceId === id)
     if (roleRefs.length) {
-      showToast(`该思考服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`)
+      showToast(
+        `该思考服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`,
+      )
       return
     }
     const name = thinkSvcs.find((s) => s.id === id)?.name || '该服务'
@@ -292,17 +355,25 @@ export function App() {
   const saveVoice = async () => {
     if (!voiceDraft) return
     try {
-      const out: Record<string, unknown> = { name: voiceDraft.name, provider: voiceDraft.provider }
+      const out: Record<string, unknown> = {
+        name: voiceDraft.name,
+        provider: voiceDraft.provider,
+      }
       if (voiceDraft.voiceId) out.voiceId = voiceDraft.voiceId
       const tts: Record<string, unknown> = {}
       if (voiceDraft.provider === 'edge') {
-        tts.edge = voiceDraft.edgeToken ? { trustedToken: voiceDraft.edgeToken } : {}
+        tts.edge = voiceDraft.edgeToken
+          ? { trustedToken: voiceDraft.edgeToken }
+          : {}
       } else if (voiceDraft.provider === 'volcano') {
         if (!voiceDraft.volcanoAppId || !voiceDraft.volcanoToken) {
           showToast('火山引擎需填写 App ID 与访问令牌')
           return
         }
-        tts.volcano = { appId: voiceDraft.volcanoAppId, accessToken: voiceDraft.volcanoToken }
+        tts.volcano = {
+          appId: voiceDraft.volcanoAppId,
+          accessToken: voiceDraft.volcanoToken,
+        }
       } else if (voiceDraft.provider === 'openai') {
         if (!voiceDraft.openaiKey) {
           showToast('OpenAI TTS 需填写 API Key')
@@ -311,7 +382,9 @@ export function App() {
         tts.openai = {
           apiKey: voiceDraft.openaiKey,
           ...(voiceDraft.openaiModel ? { model: voiceDraft.openaiModel } : {}),
-          ...(voiceDraft.openaiBaseUrl ? { baseUrl: voiceDraft.openaiBaseUrl } : {}),
+          ...(voiceDraft.openaiBaseUrl
+            ? { baseUrl: voiceDraft.openaiBaseUrl }
+            : {}),
         }
       } else if (voiceDraft.provider === 'custom') {
         try {
@@ -346,7 +419,9 @@ export function App() {
     }
     const roleRefs = roles.filter((r) => r.voiceId === id)
     if (roleRefs.length) {
-      showToast(`该语音服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`)
+      showToast(
+        `该语音服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`,
+      )
       return
     }
     const name = voiceSvcs.find((s) => s.id === id)?.name || '该服务'
@@ -381,7 +456,9 @@ export function App() {
   /* ── 型号管理（音箱的「硬件身份」配置）──────────────────────── */
   const [selModel, setSelModel] = useState<string | null>(null)
   const [modelEdit, setModelEdit] = useState(false)
-  const [modelFilter, setModelFilter] = useState<'all' | 'consec' | 'plain'>('all')
+  const [modelFilter, setModelFilter] = useState<'all' | 'consec' | 'plain'>(
+    'all',
+  )
   const [modelDraft, setModelDraft] = useState<{
     name: string
     did: string
@@ -397,8 +474,13 @@ export function App() {
     setModelEdit(false)
     if (!id) {
       setModelDraft({
-        name: '', did: '', desc: '', imageUrl: '',
-        ttsCommand: ['', ''], wakeUpCommand: ['', ''], playingCommand: ['', '', ''],
+        name: '',
+        did: '',
+        desc: '',
+        imageUrl: '',
+        ttsCommand: ['', ''],
+        wakeUpCommand: ['', ''],
+        playingCommand: ['', '', ''],
         consecutive: true,
       })
       return
@@ -407,7 +489,10 @@ export function App() {
     setModelDraft(
       m
         ? {
-            name: m.name, did: m.did, desc: m.desc || '', imageUrl: m.imageUrl || '',
+            name: m.name,
+            did: m.did,
+            desc: m.desc || '',
+            imageUrl: m.imageUrl || '',
             ttsCommand: (m.ttsCommand || []).map(String),
             wakeUpCommand: (m.wakeUpCommand || []).map(String),
             playingCommand: (m.playingCommand || []).map(String),
@@ -422,7 +507,8 @@ export function App() {
       return
     }
     try {
-      const toNums = (arr: string[]): number[] => arr.map(Number).filter((n) => Number.isFinite(n))
+      const toNums = (arr: string[]): number[] =>
+        arr.map(Number).filter((n) => Number.isFinite(n))
       const out = {
         name: modelDraft.name.trim(),
         did: modelDraft.did.trim(),
@@ -455,9 +541,13 @@ export function App() {
       showToast('系统内置型号不可删除')
       return
     }
-    const refDevs = devices.filter((d) => d.speakerModel === id || d.speakerModel === target?.name)
+    const refDevs = devices.filter(
+      (d) => d.speakerModel === id || d.speakerModel === target?.name,
+    )
     if (refDevs.length) {
-      showToast(`该型号正被设备「${refDevs.map((d) => d.alias).join('、')}」引用，请先解除引用`)
+      showToast(
+        `该型号正被设备「${refDevs.map((d) => d.alias).join('、')}」引用，请先解除引用`,
+      )
       return
     }
     const name = target?.name || '该型号'
@@ -478,6 +568,46 @@ export function App() {
       },
     })
   }
+  /** 重置内置型号为系统默认值（仅 builtin 项显示入口；二次确认后恢复官方默认配置） */
+  const resetModel = (id: string) => {
+    const target = models.find((m) => m.id === id)
+    if (!target?.builtin) return
+    setConfirm({
+      title: '重置型号默认值',
+      msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
+      onOk: async () => {
+        try {
+          await api.resetSpeakerModel(id)
+          showToast('已恢复为系统内置默认配置')
+          setModelDraft(null)
+          setModelEdit(false)
+          refreshAll()
+        } catch (e) {
+          showToast(errText(e))
+        }
+      },
+    })
+  }
+  /** 重置内置语音服务为系统默认（仅 builtin 项显示入口；二次确认） */
+  const resetVoice = (id: string) => {
+    const target = voiceSvcs.find((v) => v.id === id)
+    if (!target?.builtin) return
+    setConfirm({
+      title: '重置语音服务默认值',
+      msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
+      onOk: async () => {
+        try {
+          await api.resetVoiceService(id)
+          showToast('已恢复为系统内置默认配置')
+          setVoiceDraft(null)
+          setVoiceEdit(false)
+          refreshAll()
+        } catch (e) {
+          showToast(errText(e))
+        }
+      },
+    })
+  }
   /* 统一「左列表 + 右详情/新建」：进入页面后默认选中列表第一个（列表为排序后的 filterModels） */
   useEffect(() => {
     if (!selModel && filterModels.length) {
@@ -491,7 +621,11 @@ export function App() {
     if (!selAcct && accounts.length) {
       setSelAcct(accounts[0].id)
       setAcctEdit(false)
-      setAcctDraft({ name: accounts[0].name, miUserId: accounts[0].miUserId, passToken: '' })
+      setAcctDraft({
+        name: accounts[0].name,
+        miUserId: accounts[0].miUserId,
+        passToken: '',
+      })
     }
   }, [accounts]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -499,7 +633,14 @@ export function App() {
       setSelThink(thinkSvcs[0].id)
       const s = thinkSvcs[0]
       setThinkEdit(false)
-      setThinkDraft({ name: s.name, provider: s.provider, model: s.model || PROVIDER_PRESETS[s.provider]?.model || '', apiKey: '', temperature: String(s.temperature ?? 0.7), baseUrl: s.baseUrl || PROVIDER_PRESETS[s.provider]?.baseUrl || '' })
+      setThinkDraft({
+        name: s.name,
+        provider: s.provider,
+        model: s.model || PROVIDER_PRESETS[s.provider]?.model || '',
+        apiKey: '',
+        temperature: String(s.temperature ?? 0.7),
+        baseUrl: s.baseUrl || PROVIDER_PRESETS[s.provider]?.baseUrl || '',
+      })
     }
   }, [thinkSvcs]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -507,7 +648,18 @@ export function App() {
       setSelVoice(voiceSvcs[0].id)
       const s = voiceSvcs[0]
       setVoiceEdit(false)
-      setVoiceDraft({ name: s.name, provider: s.provider, voiceId: s.voiceId || '', edgeToken: s.tts?.edge?.trustedToken || '', volcanoAppId: s.tts?.volcano?.appId || '', volcanoToken: s.tts?.volcano?.accessToken || '', openaiKey: s.tts?.openai?.apiKey || '', openaiModel: s.tts?.openai?.model || '', openaiBaseUrl: s.tts?.openai?.baseUrl || '', customJson: s.tts ? JSON.stringify(s.tts, null, 2) : '' })
+      setVoiceDraft({
+        name: s.name,
+        provider: s.provider,
+        voiceId: s.voiceId || '',
+        edgeToken: s.tts?.edge?.trustedToken || '',
+        volcanoAppId: s.tts?.volcano?.appId || '',
+        volcanoToken: s.tts?.volcano?.accessToken || '',
+        openaiKey: s.tts?.openai?.apiKey || '',
+        openaiModel: s.tts?.openai?.model || '',
+        openaiBaseUrl: s.tts?.openai?.baseUrl || '',
+        customJson: s.tts ? JSON.stringify(s.tts, null, 2) : '',
+      })
     }
   }, [voiceSvcs]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -531,12 +683,23 @@ export function App() {
   const [modal, setModal] = useState<ModalState | null>(null)
   const [modelPickQ, setModelPickQ] = useState('')
   const [modelPickOpen, setModelPickOpen] = useState(false)
-  const [devPull, setDevPull] = useState<{ loading: boolean; err: string; list: PulledDevice[] | null }>({
+  const [devPull, setDevPull] = useState<{
+    loading: boolean
+    err: string
+    list: PulledDevice[] | null
+  }>({
     loading: false,
     err: '',
     list: null,
   })
-  const [wizard, setWizard] = useState<null | { step: number; accountId: string; alias: string; did: string; model: string; roleId: string }>(null)
+  const [wizard, setWizard] = useState<null | {
+    step: number
+    accountId: string
+    alias: string
+    did: string
+    model: string
+    roleId: string
+  }>(null)
 
   useEffect(() => {
     if (!selDev && devices.length) {
@@ -577,7 +740,10 @@ export function App() {
         api.getVoiceServices(),
         api.getSpeakerModels(),
         api.getRooms(),
-        api.getLogs(500).then((x) => x.total).catch(() => 0),
+        api
+          .getLogs(500)
+          .then((x) => x.total)
+          .catch(() => 0),
       ])
       setDevices(d)
       setAccounts(a)
@@ -655,20 +821,30 @@ export function App() {
   const runningCount = devices.filter((d) => d.running).length
   const builtinModelCount = models.filter((m) => m.builtin).length
   const customModelCount = models.length - builtinModelCount
-  const selVoiceObj = selVoice ? voiceSvcs.find((s) => s.id === selVoice) : null
+  const selVoiceObj = selVoice
+    ? (voiceSvcs.find((s) => s.id === selVoice) ?? null)
+    : null
 
   /* 服务被引用数（设备直接引用 + 通过角色间接引用） */
   const thinkUsage = useCallback(
     (id: string) => {
-      const roleIds = new Set(roles.filter((r) => r.thinkServiceId === id).map((r) => r.id))
-      return devices.filter((d) => d.thinkServiceId === id || (d.roleId && roleIds.has(d.roleId))).length
+      const roleIds = new Set(
+        roles.filter((r) => r.thinkServiceId === id).map((r) => r.id),
+      )
+      return devices.filter(
+        (d) => d.thinkServiceId === id || (d.roleId && roleIds.has(d.roleId)),
+      ).length
     },
     [devices, roles],
   )
   const voiceUsage = useCallback(
     (id: string) => {
-      const roleIds = new Set(roles.filter((r) => r.voiceId === id).map((r) => r.id))
-      return devices.filter((d) => d.voiceOverrideId === id || (d.roleId && roleIds.has(d.roleId))).length
+      const roleIds = new Set(
+        roles.filter((r) => r.voiceId === id).map((r) => r.id),
+      )
+      return devices.filter(
+        (d) => d.voiceOverrideId === id || (d.roleId && roleIds.has(d.roleId)),
+      ).length
     },
     [devices, roles],
   )
@@ -677,7 +853,8 @@ export function App() {
     [devices],
   )
   const accountUsage = useCallback(
-    (id: string) => devices.filter((d) => d.accountId === id).map((d) => d.alias),
+    (id: string) =>
+      devices.filter((d) => d.accountId === id).map((d) => d.alias),
     [devices],
   )
   const roomUsage = useCallback(
@@ -725,7 +902,18 @@ export function App() {
           : null,
       )
     } else {
-      setDevDraft({ alias: '', did: '', speakerModel: '', accountId: '', roleId: '', thinkServiceId: '', voiceOverrideId: '', ttsSecret: '', exitKeepAliveAfter: '30', roomRef: '' })
+      setDevDraft({
+        alias: '',
+        did: '',
+        speakerModel: '',
+        accountId: '',
+        roleId: '',
+        thinkServiceId: '',
+        voiceOverrideId: '',
+        ttsSecret: '',
+        exitKeepAliveAfter: '30',
+        roomRef: '',
+      })
     }
   }
 
@@ -742,7 +930,8 @@ export function App() {
             roleId: devDraft.roleId || undefined,
             thinkServiceId: devDraft.thinkServiceId || undefined,
             voiceOverrideId: devDraft.voiceOverrideId || undefined,
-            exitKeepAliveAfter: parseInt(devDraft.exitKeepAliveAfter || '30', 10) || 30,
+            exitKeepAliveAfter:
+              parseInt(devDraft.exitKeepAliveAfter || '30', 10) || 30,
             roomRef: devDraft.roomRef || undefined,
             ttsSecret: devDraft.ttsSecret || undefined,
           },
@@ -817,8 +1006,10 @@ export function App() {
     const err = e as Error & { refs?: { roles?: string[]; devices?: string[] } }
     if (err.refs) {
       const parts: string[] = []
-      if (err.refs.devices?.length) parts.push('被设备引用：' + err.refs.devices.join('、'))
-      if (err.refs.roles?.length) parts.push('被角色引用：' + err.refs.roles.join('、'))
+      if (err.refs.devices?.length)
+        parts.push('被设备引用：' + err.refs.devices.join('、'))
+      if (err.refs.roles?.length)
+        parts.push('被角色引用：' + err.refs.roles.join('、'))
       return err.message + (parts.length ? '（' + parts.join('；') + '）' : '')
     }
     return err.message || '操作失败'
@@ -832,7 +1023,11 @@ export function App() {
       const r = await api.pullDevices(accountId)
       const list = r.devices || []
       if (!list.length) {
-        setDevPull({ loading: false, err: '该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确', list: [] })
+        setDevPull({
+          loading: false,
+          err: '该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确',
+          list: [],
+        })
         return
       }
       setDevPull({ loading: false, err: '', list })
@@ -842,14 +1037,25 @@ export function App() {
   }
 
   /* 账号设备：账号详情页展示该账号下云端设备列表（独立于 devPull，按账号缓存） */
-  const [acctDevs, setAcctDevs] = useState<Record<string, { loading: boolean; err: string; list: Array<{ name?: string; alias?: string; deviceID?: string; miotDID?: string; hardware?: string; presence?: string }> }>>({})
+  const [acctDevs, setAcctDevs] = useState<
+    Record<string, { loading: boolean; err: string; list: PulledDevice[] }>
+  >({})
   const loadAcctDevs = async (accountId: string) => {
-    setAcctDevs((m) => ({ ...m, [accountId]: { loading: true, err: '', list: m[accountId]?.list || [] } }))
+    setAcctDevs((m) => ({
+      ...m,
+      [accountId]: { loading: true, err: '', list: m[accountId]?.list || [] },
+    }))
     try {
       const r = await api.pullDevices(accountId)
-      setAcctDevs((m) => ({ ...m, [accountId]: { loading: false, err: '', list: r.devices || [] } }))
+      setAcctDevs((m) => ({
+        ...m,
+        [accountId]: { loading: false, err: '', list: r.devices || [] },
+      }))
     } catch (e) {
-      setAcctDevs((m) => ({ ...m, [accountId]: { loading: false, err: errText(e), list: [] } }))
+      setAcctDevs((m) => ({
+        ...m,
+        [accountId]: { loading: false, err: errText(e), list: [] },
+      }))
     }
   }
   useEffect(() => {
@@ -859,7 +1065,8 @@ export function App() {
 
   const filterDevices = useMemo(() => {
     let list = devices
-    if (devAcctFilter !== 'all') list = list.filter((d) => d.accountId === devAcctFilter)
+    if (devAcctFilter !== 'all')
+      list = list.filter((d) => d.accountId === devAcctFilter)
     if (query) {
       const q = query.toLowerCase()
       list = list.filter((d) => (d.alias + d.did).toLowerCase().includes(q))
@@ -872,13 +1079,18 @@ export function App() {
       if (d.accountId && !ids.includes(d.accountId)) ids.push(d.accountId)
     })
     return ids
-      .map((id) => ({ id, name: accounts.find((a) => a.id === id)?.name || id }))
+      .map((id) => ({
+        id,
+        name: accounts.find((a) => a.id === id)?.name || id,
+      }))
       .filter((g) => !!g.name)
   }, [devices, accounts])
   const filterAccounts = useMemo(() => {
     if (!query) return accounts
     const q = query.toLowerCase()
-    return accounts.filter((a) => (a.name + a.miUserId).toLowerCase().includes(q))
+    return accounts.filter((a) =>
+      (a.name + a.miUserId).toLowerCase().includes(q),
+    )
   }, [accounts, query])
   const filterRoles = useMemo(() => {
     if (!query) return roles
@@ -888,7 +1100,9 @@ export function App() {
   const filterRooms = useMemo(() => {
     if (!query) return rooms
     const q = query.toLowerCase()
-    return rooms.filter((rm) => (rm.name + (rm.description || '')).toLowerCase().includes(q))
+    return rooms.filter((rm) =>
+      (rm.name + (rm.description || '')).toLowerCase().includes(q),
+    )
   }, [rooms, query])
   const filterModels = useMemo(() => {
     const q = query.toLowerCase()
@@ -899,8 +1113,12 @@ export function App() {
       return true
     })
     // 内置型号按名称升序在前，自定义型号按创建时间追加尾部
-    const builtin = list.filter((m) => m.builtin).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
-    const custom = list.filter((m) => !m.builtin).sort((a, b) => a.createdAt - b.createdAt)
+    const builtin = list
+      .filter((m) => m.builtin)
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    const custom = list
+      .filter((m) => !m.builtin)
+      .sort((a, b) => a.createdAt - b.createdAt)
     return [...builtin, ...custom]
   }, [models, query, modelFilter])
 
@@ -914,8 +1132,12 @@ export function App() {
       if (f === 'plain' && m.consecutive) return false
       return true
     })
-    const builtin = list.filter((m) => m.builtin).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
-    const custom = list.filter((m) => !m.builtin).sort((a, b) => a.createdAt - a.createdAt)
+    const builtin = list
+      .filter((m) => m.builtin)
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    const custom = list
+      .filter((m) => !m.builtin)
+      .sort((a, b) => a.createdAt - a.createdAt)
     const first = [...builtin, ...custom][0]
     if (first) {
       setSelModel(first.id)
@@ -942,7 +1164,20 @@ export function App() {
           </span>
         </div>
         <nav>
-          {(['home', 'think', 'voice', 'roles', 'accounts', 'devices', 'rooms', 'models', 'logs', 'syslogs'] as View[]).map((v) => (
+          {(
+            [
+              'home',
+              'think',
+              'voice',
+              'roles',
+              'accounts',
+              'devices',
+              'rooms',
+              'models',
+              'logs',
+              'syslogs',
+            ] as View[]
+          ).map((v) => (
             <a
               key={v}
               data-label={TITLES[v]}
@@ -954,7 +1189,29 @@ export function App() {
                 setQuery('')
               }}
             >
-              <I n={v === 'home' ? 'home' : v === 'accounts' ? 'user' : v === 'devices' ? 'speaker' : v === 'roles' ? 'chat' : v === 'logs' ? 'log' : v === 'syslogs' ? 'terminal' : v === 'think' ? 'bolt' : v === 'voice' ? 'mic' : v === 'rooms' ? 'users' : 'gear'} />
+              <I
+                n={
+                  v === 'home'
+                    ? 'home'
+                    : v === 'accounts'
+                      ? 'user'
+                      : v === 'devices'
+                        ? 'speaker'
+                        : v === 'roles'
+                          ? 'chat'
+                          : v === 'logs'
+                            ? 'log'
+                            : v === 'syslogs'
+                              ? 'terminal'
+                              : v === 'think'
+                                ? 'bolt'
+                                : v === 'voice'
+                                  ? 'mic'
+                                  : v === 'rooms'
+                                    ? 'users'
+                                    : 'gear'
+                }
+              />
               <span className="label">{TITLES[v]}</span>
             </a>
           ))}
@@ -975,7 +1232,9 @@ export function App() {
           aria-label={sideOff ? '展开侧栏' : '收起侧栏'}
         >
           <svg viewBox="0 0 12 24" className="tri" aria-hidden="true">
-            <path d={sideOff ? 'M10 12 L3.6 1 L3.6 23 Z' : 'M3.6 12 L10 1 L10 23 Z'} />
+            <path
+              d={sideOff ? 'M10 12 L3.6 1 L3.6 23 Z' : 'M3.6 12 L10 1 L10 23 Z'}
+            />
           </svg>
         </button>
       </aside>
@@ -985,7 +1244,11 @@ export function App() {
           <h1>{TITLES[view]}</h1>
           <label className="search">
             <I n="search" />
-            <input placeholder={SEARCH_HINT[view] || '搜索…'} value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input
+              placeholder={SEARCH_HINT[view] || '搜索…'}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </label>
           <span className="sp" />
           <div className="top-right">
@@ -1025,9 +1288,24 @@ export function App() {
               builtinModelCount={builtinModelCount}
               customModelCount={customModelCount}
               onNav={setView}
-              onOpenThink={() => { setSettingTab('think'); setView('think') }}
-              onOpenVoice={() => { setSettingTab('voice'); setView('voice') }}
-              onStartWizard={() => setWizard({ step: 0, accountId: '', alias: '', did: '', model: '', roleId: '' })}
+              onOpenThink={() => {
+                setSettingTab('think')
+                setView('think')
+              }}
+              onOpenVoice={() => {
+                setSettingTab('voice')
+                setView('voice')
+              }}
+              onStartWizard={() =>
+                setWizard({
+                  step: 0,
+                  accountId: '',
+                  alias: '',
+                  did: '',
+                  model: '',
+                  roleId: '',
+                })
+              }
             />
           )}
 
@@ -1065,6 +1343,7 @@ export function App() {
               onDraft={setModelDraft}
               onEdit={setModelEdit}
               onDelete={delModel}
+              onReset={resetModel}
               onSave={saveModel}
             />
           )}
@@ -1092,8 +1371,13 @@ export function App() {
               onSave={saveDeviceForm}
               onRestart={restartDevice}
               onPull={doPullDev}
-              onResetPull={() => setDevPull({ loading: false, err: '', list: null })}
-              onDevAcctFilter={(f, firstId) => { setDevAcctFilter(f); selectDev(firstId) }}
+              onResetPull={() =>
+                setDevPull({ loading: false, err: '', list: null })
+              }
+              onDevAcctFilter={(f, firstId) => {
+                setDevAcctFilter(f)
+                selectDev(firstId)
+              }}
               onPickOpen={setModelPickOpen}
               onPickQ={setModelPickQ}
             />
@@ -1126,7 +1410,9 @@ export function App() {
               }}
               onDelete={async (id) => {
                 if (roomUsage(id).length) {
-                  showToast(`该会话群正被设备「${roomUsage(id).join('、')}」引用，请先解除设备绑定`)
+                  showToast(
+                    `该会话群正被设备「${roomUsage(id).join('、')}」引用，请先解除设备绑定`,
+                  )
                   return
                 }
                 const r = rooms.find((x) => x.id === id)
@@ -1147,10 +1433,62 @@ export function App() {
             />
           )}
 
-          {view === 'roles' && <RolesView roles={filterRoles} allRoles={roles} thinkSvcs={thinkSvcs} voiceSvcs={voiceSvcs} roleUsage={roleUsage} onSave={async (r) => { try { await api.updateRole(r.id, r); showToast('角色已保存，人设与模型热生效'); refreshAll() } catch (e) { showToast(errText(e)) } }} onCreate={async (r) => { try { const c = await api.createRole(r); showToast('角色已创建'); await refreshAll(); return c } catch (e) { showToast(errText(e)); return null } }} onDelete={async (id) => { if (roleUsage(id).length) { showToast(`该角色正被 ${roleUsage(id).length} 台设备引用（${roleUsage(id).join('、')}），请先解除设备绑定`); return } const r = roles.find((x) => x.id === id); setConfirm({ title: '删除对话角色', msg: `确定删除「${r?.name || '该角色'}」吗？删除后不可恢复。`, onOk: async () => { try { await api.deleteRole(id); showToast('角色已删除'); refreshAll() } catch (e) { showToast(errText(e)) } } }) }} />}
+          {view === 'roles' && (
+            <RolesView
+              roles={filterRoles}
+              allRoles={roles}
+              thinkSvcs={thinkSvcs}
+              voiceSvcs={voiceSvcs}
+              roleUsage={roleUsage}
+              onSave={async (r) => {
+                try {
+                  await api.updateRole(r.id, r)
+                  showToast('角色已保存，人设与模型热生效')
+                  refreshAll()
+                } catch (e) {
+                  showToast(errText(e))
+                }
+              }}
+              onCreate={async (r) => {
+                try {
+                  const c = await api.createRole(r)
+                  showToast('角色已创建')
+                  await refreshAll()
+                  return c
+                } catch (e) {
+                  showToast(errText(e))
+                  return null
+                }
+              }}
+              onDelete={async (id) => {
+                if (roleUsage(id).length) {
+                  showToast(
+                    `该角色正被 ${roleUsage(id).length} 台设备引用（${roleUsage(id).join('、')}），请先解除设备绑定`,
+                  )
+                  return
+                }
+                const r = roles.find((x) => x.id === id)
+                setConfirm({
+                  title: '删除对话角色',
+                  msg: `确定删除「${r?.name || '该角色'}」吗？删除后不可恢复。`,
+                  onOk: async () => {
+                    try {
+                      await api.deleteRole(id)
+                      showToast('角色已删除')
+                      refreshAll()
+                    } catch (e) {
+                      showToast(errText(e))
+                    }
+                  },
+                })
+              }}
+            />
+          )}
 
           {view === 'logs' && <LogsView devices={devices} models={models} />}
-          {view === 'syslogs' && <SysLogsView query={query} onToast={showToast} />}
+          {view === 'syslogs' && (
+            <SysLogsView query={query} onToast={showToast} />
+          )}
 
           {(view === 'settings' || view === 'think' || view === 'voice') && (
             <ServicesView
@@ -1173,6 +1511,7 @@ export function App() {
               onDraftVoice={setVoiceDraft}
               onEditVoice={setVoiceEdit}
               onDeleteVoice={delVoice}
+              onResetVoice={resetVoice}
               onSaveVoice={saveVoice}
               usageThink={thinkUsage}
               usageVoice={voiceUsage}
@@ -1181,7 +1520,13 @@ export function App() {
 
           {view === 'profile' && (
             <ProfileView
-              onPwd={() => setPwdModal(true)}
+              onPwd={() =>
+                setModal({
+                  kind: 'pwd',
+                  title: '修改登录密码',
+                  desc: '默认密码为部署时设定；修改后立即生效。',
+                })
+              }
               onLogout={doLogout}
             />
           )}
@@ -1202,10 +1547,22 @@ export function App() {
           onClose={closeDrawer}
           onRestart={() => restartDevice(detail.meta.id)}
           onRemove={async () => {
-            if (!window.confirm(`解绑设备「${detail.meta.alias}」？此操作不可撤销。`)) return
+            if (
+              !window.confirm(
+                `解绑设备「${detail.meta.alias}」？此操作不可撤销。`,
+              )
+            )
+              return
             await removeDevice(detail.meta.id)
           }}
-          onEdit={() => setModal({ kind: 'deviceBind', title: '编辑绑定', desc: '修改这台音箱的角色与服务绑定；换绑账号 / 唤醒词需重启设备。', payload: detail.meta })}
+          onEdit={() =>
+            setModal({
+              kind: 'deviceBind',
+              title: '编辑绑定',
+              desc: '修改这台音箱的角色与服务绑定；换绑账号 / 唤醒词需重启设备。',
+              payload: detail.meta,
+            })
+          }
         />
       )}
 
@@ -1221,63 +1578,80 @@ export function App() {
           rooms={rooms}
           onClose={() => setModal(null)}
           onDone={async (values) => {
-          const m = modal
-          setModal(null)
-          try {
-            if (m.kind === 'account') {
-              const payload = (m.payload || {}) as Account
-              if (payload.id) {
-                await api.updateAccount(payload.id, values as Partial<Account>)
-                showToast('账号已更新，换绑账号需重启受影响设备')
-              } else {
-                await api.createAccount(values as Partial<Account>)
-                showToast('账号已连接')
+            const m = modal
+            setModal(null)
+            try {
+              if (m.kind === 'account') {
+                const payload = (m.payload || {}) as Account
+                if (payload.id) {
+                  await api.updateAccount(
+                    payload.id,
+                    values as Partial<Account>,
+                  )
+                  showToast('账号已更新，换绑账号需重启受影响设备')
+                } else {
+                  await api.createAccount(values as Partial<Account>)
+                  showToast('账号已连接')
+                }
+                refreshAll()
+              } else if (m.kind === 'think') {
+                const payload = (m.payload || {}) as ThinkService
+                if (payload.id) {
+                  await api.updateThinkService(
+                    payload.id,
+                    values as Partial<ThinkService>,
+                  )
+                  showToast('思考服务已更新，热生效')
+                } else {
+                  await api.createThinkService(values as Partial<ThinkService>)
+                  showToast('思考服务已创建')
+                }
+                refreshAll()
+              } else if (m.kind === 'voice') {
+                const payload = (m.payload || {}) as VoiceService
+                if (payload.id) {
+                  await api.updateVoiceService(
+                    payload.id,
+                    values as Partial<VoiceService>,
+                  )
+                  showToast('语音服务已更新，音色热切')
+                } else {
+                  await api.createVoiceService(values as Partial<VoiceService>)
+                  showToast('语音服务已创建')
+                }
+                refreshAll()
+              } else if (m.kind === 'role') {
+                const payload = (m.payload || {}) as Role
+                if (payload.id) {
+                  await api.updateRole(payload.id, values as Partial<Role>)
+                  showToast('角色已保存，人设热生效')
+                } else {
+                  await api.createRole(values as Partial<Role>)
+                  showToast('角色已创建')
+                }
+                refreshAll()
+              } else if (m.kind === 'pwd') {
+                await api.changeAuth(
+                  'admin',
+                  (values as { old: string }).old,
+                  'admin',
+                  (values as { pwd: string }).pwd,
+                )
+                showToast('密码已修改，下次登录生效')
+              } else if (m.kind === 'deviceBind') {
+                const meta = (m.payload || {}) as api.DeviceMeta
+                await api.saveDevice(meta.id, {
+                  meta: values as Partial<api.DeviceMeta>,
+                })
+                showToast('绑定已更新，需重启设备生效')
+                refreshAll()
+                if (detail) openDevice(meta.id)
               }
-              refreshAll()
-            } else if (m.kind === 'think') {
-              const payload = (m.payload || {}) as ThinkService
-              if (payload.id) {
-                await api.updateThinkService(payload.id, values as Partial<ThinkService>)
-                showToast('思考服务已更新，热生效')
-              } else {
-                await api.createThinkService(values as Partial<ThinkService>)
-                showToast('思考服务已创建')
-              }
-              refreshAll()
-            } else if (m.kind === 'voice') {
-              const payload = (m.payload || {}) as VoiceService
-              if (payload.id) {
-                await api.updateVoiceService(payload.id, values as Partial<VoiceService>)
-                showToast('语音服务已更新，音色热切')
-              } else {
-                await api.createVoiceService(values as Partial<VoiceService>)
-                showToast('语音服务已创建')
-              }
-              refreshAll()
-            } else if (m.kind === 'role') {
-              const payload = (m.payload || {}) as Role
-              if (payload.id) {
-                await api.updateRole(payload.id, values as Partial<Role>)
-                showToast('角色已保存，人设热生效')
-              } else {
-                await api.createRole(values as Partial<Role>)
-                showToast('角色已创建')
-              }
-              refreshAll()
-            } else if (m.kind === 'pwd') {
-              await api.changeAuth('admin', (values as { old: string }).old, 'admin', (values as { pwd: string }).pwd)
-              showToast('密码已修改，下次登录生效')
-            } else if (m.kind === 'deviceBind') {
-              const meta = (m.payload || {}) as api.DeviceMeta
-              await api.saveDevice(meta.id, { meta: values as Partial<api.DeviceMeta> })
-              showToast('绑定已更新，需重启设备生效')
-              refreshAll()
-              if (detail) openDevice(meta.id)
+            } catch (e) {
+              showToast(errText(e))
             }
-          } catch (e) {
-            showToast(errText(e))
-          }
-        }} />
+          }}
+        />
       )}
 
       {/* 三步向导 */}
@@ -1336,7 +1710,10 @@ export function App() {
       {/* 删除确认 */}
       {confirm && (
         <>
-          <div className={'scrim on' + (confirmLeaving ? ' closing' : '')} onClick={() => closeConfirm()} />
+          <div
+            className={'scrim on' + (confirmLeaving ? ' closing' : '')}
+            onClick={() => closeConfirm()}
+          />
           <div className={'modal on' + (confirmLeaving ? ' closing' : '')}>
             <h3>
               <I n="trash" size={18} /> {confirm.title}
@@ -1370,7 +1747,9 @@ export function App() {
 function LogsView(props: { devices: DeviceRow[]; models: SpeakerModel[] }) {
   const [logs, setLogs] = useState<LogEntry[] | null>(null)
   const [devFilter, setDevFilter] = useState('all')
-  const [kindFilter, setKindFilter] = useState<'all' | 'user' | 'ai' | 'system'>('all')
+  const [kindFilter, setKindFilter] = useState<
+    'all' | 'user' | 'ai' | 'system'
+  >('all')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const load = useCallback(() => {
@@ -1390,15 +1769,23 @@ function LogsView(props: { devices: DeviceRow[]; models: SpeakerModel[] }) {
         (kindFilter === 'all' || l.kind === kindFilter),
     )
   }, [logs, devFilter, kindFilter])
-  const kindLabel = { user: '用户提问', ai: '设备回复', system: '设备日志' } as const
+  const kindLabel = {
+    user: '用户提问',
+    ai: '设备回复',
+    system: '设备日志',
+  } as const
   const deviceById = (id: string) => props.devices.find((d) => d.id === id)
-  const selDevName = devFilter === 'all' ? '全部设备' : deviceById(devFilter)?.alias || devFilter
+  const selDevName =
+    devFilter === 'all' ? '全部设备' : deviceById(devFilter)?.alias || devFilter
   return (
     <section data-view="logs" className="on">
       <div className="split">
         <aside className="slist">
           <div className="filters">
-            <span className={'chip' + (devFilter === 'all' ? ' on' : '')} onClick={() => setDevFilter('all')}>
+            <span
+              className={'chip' + (devFilter === 'all' ? ' on' : '')}
+              onClick={() => setDevFilter('all')}
+            >
               全部设备
             </span>
             <span className="sp">
@@ -1406,37 +1793,69 @@ function LogsView(props: { devices: DeviceRow[]; models: SpeakerModel[] }) {
             </span>
           </div>
           {props.devices.map((d) => {
-            const m = props.models.find((x) => x.id === d.speakerModel || x.name === d.speakerModel)
+            const m = props.models.find(
+              (x) => x.id === d.speakerModel || x.name === d.speakerModel,
+            )
             return (
-              <div key={d.id} className={'li' + (devFilter === d.id ? ' on' : '')} onClick={() => setDevFilter(d.id)}>
+              <div
+                key={d.id}
+                className={'li' + (devFilter === d.id ? ' on' : '')}
+                onClick={() => setDevFilter(d.id)}
+              >
                 <span className="ic">
-                  {m?.imageUrl ? <img className="thumb" src={m.imageUrl} alt="" /> : <I n="speaker" />}
+                  {m?.imageUrl ? (
+                    <img className="thumb" src={m.imageUrl} alt="" />
+                  ) : (
+                    <I n="speaker" />
+                  )}
                 </span>
                 <span className="txt">
                   <b>{d.alias}</b>
                   <span>{d.did}</span>
                 </span>
-                <span className="count">{logs ? logs.filter((l) => l.deviceId === d.id).length : 0} 条</span>
+                <span className="count">
+                  {logs ? logs.filter((l) => l.deviceId === d.id).length : 0} 条
+                </span>
               </div>
             )
           })}
         </aside>
-        <section className="sdetail" key={'logs-' + devFilter + '-' + kindFilter}>
+        <section
+          className="sdetail"
+          key={'logs-' + devFilter + '-' + kindFilter}
+        >
           <div className="filters">
-            <span className={'chip' + (kindFilter === 'all' ? ' on' : '')} onClick={() => setKindFilter('all')}>
+            <span
+              className={'chip' + (kindFilter === 'all' ? ' on' : '')}
+              onClick={() => setKindFilter('all')}
+            >
               全部对话
             </span>
-            <span className={'chip' + (kindFilter === 'user' ? ' on' : '')} onClick={() => setKindFilter('user')}>
+            <span
+              className={'chip' + (kindFilter === 'user' ? ' on' : '')}
+              onClick={() => setKindFilter('user')}
+            >
               用户提问
             </span>
-            <span className={'chip' + (kindFilter === 'ai' ? ' on' : '')} onClick={() => setKindFilter('ai')}>
+            <span
+              className={'chip' + (kindFilter === 'ai' ? ' on' : '')}
+              onClick={() => setKindFilter('ai')}
+            >
               设备回复
             </span>
-            <span className={'chip' + (kindFilter === 'system' ? ' on' : '')} onClick={() => setKindFilter('system')}>
+            <span
+              className={'chip' + (kindFilter === 'system' ? ' on' : '')}
+              onClick={() => setKindFilter('system')}
+            >
               设备日志
             </span>
             <span className="sp" />
-            <button className="icon-btn" title="刷新" disabled={busy} onClick={load}>
+            <button
+              className="icon-btn"
+              title="刷新"
+              disabled={busy}
+              onClick={load}
+            >
               <I n="refresh" size={16} />
             </button>
           </div>
@@ -1455,7 +1874,11 @@ function LogsView(props: { devices: DeviceRow[]; models: SpeakerModel[] }) {
                 <div className="art">
                   <I n="log" size={26} />
                 </div>
-                <b>{logs && logs.length === 0 ? '还没有对话记录' : '没有符合条件的记录'}</b>
+                <b>
+                  {logs && logs.length === 0
+                    ? '还没有对话记录'
+                    : '没有符合条件的记录'}
+                </b>
                 <span>
                   {logs && logs.length === 0
                     ? '唤醒音箱开始对话后，这里会按时间记录每台音箱的问答，方便你复盘每次交互。'
@@ -1502,7 +1925,12 @@ function LogRow(props: {
   const { l, multi, open, devName, kindLabel, onToggle } = props
   return (
     <div
-      className={'log' + (l.kind === 'user' ? ' q' : l.kind === 'ai' ? ' a' : '') + (multi ? ' expandable' : '') + (open ? ' open' : '')}
+      className={
+        'log' +
+        (l.kind === 'user' ? ' q' : l.kind === 'ai' ? ' a' : '') +
+        (multi ? ' expandable' : '') +
+        (open ? ' open' : '')
+      }
       onClick={multi ? () => onToggle(!open) : undefined}
       title={multi && !open ? '点击展开查看完整内容' : undefined}
     >
@@ -1521,7 +1949,10 @@ function LogRow(props: {
   )
 }
 
-function SysLogsView(props: { query?: string; onToast?: (msg: string) => void }) {
+function SysLogsView(props: {
+  query?: string
+  onToast?: (msg: string) => void
+}) {
   const [lines, setLines] = useState<string[] | null>(null)
   const [live, setLive] = useState(true)
   const [askClear, setAskClear] = useState(false)
@@ -1547,7 +1978,8 @@ function SysLogsView(props: { query?: string; onToast?: (msg: string) => void })
   }, [lines])
   const q = (props.query || '').trim().toLowerCase()
   const shown = useMemo(
-    () => (lines ? lines.filter((l) => !q || l.toLowerCase().includes(q)) : null),
+    () =>
+      lines ? lines.filter((l) => !q || l.toLowerCase().includes(q)) : null,
     [lines, q],
   )
   const levelOf = (line: string) =>
@@ -1556,15 +1988,26 @@ function SysLogsView(props: { query?: string; onToast?: (msg: string) => void })
     <section data-view="syslogs" className="on">
       <div className="syslog">
         <div className="filters">
-          <label className="switch-inline" title="开启后每 2 秒自动刷新最新日志；关闭即暂停实时日志，保留当前画面">
+          <label
+            className="switch-inline"
+            title="开启后每 2 秒自动刷新最新日志；关闭即暂停实时日志，保留当前画面"
+          >
             <span className="k">自动刷新</span>
             <span className="switch">
-              <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={live}
+                onChange={(e) => setLive(e.target.checked)}
+              />
               <span className="track" />
             </span>
           </label>
           <span className="sp" />
-          <button className="btn ghost danger" onClick={() => setAskClear(true)} disabled={clearing}>
+          <button
+            className="btn ghost danger"
+            onClick={() => setAskClear(true)}
+            disabled={clearing}
+          >
             <I n="trash" /> 清理日志
           </button>
           <button className="btn" onClick={() => api.downloadSystemLogs()}>
@@ -1575,7 +2018,9 @@ function SysLogsView(props: { query?: string; onToast?: (msg: string) => void })
           {shown === null ? (
             <div className="syslog-empty">正在加载日志…</div>
           ) : shown.length === 0 ? (
-            <div className="syslog-empty">{q ? '没有匹配的日志行' : '暂无系统日志'}</div>
+            <div className="syslog-empty">
+              {q ? '没有匹配的日志行' : '暂无系统日志'}
+            </div>
           ) : (
             shown.map((l, i) => (
               <div className={'syslog-line ' + levelOf(l)} key={i}>
@@ -1637,7 +2082,10 @@ function RoomsView(props: {
 }) {
   const [selId, setSelId] = useState<string | null>(props.rooms[0]?.id || null)
   const sel = props.allRooms.find((r) => r.id === selId) || null
-  const [draft, setDraft] = useState<{ name: string; description: string }>({ name: sel?.name || '', description: sel?.description || '' })
+  const [draft, setDraft] = useState<{ name: string; description: string }>({
+    name: sel?.name || '',
+    description: sel?.description || '',
+  })
   const [edit, setEdit] = useState(false)
   const [creating, setCreating] = useState(false)
   useEffect(() => {
@@ -1668,7 +2116,10 @@ function RoomsView(props: {
       return
     }
     if (creating) {
-      const created = await props.onCreate({ name, description: draft.description.trim() || undefined })
+      const created = await props.onCreate({
+        name,
+        description: draft.description.trim() || undefined,
+      })
       if (created) {
         setCreating(false)
         setEdit(false)
@@ -1677,7 +2128,11 @@ function RoomsView(props: {
       return
     }
     if (sel) {
-      props.onSave({ ...sel, name, description: draft.description.trim() || undefined })
+      props.onSave({
+        ...sel,
+        name,
+        description: draft.description.trim() || undefined,
+      })
       setEdit(false)
     }
   }
@@ -1694,7 +2149,14 @@ function RoomsView(props: {
           {props.rooms.map((r) => {
             const used = props.devices.filter((d) => d.roomRef === r.id).length
             return (
-              <div key={r.id} className={'li' + (r.id === selId ? ' on' : '')} onClick={() => { setSelId(r.id); setEdit(false) }}>
+              <div
+                key={r.id}
+                className={'li' + (r.id === selId ? ' on' : '')}
+                onClick={() => {
+                  setSelId(r.id)
+                  setEdit(false)
+                }}
+              >
                 <span className="ic">
                   <I n="users" />
                 </span>
@@ -1702,22 +2164,35 @@ function RoomsView(props: {
                   <b>{r.name}</b>
                   <span>{r.description || '无描述'}</span>
                 </span>
-                {used ? <span className="tag accent">{used} 台共用</span> : <span className="tag neu">未关联</span>}
+                {used ? (
+                  <span className="tag accent">{used} 台共用</span>
+                ) : (
+                  <span className="tag neu">未关联</span>
+                )}
               </div>
             )
           })}
-          <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={startCreate}>
+          <button
+            className="btn"
+            style={{ justifyContent: 'center', marginTop: 4 }}
+            onClick={startCreate}
+          >
             <I n="plus" /> 新建
           </button>
         </aside>
-        <section className="sdetail" key={'room-' + (selId || 'new') + (edit ? '-e' : '-r')}>
+        <section
+          className="sdetail"
+          key={'room-' + (selId || 'new') + (edit ? '-e' : '-r')}
+        >
           {props.rooms.length === 0 && !creating ? (
             <div className="empty">
               <div className="art">
                 <I n="users" size={26} />
               </div>
               <b>还没有会话群</b>
-              <span>会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「设备服务」中关联。</span>
+              <span>
+                会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「设备服务」中关联。
+              </span>
               <button className="btn primary" onClick={startCreate}>
                 <I n="plus" /> 新建
               </button>
@@ -1725,19 +2200,38 @@ function RoomsView(props: {
           ) : edit ? (
             <div className="form-card">
               <h3>
-                <I n="users" size={17} /> {creating ? '新建会话群' : '编辑会话群'}
+                <I n="users" size={17} />{' '}
+                {creating ? '新建会话群' : '编辑会话群'}
               </h3>
-              <div className="desc">{creating ? '创建后可到「设备服务」中为音箱关联此会话群。' : '修改会话群信息；关联设备重启后生效。'}</div>
+              <div className="desc">
+                {creating
+                  ? '创建后可到「设备服务」中为音箱关联此会话群。'
+                  : '修改会话群信息；关联设备重启后生效。'}
+              </div>
               <div className="grp">
                 <h4>基本信息</h4>
                 <div className="row">
                   <div className="fld">
-                    <label>会话群名称<span className="req">*</span></label>
-                    <input value={draft.name} placeholder="例如：客厅会话" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                    <label>
+                      会话群名称<span className="req">*</span>
+                    </label>
+                    <input
+                      value={draft.name}
+                      placeholder="例如：客厅会话"
+                      onChange={(e) =>
+                        setDraft({ ...draft, name: e.target.value })
+                      }
+                    />
                   </div>
                   <div className="fld">
                     <label>会话群描述</label>
-                    <input value={draft.description} placeholder="例如：家庭日常闲聊场景" onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                    <input
+                      value={draft.description}
+                      placeholder="例如：家庭日常闲聊场景"
+                      onChange={(e) =>
+                        setDraft({ ...draft, description: e.target.value })
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -1746,7 +2240,11 @@ function RoomsView(props: {
                 <button className="btn ghost" onClick={cancel}>
                   取消
                 </button>
-                <button className="btn primary" onClick={save} disabled={!draft.name.trim()}>
+                <button
+                  className="btn primary"
+                  onClick={save}
+                  disabled={!draft.name.trim()}
+                >
                   <I n="check" /> 保存
                 </button>
               </div>
@@ -1755,9 +2253,13 @@ function RoomsView(props: {
             <div className="form-card">
               <h3>
                 <I n="users" size={17} /> 会话群详情
-                <span className="refs">多台设备共用同一会话群，共享对话记忆；变更后需重启关联设备生效。</span>
+                <span className="refs">
+                  多台设备共用同一会话群，共享对话记忆；变更后需重启关联设备生效。
+                </span>
               </h3>
-              <div className="desc">对话记忆的上下文归属；被设备引用后删除前需先解绑。</div>
+              <div className="desc">
+                对话记忆的上下文归属；被设备引用后删除前需先解绑。
+              </div>
               <div className="ro">
                 <div className="grp">
                   <h4>基本信息</h4>
@@ -1779,8 +2281,12 @@ function RoomsView(props: {
                       <span className="k">关联设备</span>
                       <span className="v">
                         {(() => {
-                          const used = props.devices.filter((d) => d.roomRef === sel.id)
-                          return used.length ? used.map((d) => d.alias).join('、') : '未关联'
+                          const used = props.devices.filter(
+                            (d) => d.roomRef === sel.id,
+                          )
+                          return used.length
+                            ? used.map((d) => d.alias).join('、')
+                            : '未关联'
                         })()}
                       </span>
                     </div>
@@ -1789,10 +2295,22 @@ function RoomsView(props: {
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button className="btn danger" onClick={() => props.onDelete(sel.id)}>
+                <button
+                  className="btn danger"
+                  onClick={() => props.onDelete(sel.id)}
+                >
                   <I n="trash" /> 删除
                 </button>
-                <button className="btn primary" onClick={() => { setDraft({ name: sel.name, description: sel.description || '' }); setEdit(true) }}>
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setDraft({
+                      name: sel.name,
+                      description: sel.description || '',
+                    })
+                    setEdit(true)
+                  }}
+                >
                   <I n="pencil" /> 编辑
                 </button>
               </div>
@@ -1844,7 +2362,8 @@ function RolesView(props: {
     if (!creating) setDraft(sel)
   }, [selId, creating]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setF = (k: keyof Role, v: unknown) => draft && setDraft({ ...draft, [k]: v })
+  const setF = (k: keyof Role, v: unknown) =>
+    draft && setDraft({ ...draft, [k]: v })
   const usage = sel ? props.roleUsage(sel.id) : []
 
   const selectRole = (id: string) => {
@@ -1913,7 +2432,11 @@ function RolesView(props: {
       <div className="roles">
         <div className="rlist">
           {props.roles.map((r) => (
-            <div className={'r' + (r.id === selId ? ' on' : '')} key={r.id} onClick={() => selectRole(r.id)}>
+            <div
+              className={'r' + (r.id === selId ? ' on' : '')}
+              key={r.id}
+              onClick={() => selectRole(r.id)}
+            >
               <img src={avatarOf(r.name)} alt={r.name} />
               <span>
                 <b>{r.name}</b>
@@ -1921,7 +2444,11 @@ function RolesView(props: {
               </span>
             </div>
           ))}
-          <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={startCreate}>
+          <button
+            className="btn"
+            style={{ justifyContent: 'center', marginTop: 4 }}
+            onClick={startCreate}
+          >
             <I n="plus" /> 新建
           </button>
         </div>
@@ -1930,7 +2457,9 @@ function RolesView(props: {
             <h3>
               <I n="chat" size={17} /> 角色详情
               <span className="refs">
-                本角色被 {usage.length} 台设备引用{usage.length ? '（' + usage.join(' · ') + '）' : ''}。人设与模型热生效；修改唤醒词需重启设备。
+                本角色被 {usage.length} 台设备引用
+                {usage.length ? '（' + usage.join(' · ') + '）' : ''}
+                。人设与模型热生效；修改唤醒词需重启设备。
               </span>
             </h3>
             <div className="ro">
@@ -1954,11 +2483,17 @@ function RolesView(props: {
                 <div className="row">
                   <div className="rr">
                     <span className="k">思考服务</span>
-                    <span className="v">{props.thinkSvcs.find((s) => s.id === sel.thinkServiceId)?.name || '跟随全局默认'}</span>
+                    <span className="v">
+                      {props.thinkSvcs.find((s) => s.id === sel.thinkServiceId)
+                        ?.name || '跟随全局默认'}
+                    </span>
                   </div>
                   <div className="rr">
                     <span className="k">语音服务</span>
-                    <span className="v">{props.voiceSvcs.find((s) => s.id === sel.voiceId)?.name || '跟随全局默认'}</span>
+                    <span className="v">
+                      {props.voiceSvcs.find((s) => s.id === sel.voiceId)
+                        ?.name || '跟随全局默认'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1967,7 +2502,9 @@ function RolesView(props: {
                 <div className="row">
                   <div className="rr">
                     <span className="k">调用关键词</span>
-                    <span className="v">{(sel.callAIKeywords || []).join('、') || '—'}</span>
+                    <span className="v">
+                      {(sel.callAIKeywords || []).join('、') || '—'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1976,27 +2513,37 @@ function RolesView(props: {
                 <div className="row">
                   <div className="rr">
                     <span className="k">唤醒关键词</span>
-                    <span className="v">{(sel.wakeUpKeywords || []).join('、') || '小爱同学'}</span>
+                    <span className="v">
+                      {(sel.wakeUpKeywords || []).join('、') || '小爱同学'}
+                    </span>
                   </div>
                   <div className="rr">
                     <span className="k">退出关键词</span>
-                    <span className="v">{(sel.exitKeywords || []).join('、') || '—'}</span>
+                    <span className="v">
+                      {(sel.exitKeywords || []).join('、') || '—'}
+                    </span>
                   </div>
                 </div>
                 <div className="row">
                   <div className="rr">
                     <span className="k">自动退出时间</span>
-                    <span className="v">{sel.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
+                    <span className="v">
+                      {sel.exitKeepAliveAfter ?? 30} 秒无响应退出
+                    </span>
                   </div>
                 </div>
                 <div className="row">
                   <div className="rr">
                     <span className="k">继续对话检测</span>
-                    <span className="v">{(sel.checkContinueKeywords || []).join('、') || '—'}</span>
+                    <span className="v">
+                      {(sel.checkContinueKeywords || []).join('、') || '—'}
+                    </span>
                   </div>
                   <div className="rr">
                     <span className="k">停止对话检测</span>
-                    <span className="v">{(sel.checkNotContinueKeywords || []).join('、') || '—'}</span>
+                    <span className="v">
+                      {(sel.checkNotContinueKeywords || []).join('、') || '—'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2005,34 +2552,47 @@ function RolesView(props: {
                 <div className="row">
                   <div className="rr">
                     <span className="k">进入 AI</span>
-                    <span className="v">{(sel.onEnterAI || []).join('、') || '关闭'}</span>
+                    <span className="v">
+                      {(sel.onEnterAI || []).join('、') || '关闭'}
+                    </span>
                   </div>
                   <div className="rr">
                     <span className="k">退出 AI</span>
-                    <span className="v">{(sel.onExitAI || []).join('、') || '关闭'}</span>
+                    <span className="v">
+                      {(sel.onExitAI || []).join('、') || '关闭'}
+                    </span>
                   </div>
                 </div>
                 <div className="row">
                   <div className="rr">
                     <span className="k">AI 思考中</span>
-                    <span className="v">{(sel.onAIAsking || []).join('、') || '关闭'}</span>
+                    <span className="v">
+                      {(sel.onAIAsking || []).join('、') || '关闭'}
+                    </span>
                   </div>
                   <div className="rr">
                     <span className="k">AI 回答完毕</span>
-                    <span className="v">{(sel.onAIReplied || []).join('、') || '关闭'}</span>
+                    <span className="v">
+                      {(sel.onAIReplied || []).join('、') || '关闭'}
+                    </span>
                   </div>
                 </div>
                 <div className="row">
                   <div className="rr">
                     <span className="k">AI 出错</span>
-                    <span className="v">{(sel.onAIError || []).join('、') || '关闭'}</span>
+                    <span className="v">
+                      {(sel.onAIError || []).join('、') || '关闭'}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
             <div className="acts">
               <span className="sp" />
-              <button className="btn danger" onClick={() => props.onDelete(sel.id)}>
+              <button
+                className="btn danger"
+                onClick={() => props.onDelete(sel.id)}
+              >
                 <I n="trash" /> 删除
               </button>
               <button className="btn primary" onClick={() => setEdit(true)}>
@@ -2042,25 +2602,46 @@ function RolesView(props: {
           </div>
         )}
         {draft && (edit || creating) && (
-          <div className="rform redit" key={'role-e-' + (creating ? 'new' : sel?.id || 'new')}>
+          <div
+            className="rform redit"
+            key={'role-e-' + (creating ? 'new' : sel?.id || 'new')}
+          >
             <h3>
               <I n="chat" size={17} /> {creating ? '新建角色' : '编辑角色'}
               <span className="refs">
-                本角色被 {usage.length} 台设备引用{usage.length ? '（' + usage.join(' · ') + '）' : ''}。人设与模型热生效；修改唤醒词需重启设备。
+                本角色被 {usage.length} 台设备引用
+                {usage.length ? '（' + usage.join(' · ') + '）' : ''}
+                。人设与模型热生效；修改唤醒词需重启设备。
               </span>
             </h3>
             <div className="grp">
               <h4>基本信息</h4>
               <div className="row">
                 <div className="fld">
-                  <label>角色名称<span className="req">*</span></label>
-                  <input value={draft.name} onChange={(e) => setF('name', e.target.value)} />
+                  <label>
+                    角色名称<span className="req">*</span>
+                  </label>
+                  <input
+                    value={draft.name}
+                    onChange={(e) => setF('name', e.target.value)}
+                  />
                 </div>
               </div>
               <div className="row">
                 <div className="fld">
-                  <label>人设描述<span className="tip" data-tip="供思考服务理解人格 · 热生效">?</span></label>
-                  <textarea value={draft.profile} onChange={(e) => setF('profile', e.target.value)} />
+                  <label>
+                    人设描述
+                    <span
+                      className="tip"
+                      data-tip="供思考服务理解人格 · 热生效"
+                    >
+                      ?
+                    </span>
+                  </label>
+                  <textarea
+                    value={draft.profile}
+                    onChange={(e) => setF('profile', e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -2069,8 +2650,15 @@ function RolesView(props: {
               <div className="row">
                 <div className="fld">
                   <label>思考服务</label>
-                  <select value={draft.thinkServiceId || ''} onChange={(e) => setF('thinkServiceId', e.target.value || undefined)}>
-                    <option value="">（跟随全局默认：{thinkDefault?.name || '未设置'}）</option>
+                  <select
+                    value={draft.thinkServiceId || ''}
+                    onChange={(e) =>
+                      setF('thinkServiceId', e.target.value || undefined)
+                    }
+                  >
+                    <option value="">
+                      （跟随全局默认：{thinkDefault?.name || '未设置'}）
+                    </option>
                     {props.thinkSvcs.map((o) => (
                       <option key={o.id} value={o.id}>
                         {o.name}
@@ -2081,8 +2669,15 @@ function RolesView(props: {
                 </div>
                 <div className="fld">
                   <label>语音服务</label>
-                  <select value={draft.voiceId || ''} onChange={(e) => setF('voiceId', e.target.value || undefined)}>
-                    <option value="">（跟随全局默认：{voiceDefault?.name || '未设置'}）</option>
+                  <select
+                    value={draft.voiceId || ''}
+                    onChange={(e) =>
+                      setF('voiceId', e.target.value || undefined)
+                    }
+                  >
+                    <option value="">
+                      （跟随全局默认：{voiceDefault?.name || '未设置'}）
+                    </option>
                     {props.voiceSvcs.map((o) => (
                       <option key={o.id} value={o.id}>
                         {o.name}
@@ -2097,10 +2692,23 @@ function RolesView(props: {
               <h4>单次对话</h4>
               <div className="row">
                 <div className="fld">
-                  <label>调用关键词<span className="tip" data-tip="每次提问都需以「小爱同学 + 调用词」开头，不会进入连续对话">?</span></label>
+                  <label>
+                    调用关键词
+                    <span
+                      className="tip"
+                      data-tip="每次提问都需以「小爱同学 + 调用词」开头，不会进入连续对话"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.callAIKeywords || []).join('、')}
-                    onChange={(e) => setF('callAIKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'callAIKeywords',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
               </div>
@@ -2109,39 +2717,108 @@ function RolesView(props: {
               <h4>连续对话</h4>
               <div className="row">
                 <div className="fld">
-                  <label>唤醒关键词<span className="tip" data-tip="唤醒后免唤醒词连续对话 · 修改后需重启绑定该设备的设备">?</span></label>
+                  <label>
+                    唤醒关键词
+                    <span
+                      className="tip"
+                      data-tip="唤醒后免唤醒词连续对话 · 修改后需重启绑定该设备的设备"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.wakeUpKeywords || []).join('、')}
-                    onChange={(e) => setF('wakeUpKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'wakeUpKeywords',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
                 <div className="fld">
-                  <label>退出关键词<span className="tip" data-tip="说出退出词即结束连续对话；留空时用唤醒词再唤回或等待超时">?</span></label>
+                  <label>
+                    退出关键词
+                    <span
+                      className="tip"
+                      data-tip="说出退出词即结束连续对话；留空时用唤醒词再唤回或等待超时"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.exitKeywords || []).join('、')}
-                    onChange={(e) => setF('exitKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'exitKeywords',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
               </div>
               <div className="row">
                 <div className="fld">
-                  <label>自动退出时间<span className="tip" data-tip="连续对话中无响应超过该秒数自动退出，默认 30 秒">?</span></label>
-                  <input value={String(draft.exitKeepAliveAfter ?? 30)} placeholder="默认 30" onChange={(e) => setF('exitKeepAliveAfter', parseInt(e.target.value || '30', 10) || 30)} />
+                  <label>
+                    自动退出时间
+                    <span
+                      className="tip"
+                      data-tip="连续对话中无响应超过该秒数自动退出，默认 30 秒"
+                    >
+                      ?
+                    </span>
+                  </label>
+                  <input
+                    value={String(draft.exitKeepAliveAfter ?? 30)}
+                    placeholder="默认 30"
+                    onChange={(e) =>
+                      setF(
+                        'exitKeepAliveAfter',
+                        parseInt(e.target.value || '30', 10) || 30,
+                      )
+                    }
+                  />
                 </div>
               </div>
               <div className="row">
                 <div className="fld">
-                  <label>继续对话检测<span className="tip" data-tip="说出继续词可保持连续对话；超时退出后再说出可重新进入">?</span></label>
+                  <label>
+                    继续对话检测
+                    <span
+                      className="tip"
+                      data-tip="说出继续词可保持连续对话；超时退出后再说出可重新进入"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.checkContinueKeywords || []).join('、')}
-                    onChange={(e) => setF('checkContinueKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'checkContinueKeywords',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
                 <div className="fld">
-                  <label>停止对话检测<span className="tip" data-tip="说出停止词立即结束连续对话，等效于退出关键词">?</span></label>
+                  <label>
+                    停止对话检测
+                    <span
+                      className="tip"
+                      data-tip="说出停止词立即结束连续对话，等效于退出关键词"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.checkNotContinueKeywords || []).join('、')}
-                    onChange={(e) => setF('checkNotContinueKeywords', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'checkNotContinueKeywords',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
               </div>
@@ -2150,42 +2827,107 @@ function RolesView(props: {
               <h4>提示语</h4>
               <div className="row">
                 <div className="fld">
-                  <label>进入 AI<span className="tip" data-tip="进入连续对话时播报，留空即关闭该提示">?</span></label>
+                  <label>
+                    进入 AI
+                    <span
+                      className="tip"
+                      data-tip="进入连续对话时播报，留空即关闭该提示"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.onEnterAI || []).join('、')}
-                    onChange={(e) => setF('onEnterAI', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'onEnterAI',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
                 <div className="fld">
-                  <label>退出 AI<span className="tip" data-tip="退出连续对话时播报，留空即关闭">?</span></label>
+                  <label>
+                    退出 AI
+                    <span
+                      className="tip"
+                      data-tip="退出连续对话时播报，留空即关闭"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.onExitAI || []).join('、')}
-                    onChange={(e) => setF('onExitAI', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'onExitAI',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
               </div>
               <div className="row">
                 <div className="fld">
-                  <label>AI 思考中<span className="tip" data-tip="AI 开始回答前的过渡语，留空即关闭">?</span></label>
+                  <label>
+                    AI 思考中
+                    <span
+                      className="tip"
+                      data-tip="AI 开始回答前的过渡语，留空即关闭"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.onAIAsking || []).join('、')}
-                    onChange={(e) => setF('onAIAsking', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'onAIAsking',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
                 <div className="fld">
-                  <label>AI 回答完毕<span className="tip" data-tip="AI 回答结束后的收尾语，留空即关闭">?</span></label>
+                  <label>
+                    AI 回答完毕
+                    <span
+                      className="tip"
+                      data-tip="AI 回答结束后的收尾语，留空即关闭"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.onAIReplied || []).join('、')}
-                    onChange={(e) => setF('onAIReplied', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'onAIReplied',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
               </div>
               <div className="row">
                 <div className="fld">
-                  <label>AI 出错<span className="tip" data-tip="AI 回答异常时播报，留空即关闭">?</span></label>
+                  <label>
+                    AI 出错
+                    <span
+                      className="tip"
+                      data-tip="AI 回答异常时播报，留空即关闭"
+                    >
+                      ?
+                    </span>
+                  </label>
                   <input
                     value={(draft.onAIError || []).join('、')}
-                    onChange={(e) => setF('onAIError', e.target.value.split(/[、,，]/).filter(Boolean))}
+                    onChange={(e) =>
+                      setF(
+                        'onAIError',
+                        e.target.value.split(/[、,，]/).filter(Boolean),
+                      )
+                    }
                   />
                 </div>
               </div>
@@ -2195,7 +2937,11 @@ function RolesView(props: {
               <button className="btn ghost" onClick={cancelEdit}>
                 取消
               </button>
-              <button className="btn primary" onClick={doSave} disabled={!draft.name}>
+              <button
+                className="btn primary"
+                onClick={doSave}
+                disabled={!draft.name}
+              >
                 <I n="check" /> 保存
               </button>
             </div>
@@ -2233,19 +2979,41 @@ function Drawer(props: {
   }
   const m = detail.meta
   const rows: BindingRow[] = detail.bindings?.rows || []
-  const rowIcon = (key: BindingRow['key']) => (key === 'account' ? 'user' : key === 'role' ? 'chat' : key === 'think' ? 'bolt' : 'mic')
-  const rowType = (key: BindingRow['key']) => (key === 'think' ? ' t' : key === 'voice' ? ' v' : '')
-  const srcClass = (s: BindingRow['source']) => (s === 'device' ? ' ovr' : s === 'global' ? ' glb' : '')
+  const rowIcon = (key: BindingRow['key']) =>
+    key === 'account'
+      ? 'user'
+      : key === 'role'
+        ? 'chat'
+        : key === 'think'
+          ? 'bolt'
+          : 'mic'
+  const rowType = (key: BindingRow['key']) =>
+    key === 'think' ? ' t' : key === 'voice' ? ' v' : ''
+  const srcClass = (s: BindingRow['source']) =>
+    s === 'device' ? ' ovr' : s === 'global' ? ' glb' : ''
   return (
     <>
-      <div className={'scrim on' + (closing ? ' closing' : '')} style={{ zIndex: 55 }} onClick={() => close()} />
+      <div
+        className={'scrim on' + (closing ? ' closing' : '')}
+        style={{ zIndex: 55 }}
+        onClick={() => close()}
+      />
       <aside className={'drawer on' + (closing ? ' closing' : '')}>
         <div className="dh">
-          <span className="cover" style={{ backgroundImage: `url(${coverOf(m.alias, m.did)})` }} />
+          <span
+            className="cover"
+            style={{ backgroundImage: `url(${coverOf(m.alias, m.did)})` }}
+          />
           <span>
             <b>{m.alias}</b>
             <span>
-              {(() => { const r = m.speakerModel; const mm = r ? models.find((x) => x.id === r || x.name === r) : null; return (mm ? mm.name : r || '智能音箱') + ' · ' + m.did })()}
+              {(() => {
+                const r = m.speakerModel
+                const mm = r
+                  ? models.find((x) => x.id === r || x.name === r)
+                  : null
+                return (mm ? mm.name : r || '智能音箱') + ' · ' + m.did
+              })()}
             </span>
           </span>
           <button className="icon-btn x" onClick={() => close()}>
@@ -2255,9 +3023,17 @@ function Drawer(props: {
         <div className="db">
           <div>
             <h4>
-              <I n="lock" size={14} /> 绑定链 · 优先级：设备指定 &gt; 角色指定 &gt; 全局默认
+              <I n="lock" size={14} /> 绑定链 · 优先级：设备指定 &gt; 角色指定
+              &gt; 全局默认
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                marginTop: 10,
+              }}
+            >
               {rows.map((r) => (
                 <div className="bind-row" key={r.key}>
                   <span className={'ic' + rowType(r.key)}>
@@ -2269,7 +3045,9 @@ function Drawer(props: {
                   </span>
                   <span className="to">→</span>
                   <span className="val">{r.name}</span>
-                  <span className={'src' + srcClass(r.source)}>{r.sourceLabel}</span>
+                  <span className={'src' + srcClass(r.source)}>
+                    {r.sourceLabel}
+                  </span>
                 </div>
               ))}
             </div>
@@ -2285,34 +3063,68 @@ function Drawer(props: {
               </div>
               <div className="kr">
                 <span className="k">型号</span>
-                <span className="vv">{(() => { const r = m.speakerModel; const mm = r ? models.find((x) => x.id === r || x.name === r) : null; return mm ? `${mm.name}（${mm.did}）` : r || '—' })()}</span>
+                <span className="vv">
+                  {(() => {
+                    const r = m.speakerModel
+                    const mm = r
+                      ? models.find((x) => x.id === r || x.name === r)
+                      : null
+                    return mm ? `${mm.name}（${mm.did}）` : r || '—'
+                  })()}
+                </span>
               </div>
               <div className="kr">
                 <span className="k">所属账号</span>
-                <span className="vv">{props.accounts.find((a) => a.id === m.accountId)?.name || '未绑定'}</span>
+                <span className="vv">
+                  {props.accounts.find((a) => a.id === m.accountId)?.name ||
+                    '未绑定'}
+                </span>
               </div>
               <div className="kr">
                 <span className="k">服务状态</span>
-                <span className="vv">{props.running ? '运行中' : '未启动'}</span>
+                <span className="vv">
+                  {props.running ? '运行中' : '未启动'}
+                </span>
               </div>
               <div className="kr">
                 <span className="k">连续对话</span>
                 <span className="vv">
                   {(() => {
-                    const mm = m.speakerModel ? models.find((x) => x.id === m.speakerModel || x.name === m.speakerModel) : null
+                    const mm = m.speakerModel
+                      ? models.find(
+                          (x) =>
+                            x.id === m.speakerModel ||
+                            x.name === m.speakerModel,
+                        )
+                      : null
                     if (!mm) return '—'
                     if (!mm.consecutive) return '未启用（型号不支持）'
-                    return mm.playingCommand?.length ? '启用 · 支持播放状态检测' : '启用 · 依赖 Mina 检测播放状态'
+                    return mm.playingCommand?.length
+                      ? '启用 · 支持播放状态检测'
+                      : '启用 · 依赖 Mina 检测播放状态'
                   })()}
                 </span>
               </div>
               <div className="kr">
                 <span className="k">对话超时</span>
-                <span className="vv">{m.exitKeepAliveAfter ?? 30} 秒无响应退出</span>
+                <span className="vv">
+                  {m.exitKeepAliveAfter ?? 30} 秒无响应退出
+                </span>
               </div>
               <div className="kr">
                 <span className="k">会话群</span>
-                <span className="vv">{(() => { const rm = m.roomRef ? props.rooms.find((x) => x.id === m.roomRef) : null; return rm ? `${rm.name}${rm.description ? ' · ' + rm.description : ''}` : (m.roomName ? m.roomName : '—') })()}</span>
+                <span className="vv">
+                  {(() => {
+                    const rm = m.roomRef
+                      ? props.rooms.find((x) => x.id === m.roomRef)
+                      : null
+                    return rm
+                      ? `${rm.name}${rm.description ? ' · ' + rm.description : ''}`
+                      : m.roomName
+                        ? m.roomName
+                        : '—'
+                  })()}
+                </span>
               </div>
             </div>
           </div>
@@ -2325,7 +3137,10 @@ function Drawer(props: {
             <I n="trash" /> 解绑设备
           </button>
           <span className="sp" />
-          <button className="btn primary" onClick={() => close(props.onRestart)}>
+          <button
+            className="btn primary"
+            onClick={() => close(props.onRestart)}
+          >
             <I n="refresh" /> 重启设备
           </button>
         </div>
@@ -2356,10 +3171,12 @@ function ModalShell(props: {
     } else if (props.modal.kind === 'think') {
       init.name = (p.name as string) || ''
       init.provider = (p.provider as string) || 'doubao'
-      init.model = (p.model as string) || PROVIDER_PRESETS[init.provider]?.model || ''
+      init.model =
+        (p.model as string) || PROVIDER_PRESETS[init.provider]?.model || ''
       init.apiKey = ''
       init.temperature = String((p.temperature as number) ?? 0.7)
-      init.baseUrl = (p.baseUrl as string) || PROVIDER_PRESETS[init.provider]?.baseUrl || ''
+      init.baseUrl =
+        (p.baseUrl as string) || PROVIDER_PRESETS[init.provider]?.baseUrl || ''
     } else if (props.modal.kind === 'voice') {
       init.name = (p.name as string) || ''
       init.provider = (p.provider as string) || 'edge'
@@ -2402,7 +3219,12 @@ function ModalShell(props: {
     if (modal.kind === 'account') {
       out = { name: v.name, miUserId: v.miUserId, passToken: v.passToken }
     } else if (modal.kind === 'think') {
-      out = { name: v.name, provider: v.provider, model: v.model, temperature: parseFloat(v.temperature) || 0.7 }
+      out = {
+        name: v.name,
+        provider: v.provider,
+        model: v.model,
+        temperature: parseFloat(v.temperature) || 0.7,
+      }
       out.baseUrl = v.baseUrl || PROVIDER_PRESETS[v.provider]?.baseUrl || ''
       if (v.apiKey) out.apiKey = v.apiKey
     } else if (modal.kind === 'voice') {
@@ -2468,28 +3290,72 @@ function ModalShell(props: {
   }
   return (
     <>
-      <div className={'scrim on' + (closing ? ' closing' : '')} onClick={() => close()} />
+      <div
+        className={'scrim on' + (closing ? ' closing' : '')}
+        onClick={() => close()}
+      />
       <div className={'modal on' + (closing ? ' closing' : '')}>
         <h3>
-          <I n={modal.kind === 'pwd' ? 'lock' : modal.kind === 'think' ? 'bolt' : modal.kind === 'voice' ? 'mic' : modal.kind === 'role' ? 'chat' : 'user'} size={18} /> {modal.title}
+          <I
+            n={
+              modal.kind === 'pwd'
+                ? 'lock'
+                : modal.kind === 'think'
+                  ? 'bolt'
+                  : modal.kind === 'voice'
+                    ? 'mic'
+                    : modal.kind === 'role'
+                      ? 'chat'
+                      : 'user'
+            }
+            size={18}
+          />{' '}
+          {modal.title}
         </h3>
         <div className="desc">{modal.desc}</div>
 
         {modal.kind === 'account' && (
           <>
             <div className="fld row">
-              <label>账号名称<span className="req">*</span></label>
-              <input value={v.name || ''} placeholder="例如：默认账号" onChange={(e) => setV({ ...v, name: e.target.value })} />
+              <label>
+                账号名称<span className="req">*</span>
+              </label>
+              <input
+                value={v.name || ''}
+                placeholder="例如：默认账号"
+                onChange={(e) => setV({ ...v, name: e.target.value })}
+              />
             </div>
             <div className="fld row">
-              <label>小米 ID<span className="req">*</span></label>
-              <input value={v.miUserId || ''} placeholder="例如：1234567890" onChange={(e) => setV({ ...v, miUserId: e.target.value })} />
-              <span className="hint">登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。</span>
+              <label>
+                小米 ID<span className="req">*</span>
+              </label>
+              <input
+                value={v.miUserId || ''}
+                placeholder="例如：1234567890"
+                onChange={(e) => setV({ ...v, miUserId: e.target.value })}
+              />
+              <span className="hint">
+                登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。
+              </span>
             </div>
             <div className="fld">
               <label>passToken</label>
-              <textarea rows={4} value={v.passToken || ''} placeholder={isEdit && v.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setV({ ...v, passToken: e.target.value })} />
-              <span className="hint">{isEdit ? '留空则保留原凭据' : '异地登录安全验证时，会给出授权链接'}</span>
+              <textarea
+                rows={4}
+                value={v.passToken || ''}
+                placeholder={
+                  isEdit && v.passToken
+                    ? '已保存 · 留空保持不变'
+                    : '从米家 / 小爱获取的 token'
+                }
+                onChange={(e) => setV({ ...v, passToken: e.target.value })}
+              />
+              <span className="hint">
+                {isEdit
+                  ? '留空则保留原凭据'
+                  : '异地登录安全验证时，会给出授权链接'}
+              </span>
             </div>
           </>
         )}
@@ -2497,18 +3363,34 @@ function ModalShell(props: {
         {modal.kind === 'think' && (
           <>
             <div className="fld row">
-              <label>服务名称<span className="req">*</span></label>
-              <input value={v.name || ''} placeholder="例如：豆包 Doubao-Seed" onChange={(e) => setV({ ...v, name: e.target.value })} />
+              <label>
+                服务名称<span className="req">*</span>
+              </label>
+              <input
+                value={v.name || ''}
+                placeholder="例如：豆包 Doubao-Seed"
+                onChange={(e) => setV({ ...v, name: e.target.value })}
+              />
             </div>
             <div className="fld row">
-              <label>供应商<span className="req">*</span></label>
+              <label>
+                供应商<span className="req">*</span>
+              </label>
               <select
                 value={v.provider || 'doubao'}
                 onChange={(e) => {
                   const p = e.target.value
                   const preset = PROVIDER_PRESETS[p]
                   const prev = PROVIDER_PRESETS[v.provider || '']
-                  setV({ ...v, provider: p, baseUrl: preset?.baseUrl || '', model: v.model && v.model !== prev?.model ? v.model : preset?.model || '' })
+                  setV({
+                    ...v,
+                    provider: p,
+                    baseUrl: preset?.baseUrl || '',
+                    model:
+                      v.model && v.model !== prev?.model
+                        ? v.model
+                        : preset?.model || '',
+                  })
                 }}
               >
                 {Object.entries(PROVIDERS).map(([k, label]) => (
@@ -2521,25 +3403,55 @@ function ModalShell(props: {
             <div className="fld row">
               <label>接口地址</label>
               {v.provider === 'custom' ? (
-                <input value={v.baseUrl || ''} placeholder="https://api.example.com/v1" onChange={(e) => setV({ ...v, baseUrl: e.target.value })} />
+                <input
+                  value={v.baseUrl || ''}
+                  placeholder="https://api.example.com/v1"
+                  onChange={(e) => setV({ ...v, baseUrl: e.target.value })}
+                />
               ) : (
-                <input value={v.baseUrl || PROVIDER_PRESETS[v.provider || '']?.baseUrl || ''} readOnly disabled placeholder="选择供应商后自动填充" />
+                <input
+                  value={
+                    v.baseUrl ||
+                    PROVIDER_PRESETS[v.provider || '']?.baseUrl ||
+                    ''
+                  }
+                  readOnly
+                  disabled
+                  placeholder="选择供应商后自动填充"
+                />
               )}
-              <span className="hint">选「自定义」时可手动填写；其他供应商自动填充官方地址</span>
+              <span className="hint">
+                选「自定义」时可手动填写；其他供应商自动填充官方地址
+              </span>
             </div>
             <div className="fld row">
-              <label>模型端点<span className="req">*</span></label>
-              <input value={v.model || ''} placeholder="ep-xxxxxxxx 或模型名" onChange={(e) => setV({ ...v, model: e.target.value })} />
+              <label>
+                模型端点<span className="req">*</span>
+              </label>
+              <input
+                value={v.model || ''}
+                placeholder="ep-xxxxxxxx 或模型名"
+                onChange={(e) => setV({ ...v, model: e.target.value })}
+              />
               <span className="hint">切换供应商自动带出示例模型，可修改</span>
             </div>
             <div className="fld row">
               <label>API Key</label>
-              <input value={v.apiKey || ''} placeholder="ark-••••" onChange={(e) => setV({ ...v, apiKey: e.target.value })} />
-              <span className="hint">{isEdit ? '留空则保留原 Key' : '仅服务端保存，面板不展示明文'}</span>
+              <input
+                value={v.apiKey || ''}
+                placeholder="ark-••••"
+                onChange={(e) => setV({ ...v, apiKey: e.target.value })}
+              />
+              <span className="hint">
+                {isEdit ? '留空则保留原 Key' : '仅服务端保存，面板不展示明文'}
+              </span>
             </div>
             <div className="fld row">
               <label>温度</label>
-              <input value={v.temperature || '0.7'} onChange={(e) => setV({ ...v, temperature: e.target.value })} />
+              <input
+                value={v.temperature || '0.7'}
+                onChange={(e) => setV({ ...v, temperature: e.target.value })}
+              />
             </div>
           </>
         )}
@@ -2547,12 +3459,23 @@ function ModalShell(props: {
         {modal.kind === 'voice' && (
           <>
             <div className="fld row">
-              <label>服务名称<span className="req">*</span></label>
-              <input value={v.name || ''} placeholder="例如：豆包语音" onChange={(e) => setV({ ...v, name: e.target.value })} />
+              <label>
+                服务名称<span className="req">*</span>
+              </label>
+              <input
+                value={v.name || ''}
+                placeholder="例如：豆包语音"
+                onChange={(e) => setV({ ...v, name: e.target.value })}
+              />
             </div>
             <div className="fld row">
-              <label>供应商<span className="req">*</span></label>
-              <select value={v.provider || 'edge'} onChange={(e) => setV({ ...v, provider: e.target.value })}>
+              <label>
+                供应商<span className="req">*</span>
+              </label>
+              <select
+                value={v.provider || 'edge'}
+                onChange={(e) => setV({ ...v, provider: e.target.value })}
+              >
                 {Object.entries(TTS_ENGINES)
                   .filter(([k]) => k !== 'builtin')
                   .map(([k, label]) => (
@@ -2564,48 +3487,97 @@ function ModalShell(props: {
             </div>
             <div className="fld row">
               <label>音色</label>
-              <input value={v.voiceId || ''} placeholder="选择或输入音色 ID" onChange={(e) => setV({ ...v, voiceId: e.target.value })} />
+              <input
+                value={v.voiceId || ''}
+                placeholder="选择或输入音色 ID"
+                onChange={(e) => setV({ ...v, voiceId: e.target.value })}
+              />
               <span className="hint">留空使用该引擎的默认音色</span>
             </div>
             {v.provider === 'edge' && (
               <div className="fld row">
                 <label>访问令牌</label>
-                <input value={v.edgeToken || ''} placeholder="留空由 Edge 自动获取" onChange={(e) => setV({ ...v, edgeToken: e.target.value })} />
+                <input
+                  value={v.edgeToken || ''}
+                  placeholder="留空由 Edge 自动获取"
+                  onChange={(e) => setV({ ...v, edgeToken: e.target.value })}
+                />
               </div>
             )}
             {v.provider === 'volcano' && (
               <>
                 <div className="fld row">
-                  <label>App ID<span className="req">*</span></label>
-                  <input value={v.volcanoAppId || ''} placeholder="火山引擎语音合成 App ID" onChange={(e) => setV({ ...v, volcanoAppId: e.target.value })} />
+                  <label>
+                    App ID<span className="req">*</span>
+                  </label>
+                  <input
+                    value={v.volcanoAppId || ''}
+                    placeholder="火山引擎语音合成 App ID"
+                    onChange={(e) =>
+                      setV({ ...v, volcanoAppId: e.target.value })
+                    }
+                  />
                 </div>
                 <div className="fld row">
-                  <label>访问令牌<span className="req">*</span></label>
-                  <input value={v.volcanoToken || ''} placeholder="火山引擎 Access Token" onChange={(e) => setV({ ...v, volcanoToken: e.target.value })} />
+                  <label>
+                    访问令牌<span className="req">*</span>
+                  </label>
+                  <input
+                    value={v.volcanoToken || ''}
+                    placeholder="火山引擎 Access Token"
+                    onChange={(e) =>
+                      setV({ ...v, volcanoToken: e.target.value })
+                    }
+                  />
                 </div>
               </>
             )}
             {v.provider === 'openai' && (
               <>
                 <div className="fld row">
-                  <label>API Key<span className="req">*</span></label>
-                  <input value={v.openaiKey || ''} placeholder="OpenAI API Key" onChange={(e) => setV({ ...v, openaiKey: e.target.value })} />
+                  <label>
+                    API Key<span className="req">*</span>
+                  </label>
+                  <input
+                    value={v.openaiKey || ''}
+                    placeholder="OpenAI API Key"
+                    onChange={(e) => setV({ ...v, openaiKey: e.target.value })}
+                  />
                 </div>
                 <div className="fld row">
                   <label>模型</label>
-                  <input value={v.openaiModel || ''} placeholder="tts-1" onChange={(e) => setV({ ...v, openaiModel: e.target.value })} />
+                  <input
+                    value={v.openaiModel || ''}
+                    placeholder="tts-1"
+                    onChange={(e) =>
+                      setV({ ...v, openaiModel: e.target.value })
+                    }
+                  />
                 </div>
                 <div className="fld row">
                   <label>接口地址</label>
-                  <input value={v.openaiBaseUrl || ''} placeholder="https://api.openai.com/v1" onChange={(e) => setV({ ...v, openaiBaseUrl: e.target.value })} />
+                  <input
+                    value={v.openaiBaseUrl || ''}
+                    placeholder="https://api.openai.com/v1"
+                    onChange={(e) =>
+                      setV({ ...v, openaiBaseUrl: e.target.value })
+                    }
+                  />
                 </div>
               </>
             )}
             {v.provider === 'custom' && (
               <div className="fld">
                 <label>TTS 配置（JSON）</label>
-                <textarea rows={4} value={v.customJson || ''} placeholder='{"edge":{"trustedToken":"…"}}' onChange={(e) => setV({ ...v, customJson: e.target.value })} />
-                <span className="hint">高级用法：直接填写 mi-gpt TTSConfig JSON</span>
+                <textarea
+                  rows={4}
+                  value={v.customJson || ''}
+                  placeholder='{"edge":{"trustedToken":"…"}}'
+                  onChange={(e) => setV({ ...v, customJson: e.target.value })}
+                />
+                <span className="hint">
+                  高级用法：直接填写 mi-gpt TTSConfig JSON
+                </span>
               </div>
             )}
           </>
@@ -2614,13 +3586,25 @@ function ModalShell(props: {
         {modal.kind === 'role' && (
           <>
             <div className="fld row">
-              <label>角色名称<span className="req">*</span></label>
-              <input value={v.name || ''} placeholder="例如：深夜电台 DJ" onChange={(e) => setV({ ...v, name: e.target.value })} />
+              <label>
+                角色名称<span className="req">*</span>
+              </label>
+              <input
+                value={v.name || ''}
+                placeholder="例如：深夜电台 DJ"
+                onChange={(e) => setV({ ...v, name: e.target.value })}
+              />
             </div>
             <div className="fld">
               <label>人设描述</label>
               <textarea
-                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-m)', padding: '8px 12px', font: 'inherit', minHeight: 76 }}
+                style={{
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-m)',
+                  padding: '8px 12px',
+                  font: 'inherit',
+                  minHeight: 76,
+                }}
                 value={v.profile || ''}
                 placeholder="你是谁、怎么说话、回答风格"
                 onChange={(e) => setV({ ...v, profile: e.target.value })}
@@ -2632,16 +3616,34 @@ function ModalShell(props: {
         {modal.kind === 'pwd' && (
           <>
             <div className="fld row">
-              <label>当前密码<span className="req">*</span></label>
-              <input type="password" value={v.old || ''} onChange={(e) => setV({ ...v, old: e.target.value })} />
+              <label>
+                当前密码<span className="req">*</span>
+              </label>
+              <input
+                type="password"
+                value={v.old || ''}
+                onChange={(e) => setV({ ...v, old: e.target.value })}
+              />
             </div>
             <div className="fld row">
-              <label>新密码<span className="req">*</span></label>
-              <input type="password" value={v.pwd || ''} onChange={(e) => setV({ ...v, pwd: e.target.value })} />
+              <label>
+                新密码<span className="req">*</span>
+              </label>
+              <input
+                type="password"
+                value={v.pwd || ''}
+                onChange={(e) => setV({ ...v, pwd: e.target.value })}
+              />
             </div>
             <div className="fld row">
-              <label>确认新密码<span className="req">*</span></label>
-              <input type="password" value={v.pwd2 || ''} onChange={(e) => setV({ ...v, pwd2: e.target.value, err: '' })} />
+              <label>
+                确认新密码<span className="req">*</span>
+              </label>
+              <input
+                type="password"
+                value={v.pwd2 || ''}
+                onChange={(e) => setV({ ...v, pwd2: e.target.value, err: '' })}
+              />
             </div>
             {v.err && (
               <div className="notice err">
@@ -2655,13 +3657,18 @@ function ModalShell(props: {
           <>
             {modal.title === '变更生效说明' ? (
               <div className="notice">
-                <I n="warning" size={15} /> 换绑账号、修改唤醒词或 did 必须重启设备；角色内容、思考服务（模型 / 温度）热生效；语音服务支持热切。
+                <I n="warning" size={15} /> 换绑账号、修改唤醒词或 did
+                必须重启设备；角色内容、思考服务（模型 /
+                温度）热生效；语音服务支持热切。
               </div>
             ) : (
               <>
                 <div className="fld row">
                   <label>所属账号</label>
-                  <select value={v.accountId || ''} onChange={(e) => setV({ ...v, accountId: e.target.value })}>
+                  <select
+                    value={v.accountId || ''}
+                    onChange={(e) => setV({ ...v, accountId: e.target.value })}
+                  >
                     <option value="">（保持当前）</option>
                     {props.accounts.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -2672,7 +3679,10 @@ function ModalShell(props: {
                 </div>
                 <div className="fld row">
                   <label>对话角色</label>
-                  <select value={v.roleId || ''} onChange={(e) => setV({ ...v, roleId: e.target.value })}>
+                  <select
+                    value={v.roleId || ''}
+                    onChange={(e) => setV({ ...v, roleId: e.target.value })}
+                  >
                     <option value="">（保持当前）</option>
                     {props.roles.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -2683,7 +3693,12 @@ function ModalShell(props: {
                 </div>
                 <div className="fld row">
                   <label>思考服务</label>
-                  <select value={v.thinkServiceId || ''} onChange={(e) => setV({ ...v, thinkServiceId: e.target.value })}>
+                  <select
+                    value={v.thinkServiceId || ''}
+                    onChange={(e) =>
+                      setV({ ...v, thinkServiceId: e.target.value })
+                    }
+                  >
                     <option value="">（继承角色 / 全局默认）</option>
                     {props.thinkSvcs.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -2695,7 +3710,12 @@ function ModalShell(props: {
                 </div>
                 <div className="fld row">
                   <label>语音服务（设备覆盖）</label>
-                  <select value={v.voiceOverrideId || ''} onChange={(e) => setV({ ...v, voiceOverrideId: e.target.value })}>
+                  <select
+                    value={v.voiceOverrideId || ''}
+                    onChange={(e) =>
+                      setV({ ...v, voiceOverrideId: e.target.value })
+                    }
+                  >
                     <option value="">（继承角色 / 全局默认）</option>
                     {props.voiceSvcs.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -2707,7 +3727,12 @@ function ModalShell(props: {
                 </div>
                 <div className="fld row">
                   <label>设备型号</label>
-                  <select value={v.speakerModel || ''} onChange={(e) => setV({ ...v, speakerModel: e.target.value })}>
+                  <select
+                    value={v.speakerModel || ''}
+                    onChange={(e) =>
+                      setV({ ...v, speakerModel: e.target.value })
+                    }
+                  >
                     <option value="">（保持当前）</option>
                     {props.models.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -2717,26 +3742,53 @@ function ModalShell(props: {
                     ))}
                   </select>
                   {(() => {
-                    const mm = v.speakerModel ? props.models.find((x) => x.id === v.speakerModel) : null
-                    if (!mm) return <span className="hint">切换型号后，播放指令 / 唤醒指令等硬件参数随型号生效</span>
+                    const mm = v.speakerModel
+                      ? props.models.find((x) => x.id === v.speakerModel)
+                      : null
+                    if (!mm)
+                      return (
+                        <span className="hint">
+                          切换型号后，播放指令 / 唤醒指令等硬件参数随型号生效
+                        </span>
+                      )
                     if (!mm.consecutive) {
-                      return <span className="hint warn">型号不支持连续对话（streamResponse 已禁用）</span>
+                      return (
+                        <span className="hint warn">
+                          型号不支持连续对话（streamResponse 已禁用）
+                        </span>
+                      )
                     }
                     return mm.playingCommand?.length ? (
-                      <span className="hint">支持连续对话 · 支持播放状态检测</span>
+                      <span className="hint">
+                        支持连续对话 · 支持播放状态检测
+                      </span>
                     ) : (
-                      <span className="hint">支持连续对话 · 未配置播放检测指令，将依赖 Mina 检测播放状态；若异常可在「设备型号」中补充该指令</span>
+                      <span className="hint">
+                        支持连续对话 · 未配置播放检测指令，将依赖 Mina
+                        检测播放状态；若异常可在「设备型号」中补充该指令
+                      </span>
                     )
                   })()}
                 </div>
                 <div className="fld row">
                   <label>连续对话超时（秒）</label>
-                  <input value={v.exitKeepAliveAfter || '30'} placeholder="默认 30" onChange={(e) => setV({ ...v, exitKeepAliveAfter: e.target.value })} />
-                  <span className="hint">连续对话中无响应多久自动退出唤醒模式，默认 30 秒</span>
+                  <input
+                    value={v.exitKeepAliveAfter || '30'}
+                    placeholder="默认 30"
+                    onChange={(e) =>
+                      setV({ ...v, exitKeepAliveAfter: e.target.value })
+                    }
+                  />
+                  <span className="hint">
+                    连续对话中无响应多久自动退出唤醒模式，默认 30 秒
+                  </span>
                 </div>
                 <div className="fld row">
                   <label>会话群</label>
-                  <select value={v.roomRef || ''} onChange={(e) => setV({ ...v, roomRef: e.target.value })}>
+                  <select
+                    value={v.roomRef || ''}
+                    onChange={(e) => setV({ ...v, roomRef: e.target.value })}
+                  >
                     <option value="">（保持当前）</option>
                     {props.rooms.map((rm) => (
                       <option key={rm.id} value={rm.id}>
@@ -2744,7 +3796,10 @@ function ModalShell(props: {
                       </option>
                     ))}
                   </select>
-                  <span className="hint">对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建</span>
+                  <span className="hint">
+                    对话记忆的上下文归属（对应旧版「会话群
+                    chatGroup」），多台设备可共用；可在「会话群」菜单新建
+                  </span>
                 </div>
                 <div className="notice">
                   <I n="warning" size={15} /> 修改后需重启设备生效。
@@ -2759,7 +3814,9 @@ function ModalShell(props: {
             取消
           </button>
           <button className="btn primary" onClick={submit}>
-            {modal.kind === 'deviceBind' && modal.title === '变更生效说明' ? '知道了' : '确定'}
+            {modal.kind === 'deviceBind' && modal.title === '变更生效说明'
+              ? '知道了'
+              : '确定'}
           </button>
         </div>
       </div>
@@ -2776,11 +3833,31 @@ function Wizard(props: {
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   devices: { id: string; alias: string; did: string; accountId?: string }[]
-  draft: { step: number; accountId: string; alias: string; did: string; model: string; roleId: string }
-  setDraft: (p: Partial<{ step: number; accountId: string; alias: string; did: string; model: string; roleId: string }>) => void
+  draft: {
+    step: number
+    accountId: string
+    alias: string
+    did: string
+    model: string
+    roleId: string
+  }
+  setDraft: (
+    p: Partial<{
+      step: number
+      accountId: string
+      alias: string
+      did: string
+      model: string
+      roleId: string
+    }>,
+  ) => void
   onClose: () => void
   onFinish: () => void
-  onNewAccount: (d: { name: string; miUserId: string; passToken: string }) => Promise<Account>
+  onNewAccount: (d: {
+    name: string
+    miUserId: string
+    passToken: string
+  }) => Promise<Account>
   onUpdateAccount: (id: string, d: Partial<Account>) => Promise<Account>
   onNewRole: (d: { name: string; profile?: string }) => Promise<Role>
   onUpdateRole: (id: string, d: Partial<Role>) => Promise<Role>
@@ -2800,12 +3877,21 @@ function Wizard(props: {
   const [pulled, setPulled] = useState<PulledDevice[] | null>(null)
   const [newAcct, setNewAcct] = useState(false)
   const [acctEdit, setAcctEdit] = useState(false)
-  const [naDraft, setNaDraft] = useState({ name: '', miUserId: '', passToken: '' })
+  const [naDraft, setNaDraft] = useState({
+    name: '',
+    miUserId: '',
+    passToken: '',
+  })
   const [naBusy, setNaBusy] = useState(false)
   const [naErr, setNaErr] = useState('')
   const [newRole, setNewRole] = useState(false)
   const [roleEdit, setRoleEdit] = useState(false)
-  const [nrDraft, setNrDraft] = useState<{ name: string; profile: string; thinkServiceId?: string; voiceId?: string }>({ name: '', profile: '' })
+  const [nrDraft, setNrDraft] = useState<{
+    name: string
+    profile: string
+    thinkServiceId?: string
+    voiceId?: string
+  }>({ name: '', profile: '' })
   const [nrBusy, setNrBusy] = useState(false)
   const [nrErr, setNrErr] = useState('')
   const step = draft.step
@@ -2821,7 +3907,8 @@ function Wizard(props: {
       .then((r) => {
         const list = r.devices || []
         setPulled(list)
-        if (!list.length) setPullErr('该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确')
+        if (!list.length)
+          setPullErr('该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确')
       })
       .catch((e) => setPullErr((e as Error).message || '拉取设备失败'))
       .finally(() => setPulling(false))
@@ -2831,17 +3918,23 @@ function Wizard(props: {
   }, [step, draft.accountId, load])
   // 列表有实体时默认选中第一个；无实体时右侧展示新建表单
   useEffect(() => {
-    if (step === 0 && !draft.accountId && props.accounts.length) props.setDraft({ accountId: props.accounts[0].id })
+    if (step === 0 && !draft.accountId && props.accounts.length)
+      props.setDraft({ accountId: props.accounts[0].id })
   }, [step, draft.accountId, props.accounts, props.setDraft])
   useEffect(() => {
-    if (step === 2 && !draft.roleId && props.roles.length) props.setDraft({ roleId: props.roles[0].id })
+    if (step === 2 && !draft.roleId && props.roles.length)
+      props.setDraft({ roleId: props.roles[0].id })
   }, [step, draft.roleId, props.roles, props.setDraft])
   // 设备拉取完成且有设备时，默认选中第一台
   useEffect(() => {
     if (step === 1 && pulled && pulled.length > 0 && !draft.did) {
       const d = pulled[0]
       const m = modelOf(d.hardware)
-      props.setDraft({ alias: d.name || d.alias, did: d.miotDID, model: m ? m.id : draft.model })
+      props.setDraft({
+        alias: d.name || d.alias,
+        did: d.miotDID,
+        model: m ? m.id : draft.model,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, pulled, draft.did])
@@ -2851,7 +3944,11 @@ function Wizard(props: {
     setNaErr('')
     try {
       if (acctEdit && selAcct) {
-        await props.onUpdateAccount(selAcct.id, { name: naDraft.name, miUserId: naDraft.miUserId, ...(naDraft.passToken ? { passToken: naDraft.passToken } : {}) })
+        await props.onUpdateAccount(selAcct.id, {
+          name: naDraft.name,
+          miUserId: naDraft.miUserId,
+          ...(naDraft.passToken ? { passToken: naDraft.passToken } : {}),
+        })
         setAcctEdit(false)
       } else {
         const created = await props.onNewAccount(naDraft)
@@ -2870,7 +3967,12 @@ function Wizard(props: {
     setNrBusy(true)
     setNrErr('')
     try {
-      const body: Record<string, unknown> = { name: nrDraft.name, profile: nrDraft.profile }
+      const body: {
+        name: string
+        profile: string
+        thinkServiceId?: string
+        voiceId?: string
+      } = { name: nrDraft.name, profile: nrDraft.profile }
       if (nrDraft.thinkServiceId) body.thinkServiceId = nrDraft.thinkServiceId
       if (nrDraft.voiceId) body.voiceId = nrDraft.voiceId
       if (roleEdit && selRole) {
@@ -2892,13 +3994,22 @@ function Wizard(props: {
     if (!selAcct) return
     setNewAcct(false)
     setAcctEdit(true)
-    setNaDraft({ name: selAcct.name, miUserId: selAcct.miUserId, passToken: '' })
+    setNaDraft({
+      name: selAcct.name,
+      miUserId: selAcct.miUserId,
+      passToken: '',
+    })
   }
   const beginRoleEdit = () => {
     if (!selRole) return
     setNewRole(false)
     setRoleEdit(true)
-    setNrDraft({ name: selRole.name, profile: selRole.profile || '', thinkServiceId: selRole.thinkServiceId, voiceId: selRole.voiceId })
+    setNrDraft({
+      name: selRole.name,
+      profile: selRole.profile || '',
+      thinkServiceId: selRole.thinkServiceId,
+      voiceId: selRole.voiceId,
+    })
   }
   const canNext =
     (step === 0 && !!draft.accountId) ||
@@ -2929,10 +4040,19 @@ function Wizard(props: {
           </div>
           <div className="wsteps">
             {WSTEP.map((it, i) => (
-              <div key={i} className={'wstep' + (step === i ? ' on' : i < step ? ' done' : '')}>
-                <span className="wno">{i < step ? <I n="check" size={13} /> : it.n}</span>
+              <div
+                key={i}
+                className={
+                  'wstep' + (step === i ? ' on' : i < step ? ' done' : '')
+                }
+              >
+                <span className="wno">
+                  {i < step ? <I n="check" size={13} /> : it.n}
+                </span>
                 <span className="wt">
-                  <b>{it.t}（{it.s}）</b>
+                  <b>
+                    {it.t}（{it.s}）
+                  </b>
                 </span>
               </div>
             ))}
@@ -2952,7 +4072,16 @@ function Wizard(props: {
                   </div>
                 )}
                 {props.accounts.map((a) => (
-                  <div key={a.id} className={'li' + (draft.accountId === a.id ? ' on' : '')} onClick={() => { props.setDraft({ accountId: a.id }); setNewAcct(false); setAcctEdit(false); setNaDraft({ name: '', miUserId: '', passToken: '' }) }}>
+                  <div
+                    key={a.id}
+                    className={'li' + (draft.accountId === a.id ? ' on' : '')}
+                    onClick={() => {
+                      props.setDraft({ accountId: a.id })
+                      setNewAcct(false)
+                      setAcctEdit(false)
+                      setNaDraft({ name: '', miUserId: '', passToken: '' })
+                    }}
+                  >
                     <span className="ic">
                       <I n="user" />
                     </span>
@@ -2962,7 +4091,15 @@ function Wizard(props: {
                     </span>
                   </div>
                 ))}
-                <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={() => { setNewAcct(true); setAcctEdit(false); setNaDraft({ name: '', miUserId: '', passToken: '' }) }}>
+                <button
+                  className="btn"
+                  style={{ justifyContent: 'center', marginTop: 4 }}
+                  onClick={() => {
+                    setNewAcct(true)
+                    setAcctEdit(false)
+                    setNaDraft({ name: '', miUserId: '', passToken: '' })
+                  }}
+                >
                   <I n="plus" /> 新建
                 </button>
               </aside>
@@ -2972,7 +4109,9 @@ function Wizard(props: {
                     <h3>
                       <I n="user" size={17} /> 账号详情
                     </h3>
-                    <div className="desc">账号信息与凭据状态；凭据仅保存于本机服务端。</div>
+                    <div className="desc">
+                      账号信息与凭据状态；凭据仅保存于本机服务端。
+                    </div>
                     <div className="ro">
                       <div className="rr">
                         <span className="k">账号名称</span>
@@ -2984,7 +4123,9 @@ function Wizard(props: {
                       </div>
                       <div className="rr">
                         <span className="k">passToken</span>
-                        <span className="v">{selAcct.passToken ? '已保存' : '未配置'}</span>
+                        <span className="v">
+                          {selAcct.passToken ? '已保存' : '未配置'}
+                        </span>
                       </div>
                     </div>
                     <div className="acts">
@@ -2997,20 +4138,70 @@ function Wizard(props: {
                 ) : (
                   <div className="form-card">
                     <h3>
-                      <I n="user" size={17} /> {acctEdit && selAcct ? '编辑账号' : '新建云端账号'}
+                      <I n="user" size={17} />{' '}
+                      {acctEdit && selAcct ? '编辑账号' : '新建云端账号'}
                     </h3>
-                    <div className="desc">{acctEdit && selAcct ? '更新名称或凭据；换绑账号后需重启受影响设备。' : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}</div>
-                    <div className="fld">
-                      <label>账号名称<span className="req">*</span></label>
-                      <input value={naDraft.name} placeholder="例如：默认账号" onChange={(e) => setNaDraft({ ...naDraft, name: e.target.value })} />
+                    <div className="desc">
+                      {acctEdit && selAcct
+                        ? '更新名称或凭据；换绑账号后需重启受影响设备。'
+                        : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}
                     </div>
                     <div className="fld">
-                      <label>小米 ID<span className="req">*</span><span className="tip" data-tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。">?</span></label>
-                      <input value={naDraft.miUserId} placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱" onChange={(e) => setNaDraft({ ...naDraft, miUserId: e.target.value })} />
+                      <label>
+                        账号名称<span className="req">*</span>
+                      </label>
+                      <input
+                        value={naDraft.name}
+                        placeholder="例如：默认账号"
+                        onChange={(e) =>
+                          setNaDraft({ ...naDraft, name: e.target.value })
+                        }
+                      />
                     </div>
                     <div className="fld">
-                      <label>云端会话凭证 passToken<span className="tip" data-tip={acctEdit && selAcct ? '留空则保留原凭据' : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'}>?</span></label>
-                      <textarea rows={3} value={naDraft.passToken} placeholder={acctEdit && selAcct && selAcct.passToken ? '已保存 · 留空保持不变' : '从米家 / 小爱获取的 token'} onChange={(e) => setNaDraft({ ...naDraft, passToken: e.target.value })} />
+                      <label>
+                        小米 ID<span className="req">*</span>
+                        <span
+                          className="tip"
+                          data-tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
+                        >
+                          ?
+                        </span>
+                      </label>
+                      <input
+                        value={naDraft.miUserId}
+                        placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱"
+                        onChange={(e) =>
+                          setNaDraft({ ...naDraft, miUserId: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="fld">
+                      <label>
+                        云端会话凭证 passToken
+                        <span
+                          className="tip"
+                          data-tip={
+                            acctEdit && selAcct
+                              ? '留空则保留原凭据'
+                              : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'
+                          }
+                        >
+                          ?
+                        </span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={naDraft.passToken}
+                        placeholder={
+                          acctEdit && selAcct && selAcct.passToken
+                            ? '已保存 · 留空保持不变'
+                            : '从米家 / 小爱获取的 token'
+                        }
+                        onChange={(e) =>
+                          setNaDraft({ ...naDraft, passToken: e.target.value })
+                        }
+                      />
                     </div>
                     {naErr && (
                       <div className="notice err">
@@ -3019,10 +4210,26 @@ function Wizard(props: {
                     )}
                     <div className="acts">
                       <span className="sp" />
-                      <button className="btn ghost" onClick={() => (acctEdit && selAcct ? (setAcctEdit(false), setNaDraft({ name: '', miUserId: '', passToken: '' })) : setNewAcct(false))}>
+                      <button
+                        className="btn ghost"
+                        onClick={() =>
+                          acctEdit && selAcct
+                            ? (setAcctEdit(false),
+                              setNaDraft({
+                                name: '',
+                                miUserId: '',
+                                passToken: '',
+                              }))
+                            : setNewAcct(false)
+                        }
+                      >
                         取消
                       </button>
-                      <button className="btn primary" disabled={naBusy || !naDraft.name || !naDraft.miUserId} onClick={saveAcct}>
+                      <button
+                        className="btn primary"
+                        disabled={naBusy || !naDraft.name || !naDraft.miUserId}
+                        onClick={saveAcct}
+                      >
                         {naBusy ? '保存中…' : '保存'}
                       </button>
                     </div>
@@ -3044,44 +4251,79 @@ function Wizard(props: {
                     <div className="filters" style={{ margin: '0 0 8px' }}>
                       <span className="chip on">{selAcct.name}</span>
                     </div>
-                    {pulling && <div className="hint">正在从小米云端拉取设备…</div>}
+                    {pulling && (
+                      <div className="hint">正在从小米云端拉取设备…</div>
+                    )}
                     {pullErr && (
                       <div className="empty" style={{ padding: '16px' }}>
                         <b>未获取到设备信息</b>
                       </div>
                     )}
-                    {pulled && pulled.length > 0 ? (
-                      pulled.map((d) => {
-                        const m = modelOf(d.hardware)
-                        const bound = !!props.devices.find((x) => x.accountId === selAcct.id && x.did === d.miotDID)
-                        return (
-                          <div
-                            key={d.miotDID}
-                            className={'li' + (draft.did === d.miotDID ? ' on' : '') + (bound ? ' off' : '')}
-                            onClick={() => {
-                              if (bound) return
-                              props.setDraft({ alias: d.name || d.alias, did: d.miotDID, model: m ? m.id : draft.model })
-                            }}
-                          >
-                            <span className="ic">
-                              {m?.imageUrl ? <img className="thumb" src={m.imageUrl} alt="" /> : <I n="speaker" />}
-                            </span>
-                            <span className="txt">
-                              <b>{d.name || d.alias}</b>
-                              <span>{m ? m.name : d.hardware || '未知型号'}</span>
-                            </span>
-                            {bound ? <span className="tag neu">已接入</span> : <span className={'tag' + (d.presence === 'online' ? ' accent' : ' neu')}>{d.presence === 'online' ? '在线' : '离线'}</span>}
+                    {pulled && pulled.length > 0
+                      ? pulled.map((d) => {
+                          const m = modelOf(d.hardware)
+                          const bound = !!props.devices.find(
+                            (x) =>
+                              x.accountId === selAcct.id && x.did === d.miotDID,
+                          )
+                          return (
+                            <div
+                              key={d.miotDID}
+                              className={
+                                'li' +
+                                (draft.did === d.miotDID ? ' on' : '') +
+                                (bound ? ' off' : '')
+                              }
+                              onClick={() => {
+                                if (bound) return
+                                props.setDraft({
+                                  alias: d.name || d.alias,
+                                  did: d.miotDID,
+                                  model: m ? m.id : draft.model,
+                                })
+                              }}
+                            >
+                              <span className="ic">
+                                {m?.imageUrl ? (
+                                  <img
+                                    className="thumb"
+                                    src={m.imageUrl}
+                                    alt=""
+                                  />
+                                ) : (
+                                  <I n="speaker" />
+                                )}
+                              </span>
+                              <span className="txt">
+                                <b>{d.name || d.alias}</b>
+                                <span>
+                                  {m ? m.name : d.hardware || '未知型号'}
+                                </span>
+                              </span>
+                              {bound ? (
+                                <span className="tag neu">已接入</span>
+                              ) : (
+                                <span
+                                  className={
+                                    'tag' +
+                                    (d.presence === 'online'
+                                      ? ' accent'
+                                      : ' neu')
+                                  }
+                                >
+                                  {d.presence === 'online' ? '在线' : '离线'}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })
+                      : pulled !== null &&
+                        !pulling && (
+                          <div className="empty" style={{ padding: '16px' }}>
+                            <b>未发现音箱设备</b>
+                            <span>请确认小米 ID 与 passToken 正确。</span>
                           </div>
-                        )
-                      })
-                    ) : (
-                      pulled !== null && !pulling && (
-                        <div className="empty" style={{ padding: '16px' }}>
-                          <b>未发现音箱设备</b>
-                          <span>请确认小米 ID 与 passToken 正确。</span>
-                        </div>
-                      )
-                    )}
+                        )}
                   </>
                 )}
               </aside>
@@ -3092,7 +4334,10 @@ function Wizard(props: {
                       <I n="warning" size={17} /> 设备拉取失败
                     </h3>
                     <div className="notice err">{pullErr}</div>
-                    <div className="desc">返回上一步检查小米 ID 与 passToken，或到「账号设备」页更新凭据后重试。</div>
+                    <div className="desc">
+                      返回上一步检查小米 ID 与
+                      passToken，或到「账号设备」页更新凭据后重试。
+                    </div>
                   </div>
                 ) : draft.did ? (
                   <div className="form-card">
@@ -3102,12 +4347,26 @@ function Wizard(props: {
                     <div className="desc">设备 ID 与型号由云端自动识别。</div>
                     <div className="ro">
                       {(() => {
-                        const hw = (pulled || []).find((x) => x.miotDID === draft.did)?.hardware
-                        const m = modelOf(hw)
+                        const hw = (pulled || []).find(
+                          (x) => x.miotDID === draft.did,
+                        )?.hardware
+                        const m = modelOf(hw ?? '')
                         return m?.imageUrl ? (
                           <div className="model-pic">
-                            <img className="fade" src={m.imageUrl} alt={m.name} onLoad={(e) => e.currentTarget.classList.add('loaded')} onError={(e) => e.currentTarget.classList.add('loaded')} />
-                            <span className="pic-tag">{m.builtin ? '内置型号' : '自定义型号'}</span>
+                            <img
+                              className="fade"
+                              src={m.imageUrl}
+                              alt={m.name}
+                              onLoad={(e) =>
+                                e.currentTarget.classList.add('loaded')
+                              }
+                              onError={(e) =>
+                                e.currentTarget.classList.add('loaded')
+                              }
+                            />
+                            <span className="pic-tag">
+                              {m.builtin ? '内置型号' : '自定义型号'}
+                            </span>
                           </div>
                         ) : null
                       })()}
@@ -3122,11 +4381,22 @@ function Wizard(props: {
                         </div>
                         <div className="rr">
                           <span className="k">设备型号</span>
-                          <span className="v">{modelOf((pulled || []).find((x) => x.miotDID === draft.did)?.hardware || '')?.name || '待型号映射核对'}</span>
+                          <span className="v">
+                            {modelOf(
+                              (pulled || []).find(
+                                (x) => x.miotDID === draft.did,
+                              )?.hardware || '',
+                            )?.name || '待型号映射核对'}
+                          </span>
                         </div>
                         <div className="rr">
                           <span className="k">设备状态</span>
-                          <span className="v">{(pulled || []).find((x) => x.miotDID === draft.did)?.presence === 'online' ? '在线' : '离线'}</span>
+                          <span className="v">
+                            {(pulled || []).find((x) => x.miotDID === draft.did)
+                              ?.presence === 'online'
+                              ? '在线'
+                              : '离线'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -3137,7 +4407,9 @@ function Wizard(props: {
                       <I n="speaker" size={26} />
                     </div>
                     <b>选择要接入的设备</b>
-                    <span>从左侧列表选择一台音箱；设备 ID 与型号自动识别。</span>
+                    <span>
+                      从左侧列表选择一台音箱；设备 ID 与型号自动识别。
+                    </span>
                   </div>
                 )}
               </section>
@@ -3153,15 +4425,36 @@ function Wizard(props: {
                   </div>
                 )}
                 {props.roles.map((r) => (
-                  <div key={r.id} className={'li' + (draft.roleId === r.id ? ' on' : '')} onClick={() => { props.setDraft({ roleId: r.id }); setNewRole(false); setRoleEdit(false); setNrDraft({ name: '', profile: '' }) }}>
-                    <img className="pavatar" src={avatarOf(r.name)} alt={r.name} />
+                  <div
+                    key={r.id}
+                    className={'li' + (draft.roleId === r.id ? ' on' : '')}
+                    onClick={() => {
+                      props.setDraft({ roleId: r.id })
+                      setNewRole(false)
+                      setRoleEdit(false)
+                      setNrDraft({ name: '', profile: '' })
+                    }}
+                  >
+                    <img
+                      className="pavatar"
+                      src={avatarOf(r.name)}
+                      alt={r.name}
+                    />
                     <span className="txt">
                       <b>{r.name}</b>
                       <span>{r.profile?.slice(0, 24) || '未填写人设'}</span>
                     </span>
                   </div>
                 ))}
-                <button className="btn" style={{ justifyContent: 'center', marginTop: 4 }} onClick={() => { setNewRole(true); setRoleEdit(false); setNrDraft({ name: '', profile: '' }) }}>
+                <button
+                  className="btn"
+                  style={{ justifyContent: 'center', marginTop: 4 }}
+                  onClick={() => {
+                    setNewRole(true)
+                    setRoleEdit(false)
+                    setNrDraft({ name: '', profile: '' })
+                  }}
+                >
                   <I n="plus" /> 新建
                 </button>
               </aside>
@@ -3171,7 +4464,9 @@ function Wizard(props: {
                     <h3>
                       <I n="user" size={17} /> 角色详情
                     </h3>
-                    <div className="desc">思考服务与语音服务由角色统一提供；人设与模型热生效。</div>
+                    <div className="desc">
+                      思考服务与语音服务由角色统一提供；人设与模型热生效。
+                    </div>
                     <div className="ro">
                       <div className="rr">
                         <span className="k">角色名称</span>
@@ -3179,15 +4474,24 @@ function Wizard(props: {
                       </div>
                       <div className="rr">
                         <span className="k">人设描述</span>
-                        <span className="v" style={{ whiteSpace: 'pre-wrap' }}>{selRole.profile || '—'}</span>
+                        <span className="v" style={{ whiteSpace: 'pre-wrap' }}>
+                          {selRole.profile || '—'}
+                        </span>
                       </div>
                       <div className="rr">
                         <span className="k">思考服务</span>
-                        <span className="v">{props.thinkSvcs.find((s) => s.id === selRole.thinkServiceId)?.name || '跟随全局默认'}</span>
+                        <span className="v">
+                          {props.thinkSvcs.find(
+                            (s) => s.id === selRole.thinkServiceId,
+                          )?.name || '跟随全局默认'}
+                        </span>
                       </div>
                       <div className="rr">
                         <span className="k">语音服务</span>
-                        <span className="v">{props.voiceSvcs.find((s) => s.id === selRole.voiceId)?.name || '跟随全局默认'}</span>
+                        <span className="v">
+                          {props.voiceSvcs.find((s) => s.id === selRole.voiceId)
+                            ?.name || '跟随全局默认'}
+                        </span>
                       </div>
                     </div>
                     <div className="acts">
@@ -3200,32 +4504,72 @@ function Wizard(props: {
                 ) : (
                   <div className="form-card">
                     <h3>
-                      <I n="user" size={17} /> {roleEdit && selRole ? '编辑角色' : '新建对话角色'}
+                      <I n="user" size={17} />{' '}
+                      {roleEdit && selRole ? '编辑角色' : '新建对话角色'}
                     </h3>
-                    <div className="desc">{roleEdit && selRole ? '更新角色信息；服务留空则跟随全局默认。' : '角色名称必填；思考服务与语音服务可选，留空则跟随全局默认。'}</div>
+                    <div className="desc">
+                      {roleEdit && selRole
+                        ? '更新角色信息；服务留空则跟随全局默认。'
+                        : '角色名称必填；思考服务与语音服务可选，留空则跟随全局默认。'}
+                    </div>
                     <div className="fld">
-                      <label>角色名称<span className="req">*</span></label>
-                      <input value={nrDraft.name} placeholder="例如：小爱同学" onChange={(e) => setNrDraft({ ...nrDraft, name: e.target.value })} />
+                      <label>
+                        角色名称<span className="req">*</span>
+                      </label>
+                      <input
+                        value={nrDraft.name}
+                        placeholder="例如：小爱同学"
+                        onChange={(e) =>
+                          setNrDraft({ ...nrDraft, name: e.target.value })
+                        }
+                      />
                     </div>
                     <div className="fld">
                       <label>人设描述</label>
-                      <textarea rows={4} value={nrDraft.profile} placeholder="例如：你叫小爱，是这家人的智能助手…" onChange={(e) => setNrDraft({ ...nrDraft, profile: e.target.value })} />
+                      <textarea
+                        rows={4}
+                        value={nrDraft.profile}
+                        placeholder="例如：你叫小爱，是这家人的智能助手…"
+                        onChange={(e) =>
+                          setNrDraft({ ...nrDraft, profile: e.target.value })
+                        }
+                      />
                     </div>
                     <div className="fld">
                       <label>思考服务</label>
-                      <select value={nrDraft.thinkServiceId || ''} onChange={(e) => setNrDraft({ ...nrDraft, thinkServiceId: e.target.value || undefined })}>
+                      <select
+                        value={nrDraft.thinkServiceId || ''}
+                        onChange={(e) =>
+                          setNrDraft({
+                            ...nrDraft,
+                            thinkServiceId: e.target.value || undefined,
+                          })
+                        }
+                      >
                         <option value="">跟随全局默认</option>
                         {props.thinkSvcs.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div className="fld">
                       <label>语音服务</label>
-                      <select value={nrDraft.voiceId || ''} onChange={(e) => setNrDraft({ ...nrDraft, voiceId: e.target.value || undefined })}>
+                      <select
+                        value={nrDraft.voiceId || ''}
+                        onChange={(e) =>
+                          setNrDraft({
+                            ...nrDraft,
+                            voiceId: e.target.value || undefined,
+                          })
+                        }
+                      >
                         <option value="">跟随全局默认</option>
                         {props.voiceSvcs.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -3236,10 +4580,22 @@ function Wizard(props: {
                     )}
                     <div className="acts">
                       <span className="sp" />
-                      <button className="btn ghost" onClick={() => (roleEdit && selRole ? (setRoleEdit(false), setNrDraft({ name: '', profile: '' })) : setNewRole(false))}>
+                      <button
+                        className="btn ghost"
+                        onClick={() =>
+                          roleEdit && selRole
+                            ? (setRoleEdit(false),
+                              setNrDraft({ name: '', profile: '' }))
+                            : setNewRole(false)
+                        }
+                      >
                         取消
                       </button>
-                      <button className="btn primary" disabled={nrBusy || !nrDraft.name} onClick={saveRole}>
+                      <button
+                        className="btn primary"
+                        disabled={nrBusy || !nrDraft.name}
+                        onClick={saveRole}
+                      >
                         {nrBusy ? '保存中…' : '保存'}
                       </button>
                     </div>
@@ -3250,14 +4606,22 @@ function Wizard(props: {
           </div>
         </div>
         <div className="wf">
-          <button className="btn ghost" disabled={step === 0} onClick={() => props.setDraft({ step: step - 1 })}>
+          <button
+            className="btn ghost"
+            disabled={step === 0}
+            onClick={() => props.setDraft({ step: step - 1 })}
+          >
             <I n="arrowL" /> 上一步
           </button>
           <div className="r">
             <button className="btn" onClick={() => close()}>
               取消
             </button>
-            <button className="btn primary" disabled={!canNext && step < 2} onClick={finish}>
+            <button
+              className="btn primary"
+              disabled={!canNext && step < 2}
+              onClick={finish}
+            >
               {step === 2 ? '完成' : '下一步'} <I n="arrowR" />
             </button>
           </div>

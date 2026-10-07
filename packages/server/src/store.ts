@@ -37,7 +37,11 @@ export function assertUniqueName<T extends { id: string; name?: string }>(
 ): string | null {
   const n = (name || '').trim()
   if (!n) return null
-  const hit = list.find((x) => x.id !== excludeId && (x.name || '').trim().toLowerCase() === n.toLowerCase())
+  const hit = list.find(
+    (x) =>
+      x.id !== excludeId &&
+      (x.name || '').trim().toLowerCase() === n.toLowerCase(),
+  )
   return hit ? `${label}「${n}」已存在，名称需唯一` : null
 }
 
@@ -51,7 +55,10 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
 
 export async function writeJson(file: string, data: unknown) {
   await fse.ensureDir(path.dirname(file))
-  await fs.writeFile(file, JSON.stringify(data, null, 2))
+  // 原子写：临时文件 + rename，防止中途断电/崩溃损坏 JSON
+  const tmp = file + '.tmp'
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2))
+  await fs.rename(tmp, file)
 }
 
 // 同步读取小文件（认证中间件是同步的）
@@ -65,7 +72,9 @@ export function readJsonSync<T>(file: string, fallback: T): T {
 
 // ── 登录认证：生效凭据解析 ────────────────────────────────────
 // 优先级：CLI --user/--pwd > AUTH_USER/AUTH_PASSWORD 环境变量 > auth.json（面板可改）> 默认 admin/123456
-export function resolveAuth(cliUsers?: Record<string, string>): Record<string, string> {
+export function resolveAuth(
+  cliUsers?: Record<string, string>,
+): Record<string, string> {
   if (cliUsers) return cliUsers
   const envUser = process.env.AUTH_USER || 'admin'
   const envPwd = process.env.AUTH_PASSWORD
@@ -101,7 +110,9 @@ export async function getAccounts(): Promise<Account[]> {
 }
 
 // 按设备归属取账号；未指定或找不到时回退第一个账号
-export async function getAccountById(id?: string): Promise<Account | undefined> {
+export async function getAccountById(
+  id?: string,
+): Promise<Account | undefined> {
   const accounts = await getAccounts()
   if (id) {
     const found = accounts.find((a) => a.id === id)
@@ -131,19 +142,28 @@ export async function getRooms(): Promise<Room[]> {
 }
 
 /** 全局默认思考服务（未指定角色/设备引用时回退） */
-export async function getDefaultThinkService(): Promise<ThinkService | undefined> {
+export async function getDefaultThinkService(): Promise<
+  ThinkService | undefined
+> {
   const list = await getThinkServices()
   return list.find((t) => t.isDefault) ?? list[0]
 }
 
 /** 全局默认语音服务 */
-export async function getDefaultVoiceService(): Promise<VoiceService | undefined> {
+export async function getDefaultVoiceService(): Promise<
+  VoiceService | undefined
+> {
   const list = await getVoiceServices()
   return list.find((v) => v.isDefault) ?? list[0]
 }
 
-export async function getDeviceMeta(id: string): Promise<DeviceMeta | undefined> {
-  return readJson<DeviceMeta | undefined>(path.join(devicesRoot, id, 'meta.json'), undefined)
+export async function getDeviceMeta(
+  id: string,
+): Promise<DeviceMeta | undefined> {
+  return readJson<DeviceMeta | undefined>(
+    path.join(devicesRoot, id, 'meta.json'),
+    undefined,
+  )
 }
 
 export async function listDeviceMetas(): Promise<DeviceMeta[]> {
@@ -169,7 +189,9 @@ export async function getRoomByRef(ref?: string): Promise<Room | undefined> {
 }
 
 /** 按 id 或名称解析型号（兼容旧数据：设备 speakerModel 可能存名称） */
-export async function getSpeakerModelByRef(ref?: string): Promise<SpeakerModel | undefined> {
+export async function getSpeakerModelByRef(
+  ref?: string,
+): Promise<SpeakerModel | undefined> {
   if (!ref) return undefined
   const list = await getSpeakerModels()
   return list.find((m) => m.id === ref || m.name === ref)
@@ -445,16 +467,51 @@ export async function seedBuiltinVoice() {
 
 export async function seedBuiltinModels() {
   const list = await getSpeakerModels()
-  // upsert：内置型号以代码定义为准，存在则整体覆盖（保证升级后官方数据自动修正），不存在则新增
+  // 只补缺失的内置型号：已存在的内置项（含用户修改）永不覆盖；
+  // 用户可通过「重置默认」恢复为 BUILTIN_MODELS 官方默认值。
+  const existing = new Set(list.map((x) => x.id))
+  const missing = BUILTIN_MODELS.filter((m) => !existing.has(m.id))
+  if (missing.length === 0) return
   const merged = [
-    ...BUILTIN_MODELS.map((m) => ({ ...m, createdAt: list.find((x) => x.id === m.id)?.createdAt ?? Date.now() })),
-    ...list.filter((x) => !BUILTIN_MODELS.some((m) => m.id === x.id)),
+    ...list,
+    ...missing.map((m) => ({ ...m, createdAt: Date.now() })),
   ]
-  const changed = BUILTIN_MODELS.filter(
-    (m) => JSON.stringify(list.find((x) => x.id === m.id)) !== JSON.stringify({ ...m, createdAt: list.find((x) => x.id === m.id)?.createdAt ?? Date.now() }),
-  )
   await writeJson(speakerModelsFile, merged)
-  if (changed.length > 0) console.log(`已更新内置音箱型号：${changed.map((m) => m.name).join('、')}`)
+  console.log(`已初始化内置音箱型号：${missing.map((m) => m.name).join('、')}`)
+}
+
+/** 重置内置型号为官方默认值（仅 builtin 型号可用；保留 createdAt/id/builtin） */
+export async function resetBuiltinModel(
+  id: string,
+): Promise<SpeakerModel | undefined> {
+  const def = BUILTIN_MODELS.find((m) => m.id === id)
+  if (!def) return undefined
+  const list = await getSpeakerModels()
+  const idx = list.findIndex((m) => m.id === id)
+  if (idx < 0 || !list[idx].builtin) return undefined
+  list[idx] = { ...def, createdAt: list[idx].createdAt }
+  await writeJson(speakerModelsFile, list)
+  return list[idx]
+}
+
+/** 重置内置语音服务为默认（仅 builtin 语音可用） */
+export async function resetBuiltinVoice(
+  id: string,
+): Promise<VoiceService | undefined> {
+  const list = await getVoiceServices()
+  const idx = list.findIndex((v) => v.id === id)
+  if (idx < 0 || !list[idx].builtin) return undefined
+  const isDefault = list.some((v) => v.id !== id && v.isDefault) ? false : true
+  list[idx] = {
+    id: list[idx].id,
+    name: '默认语音',
+    provider: 'builtin',
+    builtin: true,
+    isDefault,
+    createdAt: list[idx].createdAt,
+  }
+  await writeJson(voiceServicesFile, list)
+  return list[idx]
 }
 
 /** 迁移旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
@@ -466,7 +523,12 @@ export async function migrateRooms() {
     if (!meta.roomName || meta.roomRef) continue
     let room = rooms.find((r) => r.name === meta.roomName)
     if (!room) {
-      room = { id: nanoid(8), name: meta.roomName, description: meta.roomDescription, createdAt: Date.now() }
+      room = {
+        id: nanoid(8),
+        name: meta.roomName,
+        description: meta.roomDescription,
+        createdAt: Date.now(),
+      }
       rooms.push(room)
     }
     const nextMeta: DeviceMeta = { ...meta, roomRef: room.id }
@@ -480,10 +542,26 @@ export async function migrateRooms() {
 
 // ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话记录」页联调 ──
 const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
-  { q: '小爱同学，今天天气怎么样', a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。', sys: '思考服务命中角色默认（豆包 Doubao-Seed）' },
-  { q: '帮我设一个 30 分钟的番茄钟', a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。', sys: '语音音色由角色指定（默认语音）' },
-  { q: '播放点轻音乐', a: '为你播放《Lofi 清晨电台》，音量已调到 30%。', sys: '' },
-  { q: '小爱同学，国庆周边有什么好玩的', a: '苏州周边推荐：拙政园、平江路夜游、金鸡湖音乐喷泉，今天人流量较大建议错峰出行。', sys: '语音音色热切换成功（豆包语音）' },
+  {
+    q: '小爱同学，今天天气怎么样',
+    a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。',
+    sys: '思考服务命中角色默认（豆包 Doubao-Seed）',
+  },
+  {
+    q: '帮我设一个 30 分钟的番茄钟',
+    a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。',
+    sys: '语音音色由角色指定（默认语音）',
+  },
+  {
+    q: '播放点轻音乐',
+    a: '为你播放《Lofi 清晨电台》，音量已调到 30%。',
+    sys: '',
+  },
+  {
+    q: '小爱同学，国庆周边有什么好玩的',
+    a: '苏州周边推荐：拙政园、平江路夜游、金鸡湖音乐喷泉，今天人流量较大建议错峰出行。',
+    sys: '语音音色热切换成功（豆包语音）',
+  },
 ]
 
 export async function seedDemoLogs() {
@@ -498,9 +576,12 @@ export async function seedDemoLogs() {
       const tq = new Date(now - (i * 47 + 13) * 60000)
       buf.push(`${demoTs(tq)} [用户] 问：${s.q}`)
       buf.push(`${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a}`)
-      if (s.sys) buf.push(`${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`)
+      if (s.sys)
+        buf.push(`${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`)
     }
     logBuffers.set(d.id, buf)
   }
-  console.log(`[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`)
+  console.log(
+    `[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`,
+  )
 }

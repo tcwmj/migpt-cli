@@ -1,0 +1,16 @@
+{
+  "name": "@migptgui/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MiGPT 控制面板前后端共享契约（实体类型单一事实源）",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsc -p tsconfig.json -d",
+    "dev": "tsc -p tsconfig.json -d -w"
+  },
+  "dependencies": {
+    "mi-gpt-tts": "^2.0.0"
+  }
+}
