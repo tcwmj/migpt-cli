@@ -13,6 +13,12 @@ const config = {
     'node_modules/(?!(node-fetch|lodash-es|date-fns|data-uri-to-buffer|fetch-blob|formdata-polyfill)/)',
   ],
 
+  // TS 源码以 ESM 风格书写，相对导入带 .js 后缀（NodeNext 约定），
+  // 但 jest 默认解析器不会把 .js 映射回 .ts，这里去掉后缀再交给解析器
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+
   // 设置 monorepo
   projects: [
     {
@@ -28,7 +34,12 @@ if (process.env.CI) {
 
 // 虽然 jest 的文档上说 “Jest will copy the root-level configuration options to each individual child configuration during the test run”，
 // 但实际使用中发现，下方的配置项需要明确添加后才能生效
-const keys = ['clearMocks', 'cacheDirectory', 'transformIgnorePatterns']
+const keys = [
+  'clearMocks',
+  'cacheDirectory',
+  'transformIgnorePatterns',
+  'moduleNameMapper',
+]
 config.projects.forEach((p) => {
   keys.forEach((key) => {
     if (p[key] == null && config[key] != null) {

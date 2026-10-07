@@ -1,5 +1,5 @@
-FROM node:20.15.0-alpine3.20 AS env-amd64
-FROM node:20.15.0-alpine3.20 AS env-arm64
+FROM node:20.17.0-alpine3.20 AS env-amd64
+FROM node:20.17.0-alpine3.20 AS env-arm64
 
 ###### 尝试构建 armv7l 时失败，但还是把过程放在这里 ######
 # arm32v7/node:20.15.0-alpine3.20 获取不到 metadata 报错
@@ -27,7 +27,7 @@ FROM node:20.15.0-alpine3.20 AS env-arm64
 
 FROM env-$TARGETARCH
 RUN npm install -g migpt-server@1.12.0
-EXPOSE 36592
+EXPOSE 36597
 VOLUME /root/.migptgui
 ENTRYPOINT ["migpt-server"]
 

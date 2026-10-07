@@ -23,6 +23,7 @@ Thumbs.db
 
 # 自定义
 /.nx
+/.jest-cache
 /apps/cli/testrobot
 /apps/cli/migptgui.json
 /packages/gui/webpack-report.html

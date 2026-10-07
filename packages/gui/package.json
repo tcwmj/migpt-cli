@@ -4,7 +4,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "checktype": "tsc --noEmit",
     "dev": "webpack --env mode=development",
     "dev:watch": "webpack --watch --env mode=development",
