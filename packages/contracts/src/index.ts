@@ -6,6 +6,8 @@ export interface Settings {
   miUserId?: string
   miPassword?: string
   passToken?: string
+  /** 读接口脱敏标记：服务端是否已保存 passToken（明文不回传） */
+  hasPassToken?: boolean
 }
 
 export interface Account {
@@ -15,6 +17,9 @@ export interface Account {
   miPassword?: string
   passToken?: string
   createdAt: number
+  /** 读接口脱敏标记：明文凭据不回传，仅回传是否已配置 */
+  hasPassToken?: boolean
+  hasMiPassword?: boolean
 }
 
 export interface Role {
@@ -55,6 +60,8 @@ export interface ThinkService {
   /** 全局默认思考服务：未指定角色/设备时回退到这里 */
   isDefault?: boolean
   createdAt: number
+  /** 读接口脱敏标记：apiKey 明文不回传，仅回传是否已配置 */
+  hasApiKey?: boolean
 }
 
 /**
@@ -112,6 +119,8 @@ export interface DeviceMeta {
   roomDescription?: string
   ttsSecret: string
   createdAt: number
+  /** 读接口脱敏标记：ttsSecret 明文不回传，仅回传是否已配置 */
+  hasTtsSecret?: boolean
 }
 
 /**

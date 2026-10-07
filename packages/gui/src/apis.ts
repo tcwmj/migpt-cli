@@ -381,15 +381,26 @@ export async function downloadSystemLogs(): Promise<void> {
 export const testPublicURL = (url: string) =>
   post<{ success: boolean }>('/api/test', { url })
 
-export function testTts(ttsConfig: TTSConfig) {
-  const audioUrl =
-    '/api/test/audio?ttsConfig=' + encodeURIComponent(JSON.stringify(ttsConfig))
-  const audio = new Audio(audioUrl)
+export async function testTts(ttsConfig: TTSConfig) {
+  // TTS 配置含密钥，改走 POST body（原实现放在 URL query 中，会进入访问日志与浏览器历史）
+  const res = await fetch('/api/test/audio', {
+    method: 'POST',
+    headers: headers(true),
+    body: JSON.stringify({ ttsConfig }),
+  })
+  if (!res.ok) throw new Error('HTTP ' + res.status)
+  const url = URL.createObjectURL(await res.blob())
+  const audio = new Audio(url)
   return new Promise<void>((resolve, reject) => {
-    audio.addEventListener('error', () => reject())
+    const cleanup = () => URL.revokeObjectURL(url)
+    audio.addEventListener('error', () => {
+      cleanup()
+      reject()
+    })
     audio.addEventListener('canplay', () => {
       resolve()
-      audio.play()
+      audio.play().catch(() => {})
     })
+    audio.addEventListener('ended', cleanup)
   })
 }

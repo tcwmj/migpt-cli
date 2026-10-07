@@ -2,6 +2,7 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import fse from 'fs-extra'
 import { nanoid } from 'nanoid'
 import {
@@ -72,16 +73,43 @@ export function readJsonSync<T>(file: string, fallback: T): T {
 
 // ── 登录认证：生效凭据解析 ────────────────────────────────────
 // 优先级：CLI --user/--pwd > AUTH_USER/AUTH_PASSWORD 环境变量 > auth.json（面板可改）> 默认 admin/123456
-export function resolveAuth(
-  cliUsers?: Record<string, string>,
-): Record<string, string> {
-  if (cliUsers) return cliUsers
+const AUTH_CACHE_TTL = 5000
+let _authCache: { users: Record<string, string>; at: number } | undefined
+
+/** 清空认证凭据缓存（凭据被修改后必须调用，避免旧凭据继续生效） */
+export function invalidateAuthCache() {
+  _authCache = undefined
+}
+
+function _resolveAuthUncached(): Record<string, string> {
   const envUser = process.env.AUTH_USER || 'admin'
   const envPwd = process.env.AUTH_PASSWORD
   if (envPwd) return { [envUser]: envPwd }
   const file = readJsonSync<{ user?: string; password?: string }>(authFile, {})
   if (file.password) return { [file.user || 'admin']: file.password }
   return { admin: '123456' }
+}
+
+export function resolveAuth(
+  cliUsers?: Record<string, string>,
+): Record<string, string> {
+  if (cliUsers) return cliUsers
+  const now = Date.now()
+  if (_authCache && now - _authCache.at < AUTH_CACHE_TTL)
+    return _authCache.users
+  const users = _resolveAuthUncached()
+  _authCache = { users, at: now }
+  return users
+}
+
+/**
+ * 恒定时间字符串比较：先哈希再比较，长度差异与内容差异均不通过时间泄露。
+ * 用于认证凭据校验，避免逐字符短路比较被计时侧信道利用。
+ */
+export function safeEqual(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest()
+  const hb = createHash('sha256').update(b).digest()
+  return timingSafeEqual(ha, hb)
 }
 
 export function getSettings(): Promise<Settings> {

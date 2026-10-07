@@ -42,7 +42,6 @@ function _httpsReq(
       port: 443,
       path: u.pathname + u.search,
       headers: { ...headers },
-      rejectUnauthorized: false,
     }
     if (cookieStr) opts.headers['Cookie'] = cookieStr
     const r = https.request(opts, (res) => {
@@ -61,9 +60,14 @@ function _httpsReq(
   })
 }
 function _stripJson(body: string): string {
-  return body.startsWith('&&&START&&&') ? body.slice('&&&START&&&'.length) : body
+  return body.startsWith('&&&START&&&')
+    ? body.slice('&&&START&&&'.length)
+    : body
 }
-export async function pullMicoDevices(miUserId: string, passToken: string): Promise<PulledDevice[]> {
+export async function pullMicoDevices(
+  miUserId: string,
+  passToken: string,
+): Promise<PulledDevice[]> {
   const deviceId = 'android_' + nanoid(16)
   const ua =
     'Mozilla/5.0 (Linux; Android 10; 000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.6045.193 Mobile Safari/537.36 /XiaoMi/HybridView/ micoSoundboxApp/i appVersion/A_2.4.40'
@@ -79,22 +83,33 @@ export async function pullMicoDevices(miUserId: string, passToken: string): Prom
   const raw = _stripJson(r.body)
   const resp: any = JSON.parse(raw)
   if (resp.code !== 0) {
-    throw new Error(`登录态无效（code=${resp.code} ${resp.description || resp.message || ''}），请重新验证 passToken`)
+    throw new Error(
+      `登录态无效（code=${resp.code} ${resp.description || resp.message || ''}），请重新验证 passToken`,
+    )
   }
   // nonce 可能超出 JS 安全整数，须取原文
   const nonceMatch = raw.match(/"nonce"\s*:\s*(\d+)/)
   const nonce = nonceMatch ? nonceMatch[1] : String(resp.nonce)
 
   // ② 换 serviceToken
-  const clientSign = createHash('sha1').update(`nonce=${nonce}&${resp.ssecurity}`).digest('base64')
-  r = await _httpsReq('GET', `${resp.location}&clientSign=${encodeURIComponent(clientSign)}`, { 'User-Agent': ua })
+  const clientSign = createHash('sha1')
+    .update(`nonce=${nonce}&${resp.ssecurity}`)
+    .digest('base64')
+  r = await _httpsReq(
+    'GET',
+    `${resp.location}&clientSign=${encodeURIComponent(clientSign)}`,
+    { 'User-Agent': ua },
+  )
   let serviceToken = ''
   for (const c of r.setCookies) {
     const name = c.split(';')[0].split('=')[0].trim()
-    if (name === 'serviceToken') serviceToken = c.split(';')[0].split('=').slice(1).join('=')
+    if (name === 'serviceToken')
+      serviceToken = c.split(';')[0].split('=').slice(1).join('=')
   }
   if (!serviceToken) {
-    throw new Error('获取 serviceToken 失败（可能触发异地登录验证），请重新验证 passToken')
+    throw new Error(
+      '获取 serviceToken 失败（可能触发异地登录验证），请重新验证 passToken',
+    )
   }
 
   // ③ 设备列表
@@ -105,12 +120,17 @@ export async function pullMicoDevices(miUserId: string, passToken: string): Prom
   r = await _httpsReq(
     'GET',
     `https://api2.mina.mi.com/admin/v2/device_list?master=0&requestId=${requestId}`,
-    { 'User-Agent': ua2, Referer: 'https://userprofile.mina.mi.com/dialogue-note/index.html' },
+    {
+      'User-Agent': ua2,
+      Referer: 'https://userprofile.mina.mi.com/dialogue-note/index.html',
+    },
     apiCookie,
   )
   const apiResp: any = JSON.parse(_stripJson(r.body))
   if (apiResp.code !== 0) {
-    throw new Error(`拉取设备列表失败（code=${apiResp.code} ${apiResp.message || ''}）`)
+    throw new Error(
+      `拉取设备列表失败（code=${apiResp.code} ${apiResp.message || ''}）`,
+    )
   }
   return (apiResp.data || []).map((d: any) => ({
     name: d.name || d.alias || '',
@@ -126,7 +146,8 @@ export async function pullMicoDevices(miUserId: string, passToken: string): Prom
 /** 去重合并关键词列表（用于把检测词并入唤醒/退出关键词，使其真实生效） */
 function mergeKW(...lists: (string[] | undefined)[]): string[] {
   const s = new Set<string>()
-  for (const l of lists) if (l) for (const e of l) if (e && e.trim()) s.add(e.trim())
+  for (const l of lists)
+    if (l) for (const e of l) if (e && e.trim()) s.add(e.trim())
   return [...s]
 }
 
@@ -135,7 +156,9 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
     config: {
       bot: {
         name: role?.name || '傻妞',
-        profile: (role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。').replace(/\\n/g, '\n'),
+        profile: (
+          role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。'
+        ).replace(/\\n/g, '\n'),
       },
       master: {
         name: '主人',
@@ -147,15 +170,24 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
         switchSpeakerKeywords: ['把声音换成'],
         callAIKeywords: role?.callAIKeywords || ROLE_DEFAULTS.callAIKeywords,
         // 检测1（继续对话）并入唤醒关键词：连续对话中说出继续词保持对话、超时后说出仍可重新进入
-        wakeUpKeywords: mergeKW(role?.wakeUpKeywords, role?.checkContinueKeywords, ROLE_DEFAULTS.wakeUpKeywords),
+        wakeUpKeywords: mergeKW(
+          role?.wakeUpKeywords,
+          role?.checkContinueKeywords,
+          ROLE_DEFAULTS.wakeUpKeywords,
+        ),
         // 检测2（停止对话）并入退出关键词：连续对话中说出停止词立即结束
-        exitKeywords: mergeKW(role?.exitKeywords, role?.checkNotContinueKeywords, ROLE_DEFAULTS.exitKeywords),
+        exitKeywords: mergeKW(
+          role?.exitKeywords,
+          role?.checkNotContinueKeywords,
+          ROLE_DEFAULTS.exitKeywords,
+        ),
         onEnterAI: role?.onEnterAI || ROLE_DEFAULTS.onEnterAI,
         onExitAI: role?.onExitAI || ROLE_DEFAULTS.onExitAI,
         onAIAsking: role?.onAIAsking || ROLE_DEFAULTS.onAIAsking,
         onAIReplied: role?.onAIReplied || ROLE_DEFAULTS.onAIReplied,
         onAIError: role?.onAIError || ROLE_DEFAULTS.onAIError,
-        exitKeepAliveAfter: role?.exitKeepAliveAfter ?? ROLE_DEFAULTS.exitKeepAliveAfter,
+        exitKeepAliveAfter:
+          role?.exitKeepAliveAfter ?? ROLE_DEFAULTS.exitKeepAliveAfter,
       },
     },
     env: {
@@ -167,12 +199,14 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
 }
 
 /** 解析一台设备的完整绑定链（账号/角色/思考服务/语音服务 + 来源标注） */
-export async function resolveBindings(meta: DeviceMeta): Promise<DeviceBindings> {
-  const account = (await getAccounts()).find((a) => a.id === meta.accountId) || (await getAccounts())[0]
+export async function resolveBindings(
+  meta: DeviceMeta,
+): Promise<DeviceBindings> {
+  const account =
+    (await getAccounts()).find((a) => a.id === meta.accountId) ||
+    (await getAccounts())[0]
   const roles = await getRoles()
-  const role = meta.roleId
-    ? roles.find((r) => r.id === meta.roleId)
-    : undefined
+  const role = meta.roleId ? roles.find((r) => r.id === meta.roleId) : undefined
 
   // 思考服务：设备覆盖 → 继承人设 → 全局默认
   let think = meta.thinkServiceId
