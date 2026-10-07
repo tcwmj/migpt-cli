@@ -174,6 +174,9 @@ export function App() {
   const [confirm, setConfirm] = useState<{
     title: string
     msg: string
+    okText?: string
+    okIcon?: string
+    danger?: boolean
     onOk: () => void
   } | null>(null)
   const [confirmLeaving, setConfirmLeaving] = useState(false)
@@ -575,6 +578,9 @@ export function App() {
     setConfirm({
       title: '重置型号默认值',
       msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
+      okText: '重置',
+      okIcon: 'arrow-counter-clockwise',
+      danger: false,
       onOk: async () => {
         try {
           await api.resetSpeakerModel(id)
@@ -595,6 +601,9 @@ export function App() {
     setConfirm({
       title: '重置语音服务默认值',
       msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
+      okText: '重置',
+      okIcon: 'arrow-counter-clockwise',
+      danger: false,
       onOk: async () => {
         try {
           await api.resetVoiceService(id)
@@ -1716,7 +1725,12 @@ export function App() {
           />
           <div className={'modal on' + (confirmLeaving ? ' closing' : '')}>
             <h3>
-              <I n="trash" size={18} /> {confirm.title}
+              {confirm.okIcon ? (
+                <I n={confirm.okIcon} size={18} />
+              ) : (
+                <I n="trash" size={18} />
+              )}{' '}
+              {confirm.title}
             </h3>
             <div className="desc">{confirm.msg}</div>
             <div className="acts">
@@ -1724,8 +1738,12 @@ export function App() {
               <button className="btn ghost" onClick={() => closeConfirm()}>
                 取消
               </button>
-              <button className="btn danger" onClick={() => closeConfirm(true)}>
-                <I n="trash" /> 删除
+              <button
+                className={'btn' + (confirm.danger === false ? '' : ' danger')}
+                onClick={() => closeConfirm(true)}
+              >
+                {confirm.okIcon ? <I n={confirm.okIcon} /> : <I n="trash" />}{' '}
+                {confirm.okText || '删除'}
               </button>
             </div>
           </div>
