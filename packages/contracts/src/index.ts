@@ -194,3 +194,19 @@ export const ROLE_DEFAULTS = {
   onAIReplied: ['我说完了', '还有其他问题吗'],
   onAIError: ['啊哦，出错了，请稍后再试吧！'],
 }
+
+/**
+ * 供应商 → 推理服务 Base URL 映射（前后端共享的单一事实源）。
+ * server 编译设备配置与 gui 表单预设均引用此处，避免两端硬编码漂移。
+ * 未覆盖的供应商允许用户自定义 baseUrl；留空则由 mi-gpt 默认处理。
+ */
+export const PROVIDER_BASE_URLS: Record<string, string> = {
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  openai: 'https://api.openai.com/v1',
+  deepseek: 'https://api.deepseek.com/v1',
+  qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  moonshot: 'https://api.moonshot.cn/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  yi: 'https://api.lingyiwanwu.com/v1',
+  baichuan: 'https://api.baichuan-ai.com/v1',
+}

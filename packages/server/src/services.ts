@@ -15,8 +15,6 @@ import {
   getRoles,
   getThinkServices,
   getVoiceServices,
-  getDefaultThinkService,
-  getDefaultVoiceService,
   getRoomByRef,
   getSpeakerModelByRef,
   PROVIDER_BASE_URLS,
@@ -64,6 +62,16 @@ function _stripJson(body: string): string {
     ? body.slice('&&&START&&&'.length)
     : body
 }
+// 云端返回体不保证是合法 JSON（网关错误页 / HTML 挑战页），解析失败时给出可读错误
+function _parseJson(body: string): any {
+  try {
+    return JSON.parse(_stripJson(body))
+  } catch {
+    throw new Error(
+      '云端返回内容解析失败（可能被风控拦截或网络异常），请稍后重试',
+    )
+  }
+}
 export async function pullMicoDevices(
   miUserId: string,
   passToken: string,
@@ -81,7 +89,7 @@ export async function pullMicoDevices(
     loginCookie,
   )
   const raw = _stripJson(r.body)
-  const resp: any = JSON.parse(raw)
+  const resp: any = _parseJson(r.body)
   if (resp.code !== 0) {
     throw new Error(
       `登录态无效（code=${resp.code} ${resp.description || resp.message || ''}），请重新验证 passToken`,
@@ -126,7 +134,7 @@ export async function pullMicoDevices(
     },
     apiCookie,
   )
-  const apiResp: any = JSON.parse(_stripJson(r.body))
+  const apiResp: any = _parseJson(r.body)
   if (apiResp.code !== 0) {
     throw new Error(
       `拉取设备列表失败（code=${apiResp.code} ${apiResp.message || ''}）`,
@@ -202,37 +210,41 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
 export async function resolveBindings(
   meta: DeviceMeta,
 ): Promise<DeviceBindings> {
-  const account =
-    (await getAccounts()).find((a) => a.id === meta.accountId) ||
-    (await getAccounts())[0]
-  const roles = await getRoles()
+  // 单次并行读取全部关联集合：原实现 accounts 读两次、思考/语音列表各读多次
+  const [accounts, roles, thinks, voices] = await Promise.all([
+    getAccounts(),
+    getRoles(),
+    getThinkServices(),
+    getVoiceServices(),
+  ])
+  const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
   const role = meta.roleId ? roles.find((r) => r.id === meta.roleId) : undefined
 
   // 思考服务：设备覆盖 → 继承人设 → 全局默认
   let think = meta.thinkServiceId
-    ? (await getThinkServices()).find((t) => t.id === meta.thinkServiceId)
+    ? thinks.find((t) => t.id === meta.thinkServiceId)
     : undefined
   let thinkSource: 'device' | 'role' | 'global' = 'device'
   if (!think && role?.thinkServiceId) {
-    think = (await getThinkServices()).find((t) => t.id === role.thinkServiceId)
+    think = thinks.find((t) => t.id === role.thinkServiceId)
     thinkSource = 'role'
   }
   if (!think) {
-    think = await getDefaultThinkService()
+    think = thinks.find((t) => t.isDefault) ?? thinks[0]
     thinkSource = 'global'
   }
 
   // 语音服务：设备覆盖 → 继承人设 → 全局默认
   let voice = meta.voiceOverrideId
-    ? (await getVoiceServices()).find((v) => v.id === meta.voiceOverrideId)
+    ? voices.find((v) => v.id === meta.voiceOverrideId)
     : undefined
   let voiceSource: 'device' | 'role' | 'global' = 'device'
   if (!voice && role?.voiceId) {
-    voice = (await getVoiceServices()).find((v) => v.id === role.voiceId)
+    voice = voices.find((v) => v.id === role.voiceId)
     voiceSource = 'role'
   }
   if (!voice) {
-    voice = await getDefaultVoiceService()
+    voice = voices.find((v) => v.isDefault) ?? voices[0]
     voiceSource = 'global'
   }
 
@@ -297,7 +309,12 @@ export async function buildRunConfig(
   meta: DeviceMeta,
   existingConfig?: GuiConfig,
 ): Promise<{ config: GuiConfig; bindings: DeviceBindings }> {
-  const bindings = await resolveBindings(meta)
+  // 并行取绑定链 / 型号 / 会话群（三者互不依赖，串行 await 会叠加三次读盘）
+  const [bindings, model, room] = await Promise.all([
+    resolveBindings(meta),
+    getSpeakerModelByRef(meta.speakerModel),
+    getRoomByRef(meta.roomRef || meta.roomName),
+  ])
   const { account, role, think, voice } = bindings
   const config = buildConfigFromRole(role, account)
 
@@ -329,7 +346,6 @@ export async function buildRunConfig(
   }
 
   // 型号 → speaker 硬件指令（数字指令与连续对话能力随型号；召唤词/播报词归角色层）
-  const model = await getSpeakerModelByRef(meta.speakerModel)
   if (model) {
     const sp = config.config.speaker
     // 数字指令：TTS / 唤醒 / 播放检测（硬件指令序列，型号有配置即覆盖）
@@ -344,7 +360,6 @@ export async function buildRunConfig(
   // 连续对话超时（无响应自动退出唤醒模式，默认 30 秒）
   config.config.speaker.exitKeepAliveAfter = meta.exitKeepAliveAfter ?? 30
   // 会话群（room）：对话记忆上下文归属（独立 Room 实体，多设备共用；旧字段仅兼容）
-  const room = await getRoomByRef(meta.roomRef || meta.roomName)
   if (room) {
     config.config.room = {
       name: room.name,

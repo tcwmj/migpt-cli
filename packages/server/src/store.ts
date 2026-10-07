@@ -54,12 +54,32 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
-export async function writeJson(file: string, data: unknown) {
+// 同一文件的写入串行化：并发「读-改-写」若交叉执行会丢更新（后写覆盖前写），
+// 临时文件同名也会互相覆盖。这里按文件维护一条 Promise 队列，保证写序稳定。
+const _writeQueues = new Map<string, Promise<unknown>>()
+
+async function _writeJsonAtomic(file: string, data: unknown) {
   await fse.ensureDir(path.dirname(file))
-  // 原子写：临时文件 + rename，防止中途断电/崩溃损坏 JSON
-  const tmp = file + '.tmp'
+  // 原子写：随机临时文件名 + rename，防止中途断电/崩溃损坏 JSON 或并发写互相覆盖
+  const tmp = `${file}.${nanoid(8)}.tmp`
   await fs.writeFile(tmp, JSON.stringify(data, null, 2))
   await fs.rename(tmp, file)
+}
+
+export function writeJson(file: string, data: unknown): Promise<void> {
+  const prev = _writeQueues.get(file) ?? Promise.resolve()
+  // 前序写入无论成败都继续排队，避免一次失败阻塞该文件后续所有写入
+  const run = prev.then(
+    () => _writeJsonAtomic(file, data),
+    () => _writeJsonAtomic(file, data),
+  )
+  _writeQueues.set(file, run)
+  // 队列排空后清理映射，避免长生命周期进程 Map 无限增长
+  const cleanup = () => {
+    if (_writeQueues.get(file) === run) _writeQueues.delete(file)
+  }
+  run.then(cleanup, cleanup)
+  return run
 }
 
 // 同步读取小文件（认证中间件是同步的）
@@ -195,18 +215,18 @@ export async function getDeviceMeta(
 }
 
 export async function listDeviceMetas(): Promise<DeviceMeta[]> {
-  const metas: DeviceMeta[] = []
+  let ids: string[]
   try {
-    const ids = await fs.readdir(devicesRoot)
-    for (const id of ids) {
-      const meta = await getDeviceMeta(id)
-      if (meta) metas.push(meta)
-    }
+    ids = await fs.readdir(devicesRoot)
   } catch {
     /* devices 目录不存在 */
+    return []
   }
-  metas.sort((a, b) => a.createdAt - b.createdAt)
-  return metas
+  // 并行读取各设备 meta（原先串行 await 在设备较多时线性放大延迟）
+  const metas = await Promise.all(ids.map((id) => getDeviceMeta(id)))
+  const out = metas.filter((m): m is DeviceMeta => !!m)
+  out.sort((a, b) => a.createdAt - b.createdAt)
+  return out
 }
 
 /** 按 id 或名称解析会话群 */
@@ -225,20 +245,8 @@ export async function getSpeakerModelByRef(
   return list.find((m) => m.id === ref || m.name === ref)
 }
 
-/**
- * 供应商 → 推理服务 Base URL 映射。
- * 未覆盖的供应商允许用户自定义 baseUrl，否则留空（由 mi-gpt 默认处理）。
- */
-export const PROVIDER_BASE_URLS: Record<string, string> = {
-  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
-  openai: 'https://api.openai.com/v1',
-  deepseek: 'https://api.deepseek.com/v1',
-  qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-  moonshot: 'https://api.moonshot.cn/v1',
-  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
-  yi: 'https://api.lingyiwanwu.com/v1',
-  baichuan: 'https://api.baichuan-ai.com/v1',
-}
+// 供应商 → Base URL 映射：单一事实源在 @migptgui/contracts（经 ./types.js 转发）
+export { PROVIDER_BASE_URLS } from './types.js'
 
 /**
  * 系统内置音箱型号（初始化时必须存在；禁删禁编辑）。

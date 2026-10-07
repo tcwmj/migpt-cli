@@ -24,6 +24,56 @@ export function _fmtLogArgs(args: any[]): string {
     .join(' ')
 }
 
+// 落盘策略：合并缓冲 + 阈值/定时触发，避免每行一次 append 系统调用；
+// 超过上限时轮转为 system.log.1，防止文件无限增长。
+const SYS_LOG_MAX_BYTES = 5 * 1024 * 1024
+const FLUSH_INTERVAL_MS = 500
+const FLUSH_LINES = 200
+const FLUSH_BYTES = 64 * 1024
+let _pendingChunk = ''
+let _pendingLines = 0
+let _flushTimer: NodeJS.Timeout | undefined
+let _writeChain: Promise<void> = Promise.resolve()
+
+async function _appendChunk(chunk: string) {
+  try {
+    const st = await fse.stat(systemLogFile)
+    if (st.size + Buffer.byteLength(chunk) > SYS_LOG_MAX_BYTES) {
+      await fse.remove(`${systemLogFile}.1`).catch(() => {})
+      await fse.rename(systemLogFile, `${systemLogFile}.1`).catch(() => {})
+    }
+  } catch {
+    /* 文件尚未生成：首次写入 */
+  }
+  await fse.appendFile(systemLogFile, chunk)
+}
+
+function _flushSysLog() {
+  if (_flushTimer) {
+    clearTimeout(_flushTimer)
+    _flushTimer = undefined
+  }
+  if (!_pendingChunk) return
+  const chunk = _pendingChunk
+  _pendingChunk = ''
+  _pendingLines = 0
+  // 串行化落盘，避免轮转与追加交叉执行
+  _writeChain = _writeChain.then(() => _appendChunk(chunk)).catch(() => {})
+}
+
+/** 清空系统日志（内存缓冲 + 待写队列 + 落盘文件），供「清空日志」接口调用 */
+export async function clearSysLog() {
+  sysLogBuf.length = 0
+  _pendingChunk = ''
+  _pendingLines = 0
+  if (_flushTimer) {
+    clearTimeout(_flushTimer)
+    _flushTimer = undefined
+  }
+  await _writeChain
+  await fse.writeFile(systemLogFile, '', 'utf8')
+}
+
 export function _pushSysLog(level: string, text: string) {
   const d = new Date()
   const p = (n: number) => String(n).padStart(2, '0')
@@ -31,9 +81,28 @@ export function _pushSysLog(level: string, text: string) {
     d.getMinutes(),
   )}:${p(d.getSeconds())}] [${level}] ${text}`
   sysLogBuf.push(line)
-  if (sysLogBuf.length > sysLogMax) sysLogBuf.splice(0, sysLogBuf.length - sysLogMax)
-  fse.appendFile(systemLogFile, line + '\n').catch(() => {})
+  if (sysLogBuf.length > sysLogMax)
+    sysLogBuf.splice(0, sysLogBuf.length - sysLogMax)
+  _pendingChunk += line + '\n'
+  _pendingLines++
+  if (_pendingLines >= FLUSH_LINES || _pendingChunk.length >= FLUSH_BYTES) {
+    _flushSysLog()
+  } else if (!_flushTimer) {
+    _flushTimer = setTimeout(_flushSysLog, FLUSH_INTERVAL_MS)
+    _flushTimer.unref()
+  }
 }
+
+// 进程退出前同步落盘，避免缓冲中的日志丢失
+process.on('exit', () => {
+  if (!_pendingChunk) return
+  try {
+    fse.appendFileSync(systemLogFile, _pendingChunk)
+    _pendingChunk = ''
+  } catch {
+    /* 退出阶段忽略落盘异常 */
+  }
+})
 
 // console 拦截（模块首次加载即安装；index.ts 应最先 import 本模块）
 console.log = (...a: any[]) => {
