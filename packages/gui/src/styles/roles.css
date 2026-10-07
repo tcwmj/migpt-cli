@@ -1,0 +1,472 @@
+/* ── 对话角色 ── */
+/* 角色列表 + 右侧详情/编辑区：各自独立滚动，不共享页面滚动条（与 .split 同规范） */
+.roles {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 16px;
+  height: calc(100vh - 160px);
+  min-height: 0;
+}
+
+@media (max-width: 1180px) {
+  .roles {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+.rlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.roles .rform {
+  animation: cardIn 0.26s ease both;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+@media (max-width: 1180px) {
+  .rlist,
+  .roles .rform {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+.rlist .r {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--r-m);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.rlist .r:hover {
+  border-color: var(--accent);
+}
+
+.rlist .r.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.rlist .r img,
+.pavatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--pill);
+  object-fit: cover;
+  flex: none;
+}
+
+.rlist .r b {
+  font-size: 13.5px;
+  display: block;
+  line-height: 1.3;
+}
+
+.rlist .r span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.rlist .r .chk {
+  margin-left: auto;
+  color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.rform {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.rform .fld {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.rform .fld label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.rform .fld input,
+.rform .fld textarea,
+.rform .fld select {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--ink-1);
+  background: var(--panel-2);
+}
+
+.rform .fld textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.rform .fld .hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.rform .acts {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.rform .bind {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+/* 分组配置区（表单与详情通用）：基本信息 / 模型服务 / 单次对话 / 连续对话 / 提示语
+   分组名称位于卡片外围上方（保留橙色竖条），底色为浅橙横幅；
+   详情/编辑表单分组统一：无边框，分组名透明底 + 下方分割线 + 竖条左置 + 文字左对齐 */
+.grp {
+  position: relative;
+  border: none;
+  border-radius: var(--r-m);
+  padding: 16px 14px 0;
+  margin-top: 46px;
+  margin-bottom: 15px;
+  background: var(--bg);
+}
+.ro .grp {
+  border: none;
+}
+.grp h4 {
+  position: absolute;
+  top: -30px;
+  left: 14px;
+  right: 14px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  background: var(--panel-2);
+  border-radius: var(--r-s);
+}
+.grp h4::before {
+  content: '';
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+/* 表单分组统一：移除橙色横幅背景，分组名下方加与横幅等宽的分割线，
+   橙色竖条保留在文字左侧（absolute 外移 10px），分组名文字与输入项 label 左对齐 */
+.rform .grp h4,
+.form-card .grp h4 {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 4px 0 6px;
+}
+.rform .grp h4::before,
+.form-card .grp h4::before {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+}
+/* 区块标题右侧操作图标（账号设备刷新） */
+.form-card h3 .icbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.3s ease;
+}
+.form-card h3 .icbtn:hover {
+  color: var(--accent);
+  background: var(--amber-soft);
+  transform: rotate(30deg);
+}
+/* 账号设备区块：与账号详情同级标题 */
+.form-card h3.acct-dev {
+  margin: 18px 0 10px;
+}
+/* 详情页属性对齐统一（角色页与其他配置页同规范）：
+   属性名固定 100px 列宽，值左对齐，首文字垂直对齐；单行最多两个属性由 .row 网格承担 */
+.rform.rview .ro .rr,
+.form-card .ro .rr {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.rform.rview .ro .rr .v,
+.form-card .ro .rr .v {
+  text-align: left;
+}
+.rform.rview .ro .rr .k,
+.form-card .ro .rr .k {
+  width: 100px;
+}
+/* 分组间距由 .grp 自身 margin 决定（与编辑页一致），.ro 不再叠加 gap */
+.rform.rview .ro,
+.form-card .ro {
+  gap: 0;
+}
+/* 账号设备：账号详情页云端设备列表 */
+.dev-pull {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dev-pull .pd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+}
+.dev-pull .pd-row .ic.t {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--r-m);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--amber);
+  background: #fff;
+}
+.dev-pull .pd-row .ic.t .thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dev-pull .pd-row .txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dev-pull .pd-row .txt b {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.dev-pull .pd-row .txt span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.dev-pull.loading,
+.dev-pull.err,
+.dev-pull.empty {
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-s);
+}
+.dev-pull.err {
+  color: var(--danger);
+}
+.dev-pull .spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: devspin 0.8s linear infinite;
+}
+@keyframes devspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.pd-acts {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+/* 编辑表单：label 与输入框同一行，hint 换行在控件下方
+   label 全部固定 100px，输入框起点与长度按布局档位对齐 */
+.grp .fld {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 10px;
+  margin-bottom: 12px;
+}
+.grp .fld label {
+  width: 100px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.grp .fld input,
+.grp .fld textarea,
+.grp .fld select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */
+.grp .fld label .req,
+.form-card .fld label .req,
+.form-card .grp .fld label .req,
+.modal .fld label .req,
+.rform .fld label .req,
+.wizard .fld label .req,
+.wizard .form-card .fld label .req,
+.login-page .fld label .req,
+.login-card .fld label .req {
+  color: #c0453c;
+  font-weight: 700;
+  margin-left: 2px;
+  line-height: 1;
+}
+/* 提示信息改为 label 右侧的 tooltip 符号，悬浮显示 */
+.grp .fld label .tip {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+  width: 15px;
+  height: 15px;
+  line-height: 15px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  cursor: help;
+  vertical-align: 1px;
+  flex-shrink: 0;
+}
+.grp .fld label .tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 300px;
+  white-space: normal;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--ink-1);
+  color: #fff;
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  font-weight: 400;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+  z-index: 40;
+  pointer-events: none;
+  box-shadow: var(--shadow-pop);
+}
+.grp .fld label .tip:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+/* 双列 row：label 与输入框沿用统一的 100px 对齐规格 */
+.grp .row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+@media (max-width: 760px) {
+  .grp .row {
+    grid-template-columns: 1fr;
+  }
+}
+/* 详情页：分组卡片内的行分隔线 */
+.grp .rr {
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 9px;
+  margin-bottom: 9px;
+}
+.grp .rr:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+/* 详情页双列：row 容器带分隔线，列内 rr 不再单独画线 */
+.ro .grp .row {
+  padding-bottom: 9px;
+  border-bottom: 1px dashed var(--line);
+  margin-bottom: 9px;
+}
+.ro .grp .row .rr {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+/* 详情页值支持换行显示（人设描述等含 \n 的字段） */
+.ro .rr .v {
+  white-space: pre-line;
+}
+
+.rform .bind .pick {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 9px 12px;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+

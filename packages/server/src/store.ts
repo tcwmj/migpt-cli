@@ -1,0 +1,506 @@
+// ── 数据存取层：JSON 持久化、实体 getter、内置数据 seed、迁移 ──
+import path from 'node:path'
+import fs from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
+import fse from 'fs-extra'
+import { nanoid } from 'nanoid'
+import {
+  devicesRoot,
+  settingsFile,
+  accountsFile,
+  rolesFile,
+  thinkServicesFile,
+  voiceServicesFile,
+  speakerModelsFile,
+  roomsFile,
+  authFile,
+} from './paths.js'
+import { logBuffers, demoTs } from './logger.js'
+import {
+  type Settings,
+  type Account,
+  type Role,
+  type ThinkService,
+  type VoiceService,
+  type Room,
+  type DeviceMeta,
+  type SpeakerModel,
+} from './types.js'
+
+// 同名唯一校验：同一实体的实例名称全局唯一（忽略大小写与首尾空白）。
+// 返回冲突提示文本，无冲突返回 null。
+export function assertUniqueName<T extends { id: string; name?: string }>(
+  list: T[],
+  name: string | undefined,
+  excludeId: string | undefined,
+  label: string,
+): string | null {
+  const n = (name || '').trim()
+  if (!n) return null
+  const hit = list.find((x) => x.id !== excludeId && (x.name || '').trim().toLowerCase() === n.toLowerCase())
+  return hit ? `${label}「${n}」已存在，名称需唯一` : null
+}
+
+export async function readJson<T>(file: string, fallback: T): Promise<T> {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf-8'))
+  } catch {
+    return fallback
+  }
+}
+
+export async function writeJson(file: string, data: unknown) {
+  await fse.ensureDir(path.dirname(file))
+  await fs.writeFile(file, JSON.stringify(data, null, 2))
+}
+
+// 同步读取小文件（认证中间件是同步的）
+export function readJsonSync<T>(file: string, fallback: T): T {
+  try {
+    return JSON.parse(readFileSync(file, 'utf-8'))
+  } catch {
+    return fallback
+  }
+}
+
+// ── 登录认证：生效凭据解析 ────────────────────────────────────
+// 优先级：CLI --user/--pwd > AUTH_USER/AUTH_PASSWORD 环境变量 > auth.json（面板可改）> 默认 admin/123456
+export function resolveAuth(cliUsers?: Record<string, string>): Record<string, string> {
+  if (cliUsers) return cliUsers
+  const envUser = process.env.AUTH_USER || 'admin'
+  const envPwd = process.env.AUTH_PASSWORD
+  if (envPwd) return { [envUser]: envPwd }
+  const file = readJsonSync<{ user?: string; password?: string }>(authFile, {})
+  if (file.password) return { [file.user || 'admin']: file.password }
+  return { admin: '123456' }
+}
+
+export function getSettings(): Promise<Settings> {
+  return readJson<Settings>(settingsFile, {})
+}
+
+// ── 多云端账号：读取（含旧 settings.json 迁移）─────────────────
+export async function getAccounts(): Promise<Account[]> {
+  const accounts = await readJson<Account[]>(accountsFile, [])
+  if (accounts.length > 0) return accounts
+  // 兼容旧版本：settings.json → 迁移为第一个账号
+  const old = await readJson<Settings>(settingsFile, {})
+  if (old.miUserId || old.passToken) {
+    const account: Account = {
+      id: nanoid(),
+      name: '默认账号',
+      miUserId: old.miUserId || '',
+      miPassword: old.miPassword,
+      passToken: old.passToken,
+      createdAt: Date.now(),
+    }
+    await writeJson(accountsFile, [account])
+    return [account]
+  }
+  return []
+}
+
+// 按设备归属取账号；未指定或找不到时回退第一个账号
+export async function getAccountById(id?: string): Promise<Account | undefined> {
+  const accounts = await getAccounts()
+  if (id) {
+    const found = accounts.find((a) => a.id === id)
+    if (found) return found
+  }
+  return accounts[0]
+}
+
+export async function getRoles(): Promise<Role[]> {
+  return readJson<Role[]>(rolesFile, [])
+}
+
+export async function getThinkServices(): Promise<ThinkService[]> {
+  return readJson<ThinkService[]>(thinkServicesFile, [])
+}
+
+export async function getVoiceServices(): Promise<VoiceService[]> {
+  return readJson<VoiceService[]>(voiceServicesFile, [])
+}
+
+export async function getSpeakerModels(): Promise<SpeakerModel[]> {
+  return readJson<SpeakerModel[]>(speakerModelsFile, [])
+}
+
+export async function getRooms(): Promise<Room[]> {
+  return readJson<Room[]>(roomsFile, [])
+}
+
+/** 全局默认思考服务（未指定角色/设备引用时回退） */
+export async function getDefaultThinkService(): Promise<ThinkService | undefined> {
+  const list = await getThinkServices()
+  return list.find((t) => t.isDefault) ?? list[0]
+}
+
+/** 全局默认语音服务 */
+export async function getDefaultVoiceService(): Promise<VoiceService | undefined> {
+  const list = await getVoiceServices()
+  return list.find((v) => v.isDefault) ?? list[0]
+}
+
+export async function getDeviceMeta(id: string): Promise<DeviceMeta | undefined> {
+  return readJson<DeviceMeta | undefined>(path.join(devicesRoot, id, 'meta.json'), undefined)
+}
+
+export async function listDeviceMetas(): Promise<DeviceMeta[]> {
+  const metas: DeviceMeta[] = []
+  try {
+    const ids = await fs.readdir(devicesRoot)
+    for (const id of ids) {
+      const meta = await getDeviceMeta(id)
+      if (meta) metas.push(meta)
+    }
+  } catch {
+    /* devices 目录不存在 */
+  }
+  metas.sort((a, b) => a.createdAt - b.createdAt)
+  return metas
+}
+
+/** 按 id 或名称解析会话群 */
+export async function getRoomByRef(ref?: string): Promise<Room | undefined> {
+  if (!ref) return undefined
+  const list = await getRooms()
+  return list.find((r) => r.id === ref || r.name === ref)
+}
+
+/** 按 id 或名称解析型号（兼容旧数据：设备 speakerModel 可能存名称） */
+export async function getSpeakerModelByRef(ref?: string): Promise<SpeakerModel | undefined> {
+  if (!ref) return undefined
+  const list = await getSpeakerModels()
+  return list.find((m) => m.id === ref || m.name === ref)
+}
+
+/**
+ * 供应商 → 推理服务 Base URL 映射。
+ * 未覆盖的供应商允许用户自定义 baseUrl，否则留空（由 mi-gpt 默认处理）。
+ */
+export const PROVIDER_BASE_URLS: Record<string, string> = {
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  openai: 'https://api.openai.com/v1',
+  deepseek: 'https://api.deepseek.com/v1',
+  qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  moonshot: 'https://api.moonshot.cn/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  yi: 'https://api.lingyiwanwu.com/v1',
+  baichuan: 'https://api.baichuan-ai.com/v1',
+}
+
+/**
+ * 系统内置音箱型号（初始化时必须存在；禁删禁编辑）。
+ * 清单与指令参数对齐 mi-gpt 官方兼容型号表（github.com/idootop/mi-gpt docs/compatibility.md）
+ * 与 migpt-server 内置型号选择器（packages/options ChooseSpeaker）。
+ * 分组：支持连续对话（完美运行）/ 不支持连续对话（正常运行）。
+ */
+export const BUILTIN_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
+  // ── 支持连续对话（完美运行）──
+  {
+    id: 'xiaomi-smart-pro',
+    name: 'Xiaomi 智能音箱 Pro',
+    did: 'OH2P',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/vIHjnJJqrc',
+  },
+  {
+    id: 'xiaomi-smart',
+    name: 'Xiaomi 智能音箱',
+    did: 'OH2',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    playingCommand: [3, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/WQG4uLGOcd',
+  },
+  {
+    id: 'xiaomi-pro',
+    name: '小爱音箱 Pro',
+    did: 'LX06',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/fqq9JgNvUR',
+  },
+  {
+    id: 'xiaomi-ai-speaker',
+    name: '小米 AI 音箱',
+    did: 'S12',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/s1KdNlarvU',
+  },
+  {
+    id: 'xiaomi-ai-speaker-2',
+    name: '小米 AI 音箱（第二代）',
+    did: 'L15A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    playingCommand: [3, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/h84tjXGVYP',
+  },
+  {
+    id: 'xiaomi-universal',
+    name: '小爱音箱 万能遥控版',
+    did: 'LX5A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/ZpRUVmwTh5',
+  },
+  {
+    id: 'xiaomi-play-2019',
+    name: '小爱音箱 Play（2019 款）',
+    did: 'LX05',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 3],
+    playingCommand: [3, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/sIhk2YxwD7',
+  },
+  {
+    id: 'xiaomi-home-screen-10',
+    name: '小爱智能家庭屏 10',
+    did: 'X10A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/sDM9V3slih',
+  },
+  {
+    id: 'xiaomi-sound-pro',
+    name: 'Xiaomi Sound Pro',
+    did: 'L17A',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/s7vgvRqqwU',
+  },
+  // ── 不支持连续对话（正常运行）──
+  {
+    id: 'xiaomi-speaker',
+    name: '小爱音箱',
+    did: 'L06A',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 2],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/Ig6OUMFV2u',
+  },
+  {
+    id: 'xiaomi-mini',
+    name: '小爱音箱 mini',
+    did: 'LX01',
+    desc: '支持连续对话（官方完美运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 2],
+    playingCommand: [4, 1, 1],
+    consecutive: true,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/IBVUyAfu4M',
+  },
+  {
+    id: 'xiaomi-play',
+    name: '小爱音箱 Play',
+    did: 'L05B',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/s9jN6QwVcG',
+  },
+  {
+    id: 'xiaomi-play-plus',
+    name: '小米小爱音箱 Play 增强版',
+    did: 'L05C',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/NU5KITCTbl',
+  },
+  {
+    id: 'xiaomi-art',
+    name: '小爱音箱 Art',
+    did: 'L09A',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [3, 1],
+    wakeUpCommand: [3, 2],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/c7uFBjO7cV',
+  },
+  {
+    id: 'xiaomi-touch',
+    name: '小爱触屏音箱',
+    did: 'LX04',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 1],
+    wakeUpCommand: [5, 2],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/SkwcG8td6n',
+  },
+  {
+    id: 'xiaomi-home-mini',
+    name: 'Xiaomi 智能家庭屏 Mini',
+    did: 'ASX4B',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/Q9Vnj3UTJt',
+  },
+  {
+    id: 'xiaomi-home-6',
+    name: 'Xiaomi 智能家庭屏 6',
+    did: 'X6A',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/2QVKCAW8rT',
+  },
+  {
+    id: 'xiaomi-redmi-touch-8',
+    name: 'Redmi 小爱触屏音箱 Pro 8 英寸',
+    did: 'X08E',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/0UncKIwUlB',
+  },
+  {
+    id: 'xiaomi-home-pro-8',
+    name: 'Xiaomi 智能家庭屏 Pro 8',
+    did: 'X8F',
+    desc: '无法连续对话（官方正常运行）',
+    ttsCommand: [7, 3],
+    wakeUpCommand: [7, 1],
+    consecutive: false,
+    builtin: true,
+    imageUrl: 'https://aka.doubaocdn.com/s/FQuMVAKPUK',
+  },
+]
+
+export async function seedBuiltinVoice() {
+  const list = await getVoiceServices()
+  // 存量迁移：旧名「小米内置」→「默认语音」（历史数据可能存在多条 builtin，全部统一改名）
+  let changed = false
+  for (const v of list) {
+    if (v.builtin && v.name === '小米内置') {
+      v.name = '默认语音'
+      changed = true
+    }
+  }
+  if (changed) {
+    await writeJson(voiceServicesFile, list)
+    console.log('已更新内置语音服务名称：默认语音')
+    return
+  }
+  if (!list.some((v) => v.builtin)) {
+    list.unshift({
+      id: 'builtin-mi',
+      name: '默认语音',
+      provider: 'builtin',
+      builtin: true,
+      isDefault: list.length === 0,
+      createdAt: Date.now(),
+    })
+    await writeJson(voiceServicesFile, list)
+    console.log('已初始化内置语音服务：默认语音')
+  }
+}
+
+export async function seedBuiltinModels() {
+  const list = await getSpeakerModels()
+  // upsert：内置型号以代码定义为准，存在则整体覆盖（保证升级后官方数据自动修正），不存在则新增
+  const merged = [
+    ...BUILTIN_MODELS.map((m) => ({ ...m, createdAt: list.find((x) => x.id === m.id)?.createdAt ?? Date.now() })),
+    ...list.filter((x) => !BUILTIN_MODELS.some((m) => m.id === x.id)),
+  ]
+  const changed = BUILTIN_MODELS.filter(
+    (m) => JSON.stringify(list.find((x) => x.id === m.id)) !== JSON.stringify({ ...m, createdAt: list.find((x) => x.id === m.id)?.createdAt ?? Date.now() }),
+  )
+  await writeJson(speakerModelsFile, merged)
+  if (changed.length > 0) console.log(`已更新内置音箱型号：${changed.map((m) => m.name).join('、')}`)
+}
+
+/** 迁移旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
+export async function migrateRooms() {
+  const metas = await listDeviceMetas()
+  const rooms = await getRooms()
+  let changed = false
+  for (const meta of metas) {
+    if (!meta.roomName || meta.roomRef) continue
+    let room = rooms.find((r) => r.name === meta.roomName)
+    if (!room) {
+      room = { id: nanoid(8), name: meta.roomName, description: meta.roomDescription, createdAt: Date.now() }
+      rooms.push(room)
+    }
+    const nextMeta: DeviceMeta = { ...meta, roomRef: room.id }
+    delete nextMeta.roomName
+    delete nextMeta.roomDescription
+    await writeJson(path.join(devicesRoot, meta.id, 'meta.json'), nextMeta)
+    changed = true
+  }
+  if (changed) await writeJson(roomsFile, rooms)
+}
+
+// ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话记录」页联调 ──
+const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
+  { q: '小爱同学，今天天气怎么样', a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。', sys: '思考服务命中角色默认（豆包 Doubao-Seed）' },
+  { q: '帮我设一个 30 分钟的番茄钟', a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。', sys: '语音音色由角色指定（默认语音）' },
+  { q: '播放点轻音乐', a: '为你播放《Lofi 清晨电台》，音量已调到 30%。', sys: '' },
+  { q: '小爱同学，国庆周边有什么好玩的', a: '苏州周边推荐：拙政园、平江路夜游、金鸡湖音乐喷泉，今天人流量较大建议错峰出行。', sys: '语音音色热切换成功（豆包语音）' },
+]
+
+export async function seedDemoLogs() {
+  if (!process.env.MIGPT_DEMO_LOGS) return
+  const devices = await listDeviceMetas()
+  if (!devices.length) return
+  const now = Date.now()
+  for (const d of devices) {
+    const buf: string[] = []
+    for (let i = 0; i < 4; i++) {
+      const s = DEMO_SCENES[i % DEMO_SCENES.length]
+      const tq = new Date(now - (i * 47 + 13) * 60000)
+      buf.push(`${demoTs(tq)} [用户] 问：${s.q}`)
+      buf.push(`${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a}`)
+      if (s.sys) buf.push(`${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`)
+    }
+    logBuffers.set(d.id, buf)
+  }
+  console.log(`[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`)
+}

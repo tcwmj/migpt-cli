@@ -1,0 +1,167 @@
+/* ══ 个人中心 · 分区设置列表（对齐设置页风格） ══ */
+.profile header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.profile header .sub {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.pset {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pcard-set {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  overflow: hidden;
+  padding: 2px 0;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+.pcard-set:hover {
+  box-shadow: 0 10px 30px -18px rgba(31, 23, 16, 0.25);
+  transform: translateY(-1px);
+  border-color: var(--line-2);
+}
+
+.pcard-block h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+  margin: 0 0 8px;
+  padding: 0 2px;
+}
+
+.pi .val.muted {
+  color: var(--ink-3);
+}
+
+.pi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 22px;
+  min-height: 46px;
+}
+
+.pi + .pi {
+  border-top: 1px solid var(--line);
+}
+
+.pi .lbl {
+  font-size: 13.5px;
+  color: var(--ink-1);
+}
+
+.pi .lbl small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-top: 3px;
+}
+
+.pi .val {
+  font-size: 13px;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pi .val .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3cb371;
+  box-shadow: 0 0 0 3px rgba(60, 179, 113, 0.14);
+}
+
+.pi .val .tag {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-3);
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--pill);
+  padding: 1px 8px;
+}
+
+.pi .val .sw {
+  width: 34px;
+  height: 20px;
+  border-radius: var(--pill);
+  background: var(--line-2);
+  position: relative;
+  display: inline-block;
+  flex: none;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.pi .val .sw.on {
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.pi .val .sw.on::after {
+  left: 16px;
+}
+
+.pi .val .sw::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.pi.click {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pi.click:hover {
+  background: var(--panel-2);
+}
+
+.pi.click:hover .val {
+  color: var(--accent);
+}
+
+.pi.danger .lbl {
+  color: #c0392b;
+}
+
+.pi.danger .val {
+  color: rgba(192, 57, 43, 0.75);
+}
+
+.pi.danger:hover {
+  background: rgba(192, 57, 43, 0.05);
+}
+
+@media (max-width: 980px) {
+  .login-hero-inner {
+    padding: 0;
+  }
+  .login-hero h1 {
+    font-size: 30px;
+  }
+}
+
+

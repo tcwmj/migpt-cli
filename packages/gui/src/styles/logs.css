@@ -1,0 +1,116 @@
+/* ══ 对话日志页 ══ */
+.logs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  font-size: 13px;
+  line-height: 1.6;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.log.expandable {
+  cursor: pointer;
+}
+
+.log .txt {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-1);
+  word-break: break-all;
+  white-space: pre-wrap;
+  cursor: default;
+}
+
+/* 跨行日志默认折叠为单行省略，点击展开显示完整内容 */
+.log.expandable .txt {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.log.expandable.open .txt {
+  -webkit-line-clamp: unset;
+  white-space: pre-wrap;
+  overflow: visible;
+}
+
+.log .more {
+  flex: none;
+  align-self: center;
+  color: var(--ink-3);
+  opacity: 0.75;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.log.expandable:hover .more {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.log.q {
+  background: rgba(217, 100, 42, 0.05);
+  border-color: rgba(217, 100, 42, 0.18);
+}
+
+.log.a {
+  background: rgba(46, 107, 99, 0.05);
+  border-color: rgba(46, 107, 99, 0.18);
+}
+
+.log:hover {
+  border-color: rgba(217, 100, 42, 0.3);
+}
+
+.log .t {
+  flex: none;
+  min-width: 148px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  padding-top: 3px;
+}
+
+.log .who {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 128px;
+}
+
+.log .k {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: var(--pill);
+}
+
+.log .k-user {
+  color: var(--accent);
+  background: rgba(217, 100, 42, 0.12);
+}
+
+.log .k-ai {
+  color: var(--accent-2);
+  background: rgba(46, 107, 99, 0.12);
+}
+
+.log .k-system {
+  color: var(--ink-2);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+

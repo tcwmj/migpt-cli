@@ -1,0 +1,54 @@
+/* ══ 全局动效 ══ */
+.body section {
+  animation: fadeUp 0.26s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel,
+.kpi,
+.acct,
+.r,
+.dev {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.panel:hover,
+.kpi:hover,
+.acct:hover {
+  box-shadow: 0 10px 30px -18px rgba(31, 23, 16, 0.25);
+  transform: translateY(-1px);
+}
+
+/* 下拉框统一过渡：弹出面板为浏览器系统控件不可动画，控件本体提供 hover/focus 反馈 */
+.form-card .fld select,
+.rform .fld select,
+.modal .fld select,
+.wiz .wf select {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+.form-card .fld select:hover,
+.rform .fld select:hover,
+.modal .fld select:hover,
+.wiz .wf select:hover {
+  border-color: var(--accent);
+}
+.form-card .fld select:focus,
+.rform .fld select:focus,
+.modal .fld select:focus,
+.wiz .wf select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(217, 100, 42, 0.14);
+}
+

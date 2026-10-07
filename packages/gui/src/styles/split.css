@@ -1,0 +1,452 @@
+/* ══ 统一「左列表 + 右详情/新建」布局 ══ */
+.split {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 16px;
+  height: calc(100vh - 160px);
+  min-height: 0;
+}
+
+/* 列表与详情各自独立滚动，不共享页面滚动条 */
+.slist,
+.sdetail {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.sdetail > .filters {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1180px) {
+  .split {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .slist,
+  .sdetail {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+.slist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.slist .li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--r-m);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.slist .li:hover {
+  border-color: var(--accent);
+}
+
+.slist .li.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.slist .li .ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-m);
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--panel-2);
+  color: var(--ink-2);
+}
+
+.slist .li.on .ic {
+  background: var(--accent);
+  color: #fff;
+}
+
+.slist .li .ic.t {
+  color: var(--amber);
+}
+
+.slist .li .ic.v {
+  color: var(--teal);
+}
+
+.slist .li.on .ic.t,
+.slist .li.on .ic.v {
+  color: #fff;
+}
+
+/* 型号列表缩略图（真实设备图） */
+.slist .li .ic .thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--r-m);
+  display: block;
+  background: #fff;
+}
+
+/* 型号详情大图 */
+.form-card .model-pic {
+  position: relative;
+  margin: 14px 0 2px;
+  border-radius: var(--r-l);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.form-card .model-pic img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  background: #fff;
+}
+
+/* 型号图加载完成前隐藏，避免黑块闪烁；加载后 0.25s 淡入 */
+.form-card .model-pic img.fade {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.form-card .model-pic img.fade.loaded {
+  opacity: 1;
+}
+.form-card .model-pic .pic-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.slist .li .txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.slist .li .txt b {
+  font-size: 13.5px;
+  display: block;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slist .li .txt span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.slist .li .badge {
+  flex: none;
+  min-width: 22px;
+  text-align: center;
+  font-size: 11.5px;
+  padding: 2px 7px;
+  border-radius: var(--pill);
+  background: var(--panel-2);
+  color: var(--ink-2);
+}
+
+.slist .li.on .badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.slist .li .tag {
+  flex: none;
+}
+
+/* 已接入设备的置灰（三步向导 / 新建设备云端列表）：同账号下设备 ID 已存在时禁止重复选择 */
+.slist .li.off,
+.pick-list .pl.off {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.slist .li.off:hover,
+.pick-list .pl.off:hover {
+  border-color: var(--line);
+}
+
+.slist .li.off .ic,
+.pick-list .pl.off .ic {
+  filter: grayscale(1);
+}
+
+.slist .li.off .txt span,
+.pick-list .pl.off > span span {
+  color: var(--ink-3);
+}
+
+.form-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.form-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.form-card .desc {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-bottom: 16px;
+}
+
+.form-card .fld {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+/* 分组表单字段：label 与输入框同行（与「对话角色」编辑页一致） */
+.form-card .grp .fld {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 10px;
+  margin-bottom: 12px;
+}
+.form-card .grp .fld > div:not(.fld-tags) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.form-card .grp .fld > .fld-tags {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.form-card .fld label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.form-card .fld input,
+.form-card .fld select {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--ink-1);
+  background: var(--panel-2);
+}
+
+.form-card .fld .arr-in {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.form-card .fld .arr-in .arr-input {
+  width: 72px;
+  text-align: center;
+}
+
+.form-card .fld .arr-in .arr-input::placeholder {
+  color: var(--ink-3);
+}
+
+.rr .cmd-row {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rr .cmd-row .cmd-input {
+  width: 60px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  padding: 4px 8px;
+  text-align: center;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-1);
+  background: var(--panel-2);
+  cursor: default;
+}
+
+.rr .cmd-row .cmd-input:disabled {
+  opacity: 0.85;
+}
+
+.rr .v input.cb {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: default;
+}
+
+.rr .v .v-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rr .v .v-model img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: #fff;
+  padding: 4px;
+}
+
+/* 设备编辑页型号搜索下拉 */
+.model-pick {
+  position: relative;
+}
+
+.form-card .fld .model-pick > input {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--ink-1);
+  background: #fff;
+  width: 100%;
+}
+
+.form-card .fld .model-pick .model-pick-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  transform-origin: top center;
+  animation: pickIn 0.16s ease both;
+}
+@keyframes pickIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.model-pick .pick-li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--r-s);
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--ink-1);
+}
+
+.model-pick .pick-li:hover,
+.model-pick .pick-li.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.model-pick .pick-li img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: var(--r-s);
+  flex: none;
+}
+
+.model-pick .pick-li .ph {
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+
+.model-pick .pick-empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.form-card .fld textarea,
+.modal .fld textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--ink-1);
+  background: var(--panel-2);
+  min-height: 152px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.form-card .fld .hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+/* 型号命令摘要（设备表单选中型号后自动带出） */
+.form-card .fld-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.form-card .fld-tags span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.form-card .fld-tags b {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+

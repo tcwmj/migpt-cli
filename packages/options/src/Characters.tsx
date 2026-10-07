@@ -184,7 +184,7 @@ export function Characters(props: {
             value={config.bot?.name || ''}
             onValueChange={(newVal) => {
               const newState = produce(config, (draft) => {
-                ;(draft.bot || (draft.bot = {})).name = newVal || undefined
+                (draft.bot || (draft.bot = {})).name = newVal || undefined
               })
               onChange(newState)
             }}
@@ -199,7 +199,7 @@ export function Characters(props: {
             onChange={(event) => {
               const newVal = event.target.value
               const newState = produce(config, (draft) => {
-                ;(draft.bot || (draft.bot = {})).profile = newVal || undefined
+                (draft.bot || (draft.bot = {})).profile = newVal || undefined
               })
               onChange(newState)
             }}
@@ -215,7 +215,7 @@ export function Characters(props: {
             value={config.master?.name || ''}
             onValueChange={(newVal) => {
               const newState = produce(config, (draft) => {
-                ;(draft.master || (draft.master = {})).name =
+                (draft.master || (draft.master = {})).name =
                   newVal || undefined
               })
               onChange(newState)
@@ -231,7 +231,7 @@ export function Characters(props: {
             onChange={(event) => {
               const newVal = event.target.value
               const newState = produce(config, (draft) => {
-                ;(draft.master || (draft.master = {})).profile =
+                (draft.master || (draft.master = {})).profile =
                   newVal || undefined
               })
               onChange(newState)
@@ -248,7 +248,7 @@ export function Characters(props: {
             value={config.room?.name || ''}
             onValueChange={(newVal) => {
               const newState = produce(config, (draft) => {
-                ;(draft.room || (draft.room = {})).name = newVal || undefined
+                (draft.room || (draft.room = {})).name = newVal || undefined
               })
               onChange(newState)
             }}
@@ -263,7 +263,7 @@ export function Characters(props: {
             onChange={(event) => {
               const newVal = event.target.value
               const newState = produce(config, (draft) => {
-                ;(draft.room || (draft.room = {})).description =
+                (draft.room || (draft.room = {})).description =
                   newVal || undefined
               })
               onChange(newState)

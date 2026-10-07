@@ -1,0 +1,151 @@
+/* ── 个人中心 ── */
+.profile {
+  max-width: 720px;
+}
+
+.pcard {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 22px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.pcard .avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+}
+
+.pcard b {
+  font-size: 17px;
+  display: block;
+}
+
+.pcard span {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.pcard .ops {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.plist {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.plist .pi {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.plist .pi:last-child {
+  border-bottom: 0;
+}
+
+.plist .pi .ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+}
+
+.plist .pi .ic svg {
+  width: 16px;
+  height: 16px;
+}
+
+.plist .pi b {
+  font-size: 13.5px;
+  display: block;
+}
+
+.plist .pi span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.plist .pi svg.arr {
+  width: 15px;
+  height: 15px;
+  color: var(--ink-3);
+  margin-left: auto;
+}
+
+.plist .pi:hover {
+  background: var(--panel-2);
+}
+
+/* ── 三态 ── */
+.empty,
+.loading,
+.error {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty .art {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+}
+
+.empty .art svg {
+  width: 26px;
+  height: 26px;
+}
+
+.empty b,
+.error b {
+  font-size: 15px;
+}
+
+.empty span,
+.error span {
+  color: var(--ink-2);
+  font-size: 13px;
+  max-width: 360px;
+}
+
+.skel {
+  background: linear-gradient(90deg, var(--line-2), var(--line), var(--line-2));
+  background-size: 200% 100%;
+  animation: sk 1.2s infinite;
+  height: var(--row);
+  border-radius: var(--r-m);
+  margin: 8px 16px;
+  opacity: 0.75;
+}
+
+@keyframes sk {
+  to {
+    background-position: -200% 0;
+  }
+}
+

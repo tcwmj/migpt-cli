@@ -1,0 +1,206 @@
+/* 开关（连续对话等布尔配置） */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch .track {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 0.2s ease;
+  flex: none;
+}
+.switch .track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+.switch input:checked + .track {
+  background: var(--accent, #ff6900);
+}
+.switch input:disabled + .track {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.switch input:disabled + .track::after {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.switch input:checked + .track::after {
+  transform: translateX(16px);
+}
+
+.form-card .sum {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-3);
+  background: var(--panel-2);
+  border-radius: var(--r-m);
+  padding: 9px 12px;
+  margin-bottom: 14px;
+}
+
+.form-card .acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.form-card .acts .sp,
+.rform .acts .sp {
+  flex: 1;
+}
+
+.rform h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+.rform h3 .refs,
+.form-card h3 .refs {
+  margin-left: auto;
+  max-width: 62%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.form-card .ro,
+.rform .ro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 0 2px;
+  margin: 4px 0 14px;
+  border-top: 1px solid var(--line);
+}
+
+.ro .rr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 13.5px;
+}
+
+.ro .rr .k {
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ro .rr .v {
+  color: var(--ink-1);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-all;
+}
+
+.rform .bind .pick b {
+  font-size: 12px;
+  display: block;
+}
+
+.rform .bind .pick span {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.rform .bind .pick:hover {
+  border-color: var(--accent);
+}
+
+.panel.guide {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.guide-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 0 6px 2px;
+  min-width: 0;
+}
+
+.guide-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.guide-h .sub {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.guide-art {
+  width: 50%;
+  flex: none;
+  min-height: 300px;
+  background-size: cover;
+  background-position: center 55%;
+  border: none;
+  border-radius: 12px;
+}
+
+.step-pic {
+  width: 62px;
+  height: 76px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--line-2);
+  flex: none;
+}
+
+.sum {
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-m);
+  padding: 11px 13px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+}
+
+.sum svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+

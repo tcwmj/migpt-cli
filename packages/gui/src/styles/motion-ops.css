@@ -1,0 +1,106 @@
+/* ══ 全局操作动效（v12）：覆盖所有用户操作的进入/切换/按压/退场 ══ */
+/* 1. 按钮按压反馈 */
+.btn:active {
+  transform: translateY(0) scale(0.97);
+}
+.icon-btn {
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+.icon-btn:active {
+  transform: scale(0.9);
+}
+.side nav a,
+.side .logout,
+.chip {
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.side nav a:active,
+.side .logout:active,
+.chip:active {
+  transform: scale(0.97);
+}
+
+/* 2. 列表项：挂载淡入 + 选中态过渡（新建后新项出现 / 搜索过滤变化均有反馈） */
+.slist .li,
+.rlist .r {
+  animation: liIn 0.24s ease both;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.slist .li:active,
+.rlist .r:active {
+  transform: scale(0.99);
+}
+@keyframes liIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 3. 详情 / 空态切换（切换服务、角色、账号、设备、进入编辑/取消均有过渡） */
+.sdetail > .form-card,
+.sdetail > .empty {
+  animation: cardIn 0.26s ease both;
+}
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 4. 向导步骤切换 */
+.wiz .step.on {
+  animation: stepIn 0.24s ease both;
+}
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 5. 弹层退场（二次确认 / 编辑绑定 / 修改密码 / 三步向导 / 设备抽屉）：closing 阶段播放淡出 */
+.wizard {
+  transition: opacity 0.2s ease;
+}
+.wizard.on.closing {
+  opacity: 0;
+}
+.modal.closing,
+.scrim.closing {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.modal.closing {
+  transform: translate(-50%, -46%) !important;
+}
+.drawer.on.closing {
+  transform: translateX(102%);
+}
+
+
+@media (max-width: 980px) {
+  .pgrid {
+    grid-template-columns: 1fr;
+  }
+  .top-right .srv em {
+    display: none;
+  }
+  .logs .t {
+    min-width: 110px;
+  }
+}
+

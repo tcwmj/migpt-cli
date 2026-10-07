@@ -1,0 +1,58 @@
+/* ══ 登录页大气化（v5）：标语沉于音箱下方 + 居中极简表单 ══ */
+.login-hero-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.login-hero h1 {
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink-1);
+  margin: auto auto 0;
+  text-align: center;
+}
+
+.login-hero-safe {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(31, 23, 16, 0.1);
+  border-radius: var(--pill);
+  padding: 7px 14px;
+  width: fit-content;
+}
+
+.login-hero-safe svg {
+  color: var(--accent-2);
+}
+
+.login-card h2 {
+  font-size: 24px;
+  font-weight: 750;
+  margin-bottom: 26px;
+  color: var(--ink-1);
+  text-align: center;
+}
+
+.login-safe {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.login-foot {
+  margin-top: 36px;
+}
+

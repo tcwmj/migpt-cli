@@ -1,0 +1,323 @@
+// ── 业务服务层：云端设备拉取协议、配置编译投影、绑定链解析 ──
+import https from 'node:https'
+import { createHash } from 'node:crypto'
+import { nanoid } from 'nanoid'
+import {
+  type Account,
+  type Role,
+  type DeviceMeta,
+  type PulledDevice,
+  type DeviceBindings,
+  ROLE_DEFAULTS,
+} from './types.js'
+import {
+  getAccounts,
+  getRoles,
+  getThinkServices,
+  getVoiceServices,
+  getDefaultThinkService,
+  getDefaultVoiceService,
+  getRoomByRef,
+  getSpeakerModelByRef,
+  PROVIDER_BASE_URLS,
+} from './store.js'
+import { type GuiConfig } from '@migptgui/options'
+
+// ── 小米 micoapi：凭 小米ID + passToken 拉取账号下音箱设备列表 ──
+// 协议（已用真实账号冒烟验证）：
+//   ① serviceLogin?sid=micoapi&_json=true 携带 cookie{userId, passToken} 免密建立登录态
+//   ② clientSign=SHA1(nonce+ssecurity) 换取 serviceToken
+//   ③ api2.mina.mi.com/admin/v2/device_list 返回账号下小爱音箱列表
+function _httpsReq(
+  method: string,
+  url: string,
+  headers: Record<string, string>,
+  cookieStr?: string,
+): Promise<{ status: number; body: string; setCookies: string[] }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url)
+    const opts: Record<string, any> = {
+      method,
+      hostname: u.hostname,
+      port: 443,
+      path: u.pathname + u.search,
+      headers: { ...headers },
+      rejectUnauthorized: false,
+    }
+    if (cookieStr) opts.headers['Cookie'] = cookieStr
+    const r = https.request(opts, (res) => {
+      const chunks: Buffer[] = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('end', () =>
+        resolve({
+          status: res.statusCode || 0,
+          body: Buffer.concat(chunks).toString('utf8'),
+          setCookies: (res.headers['set-cookie'] || []) as string[],
+        }),
+      )
+    })
+    r.on('error', reject)
+    r.end()
+  })
+}
+function _stripJson(body: string): string {
+  return body.startsWith('&&&START&&&') ? body.slice('&&&START&&&'.length) : body
+}
+export async function pullMicoDevices(miUserId: string, passToken: string): Promise<PulledDevice[]> {
+  const deviceId = 'android_' + nanoid(16)
+  const ua =
+    'Mozilla/5.0 (Linux; Android 10; 000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.6045.193 Mobile Safari/537.36 /XiaoMi/HybridView/ micoSoundboxApp/i appVersion/A_2.4.40'
+
+  // ① 免密登录态
+  const loginCookie = `sdkVersion=3.9; deviceId=${deviceId}; userId=${miUserId}; passToken=${passToken}`
+  let r = await _httpsReq(
+    'GET',
+    'https://account.xiaomi.com/pass/serviceLogin?sid=micoapi&_json=true',
+    { 'User-Agent': ua },
+    loginCookie,
+  )
+  const raw = _stripJson(r.body)
+  const resp: any = JSON.parse(raw)
+  if (resp.code !== 0) {
+    throw new Error(`登录态无效（code=${resp.code} ${resp.description || resp.message || ''}），请重新验证 passToken`)
+  }
+  // nonce 可能超出 JS 安全整数，须取原文
+  const nonceMatch = raw.match(/"nonce"\s*:\s*(\d+)/)
+  const nonce = nonceMatch ? nonceMatch[1] : String(resp.nonce)
+
+  // ② 换 serviceToken
+  const clientSign = createHash('sha1').update(`nonce=${nonce}&${resp.ssecurity}`).digest('base64')
+  r = await _httpsReq('GET', `${resp.location}&clientSign=${encodeURIComponent(clientSign)}`, { 'User-Agent': ua })
+  let serviceToken = ''
+  for (const c of r.setCookies) {
+    const name = c.split(';')[0].split('=')[0].trim()
+    if (name === 'serviceToken') serviceToken = c.split(';')[0].split('=').slice(1).join('=')
+  }
+  if (!serviceToken) {
+    throw new Error('获取 serviceToken 失败（可能触发异地登录验证），请重新验证 passToken')
+  }
+
+  // ③ 设备列表
+  const ua2 =
+    'MiHome/6.0.103 (com.xiaomi.mihome; build:6.0.103.1; iOS 14.4.0) Alamofire/6.0.103 MICO/iOSApp/appStore/6.0.103'
+  const requestId = 'app_ios_' + nanoid(16)
+  const apiCookie = `userId=${miUserId}; serviceToken=${serviceToken}; PassportDeviceId=${deviceId}; countryCode=CN; locale=zh_CN; timezone=GMT+08:00`
+  r = await _httpsReq(
+    'GET',
+    `https://api2.mina.mi.com/admin/v2/device_list?master=0&requestId=${requestId}`,
+    { 'User-Agent': ua2, Referer: 'https://userprofile.mina.mi.com/dialogue-note/index.html' },
+    apiCookie,
+  )
+  const apiResp: any = JSON.parse(_stripJson(r.body))
+  if (apiResp.code !== 0) {
+    throw new Error(`拉取设备列表失败（code=${apiResp.code} ${apiResp.message || ''}）`)
+  }
+  return (apiResp.data || []).map((d: any) => ({
+    name: d.name || d.alias || '',
+    alias: d.alias || '',
+    deviceID: d.deviceID || d.deviceId || '',
+    miotDID: String(d.miotDID || ''),
+    hardware: d.hardware || '',
+    presence: d.presence || 'offline',
+  }))
+}
+
+// ── 用角色的默认配置展开设备初始 migptgui.json ─────────────────────
+/** 去重合并关键词列表（用于把检测词并入唤醒/退出关键词，使其真实生效） */
+function mergeKW(...lists: (string[] | undefined)[]): string[] {
+  const s = new Set<string>()
+  for (const l of lists) if (l) for (const e of l) if (e && e.trim()) s.add(e.trim())
+  return [...s]
+}
+
+export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
+  return {
+    config: {
+      bot: {
+        name: role?.name || '傻妞',
+        profile: (role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。').replace(/\\n/g, '\n'),
+      },
+      master: {
+        name: '主人',
+        profile: '',
+      },
+      speaker: {
+        userId: account?.miUserId || '',
+        password: account?.miPassword || '',
+        switchSpeakerKeywords: ['把声音换成'],
+        callAIKeywords: role?.callAIKeywords || ROLE_DEFAULTS.callAIKeywords,
+        // 检测1（继续对话）并入唤醒关键词：连续对话中说出继续词保持对话、超时后说出仍可重新进入
+        wakeUpKeywords: mergeKW(role?.wakeUpKeywords, role?.checkContinueKeywords, ROLE_DEFAULTS.wakeUpKeywords),
+        // 检测2（停止对话）并入退出关键词：连续对话中说出停止词立即结束
+        exitKeywords: mergeKW(role?.exitKeywords, role?.checkNotContinueKeywords, ROLE_DEFAULTS.exitKeywords),
+        onEnterAI: role?.onEnterAI || ROLE_DEFAULTS.onEnterAI,
+        onExitAI: role?.onExitAI || ROLE_DEFAULTS.onExitAI,
+        onAIAsking: role?.onAIAsking || ROLE_DEFAULTS.onAIAsking,
+        onAIReplied: role?.onAIReplied || ROLE_DEFAULTS.onAIReplied,
+        onAIError: role?.onAIError || ROLE_DEFAULTS.onAIError,
+        exitKeepAliveAfter: role?.exitKeepAliveAfter ?? ROLE_DEFAULTS.exitKeepAliveAfter,
+      },
+    },
+    env: {
+      OPENAI_API_KEY: '',
+      OPENAI_MODEL: '',
+      OPENAI_BASE_URL: '',
+    },
+  }
+}
+
+/** 解析一台设备的完整绑定链（账号/角色/思考服务/语音服务 + 来源标注） */
+export async function resolveBindings(meta: DeviceMeta): Promise<DeviceBindings> {
+  const account = (await getAccounts()).find((a) => a.id === meta.accountId) || (await getAccounts())[0]
+  const roles = await getRoles()
+  const role = meta.roleId
+    ? roles.find((r) => r.id === meta.roleId)
+    : undefined
+
+  // 思考服务：设备覆盖 → 继承人设 → 全局默认
+  let think = meta.thinkServiceId
+    ? (await getThinkServices()).find((t) => t.id === meta.thinkServiceId)
+    : undefined
+  let thinkSource: 'device' | 'role' | 'global' = 'device'
+  if (!think && role?.thinkServiceId) {
+    think = (await getThinkServices()).find((t) => t.id === role.thinkServiceId)
+    thinkSource = 'role'
+  }
+  if (!think) {
+    think = await getDefaultThinkService()
+    thinkSource = 'global'
+  }
+
+  // 语音服务：设备覆盖 → 继承人设 → 全局默认
+  let voice = meta.voiceOverrideId
+    ? (await getVoiceServices()).find((v) => v.id === meta.voiceOverrideId)
+    : undefined
+  let voiceSource: 'device' | 'role' | 'global' = 'device'
+  if (!voice && role?.voiceId) {
+    voice = (await getVoiceServices()).find((v) => v.id === role.voiceId)
+    voiceSource = 'role'
+  }
+  if (!voice) {
+    voice = await getDefaultVoiceService()
+    voiceSource = 'global'
+  }
+
+  const rows = [
+    {
+      key: 'account' as const,
+      label: '云端账号',
+      name: account?.name || '未绑定',
+      detail: account?.miUserId,
+      source: 'device' as const,
+      sourceLabel: '设备指定',
+    },
+    {
+      key: 'role' as const,
+      label: '对话角色',
+      name: role?.name || '未绑定',
+      detail: role ? undefined : '将使用默认行为',
+      source: 'device' as const,
+      sourceLabel: '设备绑定',
+    },
+    {
+      key: 'think' as const,
+      label: '思考服务',
+      name: think?.name || '未配置',
+      detail: think ? `${think.provider} · ${think.model}` : undefined,
+      source: thinkSource,
+      sourceLabel:
+        thinkSource === 'device'
+          ? '设备覆盖'
+          : thinkSource === 'role'
+            ? '继承人设'
+            : '全局默认',
+    },
+    {
+      key: 'voice' as const,
+      label: '语音服务',
+      name: voice?.name || '未配置',
+      detail: voice
+        ? voice.builtin
+          ? '默认语音'
+          : `${voice.provider} · ${voice.voiceId || '默认音色'}`
+        : undefined,
+      source: voiceSource,
+      sourceLabel:
+        voiceSource === 'device'
+          ? '设备覆盖'
+          : voiceSource === 'role'
+            ? '继承人设'
+            : '全局默认',
+    },
+  ]
+
+  return { account, role, think, voice, rows }
+}
+
+/**
+ * 按绑定链编译设备运行时配置（编译投影）：
+ * 角色内容 → bot/speaker；思考服务 → env；语音服务 → tts。
+ * existingConfig 用于保留设备已有的 gui（publicURL 等）与用户手工设置。
+ */
+export async function buildRunConfig(
+  meta: DeviceMeta,
+  existingConfig?: GuiConfig,
+): Promise<{ config: GuiConfig; bindings: DeviceBindings }> {
+  const bindings = await resolveBindings(meta)
+  const { account, role, think, voice } = bindings
+  const config = buildConfigFromRole(role, account)
+
+  // 保留已有设备的 GUI 字段（publicURL / ttsProvider / speakerModel 等）
+  if (existingConfig?.gui) {
+    config.gui = existingConfig.gui
+  }
+
+  // 思考服务 → 推理环境变量
+  if (think) {
+    config.env.OPENAI_API_KEY = think.apiKey
+    config.env.OPENAI_MODEL = think.model
+    config.env.OPENAI_BASE_URL =
+      think.baseUrl || PROVIDER_BASE_URLS[think.provider] || ''
+  } else {
+    // 未配置思考服务时保留已有 env，方便手工模式
+    config.env = existingConfig?.env || config.env
+  }
+
+  // 语音服务 → TTS（内置语音不配置，第三方语音写入 tts 配置）
+  if (voice) {
+    if (voice.ttsCommand && voice.ttsCommand.length > 0) {
+      config.config.speaker.ttsCommand = voice.ttsCommand
+    }
+    if (!voice.builtin && voice.tts) {
+      config.tts = voice.tts
+      config.config.speaker.tts = 'custom'
+    }
+  }
+
+  // 型号 → speaker 硬件指令（数字指令与连续对话能力随型号；召唤词/播报词归角色层）
+  const model = await getSpeakerModelByRef(meta.speakerModel)
+  if (model) {
+    const sp = config.config.speaker
+    // 数字指令：TTS / 唤醒 / 播放检测（硬件指令序列，型号有配置即覆盖）
+    if (model.ttsCommand?.length) sp.ttsCommand = model.ttsCommand
+    if (model.wakeUpCommand?.length) sp.wakeUpCommand = model.wakeUpCommand
+    if (model.playingCommand?.length) sp.playingCommand = model.playingCommand
+    // 连续对话：consecutive === false 时显式禁用 streamResponse
+    if (model.consecutive === false) sp.streamResponse = false
+    // 注意：无 playingCommand 不代表不支持连续对话（官方多数型号依赖 Mina 检测播放状态，
+    // playingCommand 仅作 MiOT 备选指令，异常时才需补充）——故此处不做强制禁用
+  }
+  // 连续对话超时（无响应自动退出唤醒模式，默认 30 秒）
+  config.config.speaker.exitKeepAliveAfter = meta.exitKeepAliveAfter ?? 30
+  // 会话群（room）：对话记忆上下文归属（独立 Room 实体，多设备共用；旧字段仅兼容）
+  const room = await getRoomByRef(meta.roomRef || meta.roomName)
+  if (room) {
+    config.config.room = {
+      name: room.name,
+      description: room.description || '',
+    }
+  }
+
+  config.config.speaker.did = meta.did
+  return { config, bindings }
+}

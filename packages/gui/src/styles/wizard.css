@@ -1,0 +1,284 @@
+/* ── 三步向导 ── */
+.wizard {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  z-index: 9999;
+  background: rgba(31, 23, 16, 0.46);
+}
+
+.wizard.on {
+  display: grid;
+}
+
+.wiz {
+  width: min(1180px, 96vw);
+  background: var(--bg);
+  border-radius: var(--r-l);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+  animation: wzin 0.22s;
+}
+
+@keyframes wzin {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.wiz .wh {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wiz .wh .wtitle {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: none;
+}
+
+.wiz .wh .icon-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.wiz .sdetail {
+  display: flex;
+  flex-direction: column;
+}
+
+.wiz .sdetail .form-card.err-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 22px;
+}
+
+.wiz .sdetail .rr2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 36px;
+  row-gap: 10px;
+  margin-top: 14px;
+}
+
+.wiz .sdetail .rr2 .rr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 13.5px;
+}
+
+.wiz .sdetail .rr2 .rr .k {
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.wiz .sdetail .rr2 .rr .v {
+  color: var(--ink-1);
+  text-align: right;
+  word-break: break-all;
+}
+
+.wiz .wh .wtitle b {
+  font-size: 16px;
+}
+
+.wiz .wh .wtitle span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.wiz .wh .wsteps {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.wiz .wh .wstep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  opacity: 0.55;
+  transition: opacity 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.wiz .wh .wstep.on {
+  opacity: 1;
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
+}
+
+.wiz .wh .wstep.done {
+  opacity: 0.85;
+}
+
+.wiz .wh .wstep .wno {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  flex: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.wiz .wh .wstep.on .wno {
+  background: var(--accent);
+  color: #fff;
+}
+
+.wiz .wh .wstep.done .wno {
+  background: #16a34a;
+  color: #fff;
+}
+
+.wiz .wh .wstep .wt {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.wiz .wh .wstep .wt b {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.wiz .wh .wstep .wt span {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.wiz .wb {
+  padding: 18px 22px 20px;
+  min-height: 300px;
+}
+
+.wiz .split {
+  grid-template-columns: 288px 1fr;
+  height: 560px;
+  gap: 14px;
+}
+
+.wiz .step {
+  display: none;
+}
+
+.wiz .step.on {
+  display: block;
+}
+
+.wiz .wb h4 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.wiz .wb .desc {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin-bottom: 16px;
+}
+
+.wiz .wb .desc {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin-bottom: 16px;
+}
+
+.pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pick-list .pl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  cursor: pointer;
+  background: var(--panel-2);
+}
+
+.pick-list .pl:hover {
+  border-color: var(--accent);
+}
+
+.pick-list .pl.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pick-list .pl .ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+
+.pick-list .pl .ic svg {
+  width: 17px;
+  height: 17px;
+}
+
+.pick-list .pl b {
+  font-size: 13.5px;
+  display: block;
+}
+
+.pick-list .pl span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.pick-list .pl .chk {
+  margin-left: auto;
+  color: var(--accent);
+  width: 18px;
+  height: 18px;
+}
+
+.wiz .wf {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-top: 1px solid var(--line);
+}
+
+.wiz .wf .r {
+  display: flex;
+  gap: 8px;
+}
+
