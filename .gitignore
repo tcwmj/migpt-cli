@@ -35,3 +35,4 @@ docs/
 .gui-build-check.txt
 .gui-webpack-out*.txt
 check_proj.py
+.dev-logs/
