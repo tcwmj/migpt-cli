@@ -1,4 +1,5 @@
 /* ══ 领域常量：视图枚举、菜单标题、供应商清单、TTS 引擎 ══ */
+import { PROVIDER_BASE_URLS } from '@migptgui/contracts'
 
 /** 主菜单视图枚举（菜单顺序 = 配置先后顺序，对话记录/系统日志置底） */
 export type View =
@@ -59,32 +60,21 @@ export const PROVIDERS: Record<string, string> = {
   moonshot: 'Moonshot (Kimi)',
 }
 
-/** 供应商 → 默认接口地址与示例模型（切换供应商时自动带出，可覆盖） */
+/** 供应商 → 默认接口地址与示例模型（切换供应商时自动带出，可覆盖）
+ *  baseUrl 统一取自 @migptgui/contracts，避免与 server 端硬编码漂移 */
 export const PROVIDER_PRESETS: Record<
   string,
   { baseUrl: string; model: string }
 > = {
   custom: { baseUrl: '', model: '' },
-  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  zhipu: {
-    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    model: 'glm-4-flash',
-  },
-  doubao: {
-    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1-8k',
-  },
-  qwen: {
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    model: 'qwen-plus',
-  },
-  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
-  yi: { baseUrl: 'https://api.lingyiwanwu.com/v1', model: 'yi-large' },
-  baichuan: {
-    baseUrl: 'https://api.baichuan-ai.com/v1',
-    model: 'baichuan-ai-4',
-  },
-  moonshot: { baseUrl: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
+  openai: { baseUrl: PROVIDER_BASE_URLS.openai, model: 'gpt-4o-mini' },
+  zhipu: { baseUrl: PROVIDER_BASE_URLS.zhipu, model: 'glm-4-flash' },
+  doubao: { baseUrl: PROVIDER_BASE_URLS.doubao, model: 'doubao-seed-1-8k' },
+  qwen: { baseUrl: PROVIDER_BASE_URLS.qwen, model: 'qwen-plus' },
+  deepseek: { baseUrl: PROVIDER_BASE_URLS.deepseek, model: 'deepseek-chat' },
+  yi: { baseUrl: PROVIDER_BASE_URLS.yi, model: 'yi-large' },
+  baichuan: { baseUrl: PROVIDER_BASE_URLS.baichuan, model: 'baichuan-ai-4' },
+  moonshot: { baseUrl: PROVIDER_BASE_URLS.moonshot, model: 'moonshot-v1-8k' },
 }
 
 /** 语音服务 TTS 引擎（对应 mi-gpt-tts 支持能力；builtin = 默认语音） */
