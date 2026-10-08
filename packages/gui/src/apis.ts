@@ -27,20 +27,31 @@ export type {
   VoiceService,
 } from '@migptgui/contracts'
 
-// ── 登录认证（Basic Auth 凭据管理）──────────────────────────
-const CRED_KEY = 'migpt-auth'
-
-export function getAuthHeader(): string | null {
-  const s = localStorage.getItem(CRED_KEY)
-  return s ? 'Basic ' + btoa(unescape(encodeURIComponent(s))) : null
+// ── 登录认证（httpOnly Cookie 会话）─────────────────────────
+// 凭据仅在登录请求中提交一次，服务端签发 httpOnly Cookie；前端不再持有明文凭据。
+// 同源 fetch 默认携带 Cookie（credentials: 'same-origin'），无需手动附加 Authorization。
+export function login(
+  user: string,
+  password: string,
+): Promise<{ success: boolean }> {
+  return fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user, password }),
+  }).then((r) => j<{ success: boolean }>(r))
 }
 
-export function setAuth(user: string, pwd: string) {
-  localStorage.setItem(CRED_KEY, user + ':' + pwd)
+export function logout(): Promise<{ success: boolean }> {
+  return fetch('/api/logout', { method: 'POST' }).then((r) =>
+    j<{ success: boolean }>(r),
+  )
 }
 
-export function clearAuth() {
-  localStorage.removeItem(CRED_KEY)
+/** 会话探测：页面加载时判断是否已登录（Cookie 为 httpOnly，前端无法直接读取） */
+export function checkSession(): Promise<boolean> {
+  return fetch('/api/session')
+    .then((r) => j<{ authed: boolean }>(r))
+    .then((d) => d.authed)
 }
 
 export function changeAuth(
@@ -62,11 +73,7 @@ export function changeAuth(
 }
 
 function headers(withBody: boolean): Record<string, string> {
-  const h: Record<string, string> = {}
-  const auth = getAuthHeader()
-  if (auth) h['Authorization'] = auth
-  if (withBody) h['Content-Type'] = 'application/json'
-  return h
+  return withBody ? { 'Content-Type': 'application/json' } : {}
 }
 
 async function j<T>(res: Response): Promise<T> {

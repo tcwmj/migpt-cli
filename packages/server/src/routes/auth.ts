@@ -1,4 +1,4 @@
-// ── 认证：Basic Auth 中间件（失败限流）+ 登录凭据修改 ────────────
+// ── 认证：httpOnly Cookie 会话（主）+ Basic Auth（兼容）+ 凭据修改 ────
 import { authFile } from '../paths.js'
 import {
   resolveAuth,
@@ -6,6 +6,13 @@ import {
   safeEqual,
   writeJson,
 } from '../store.js'
+import {
+  SESSION_COOKIE,
+  SESSION_TTL_MS,
+  createSession,
+  getSession,
+  destroySession,
+} from '../session.js'
 import type { RouteContext } from './shared.js'
 
 // 认证失败限流：同一来源在窗口内失败次数超限后直接拒绝，抵御口令爆破。
@@ -34,7 +41,50 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
     e.count++
   }
 
-  // 自定义 Basic Auth：失败返回 JSON 401（不带 challenge），由前端渲染登录页。
+  // ── 登录 / 登出 / 会话探测：须先于认证中间件注册（匿名可访问）─────
+  // 登录成功后签发 httpOnly Cookie，前端不再持有明文凭据。
+  app.post('/api/login', (req, res) => {
+    const ip = req.ip || 'unknown'
+    if (authBlocked(ip)) {
+      res.status(429).json({ error: '尝试次数过多，请稍后再试' })
+      return
+    }
+    const body = req.body as { user?: string; password?: string }
+    const user = body.user || ''
+    const users = resolveAuth(options?.users)
+    // 恒定时间比较；用户名不存在时也与空串比较，避免用户枚举
+    const expected = users[user] ?? ''
+    if (user && expected && safeEqual(expected, body.password || '')) {
+      authFailures.delete(ip)
+      res.cookie(SESSION_COOKIE, createSession(user), {
+        httpOnly: true,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: SESSION_TTL_MS,
+      })
+      res.json({ success: true })
+      return
+    }
+    noteAuthFailure(ip)
+    res.status(401).json({ error: 'unauthorized' })
+  })
+
+  app.post('/api/logout', (req, res) => {
+    destroySession(req.cookies?.[SESSION_COOKIE])
+    res.clearCookie(SESSION_COOKIE, { path: '/' })
+    res.json({ success: true })
+  })
+
+  app.get('/api/session', (req, res) => {
+    // 关闭认证时视为已登录，前端直接进入面板
+    if (options?.auth === false) {
+      res.json({ authed: true })
+      return
+    }
+    res.json({ authed: !!getSession(req.cookies?.[SESSION_COOKIE]) })
+  })
+
+  // ── 认证中间件：优先校验会话 Cookie，其次兼容 Basic Auth ──────────
   // 认证默认启用：凭据按 环境变量/--pwd > auth.json（面板可改）> 默认 admin/123456 解析。
   if (options?.auth !== false) {
     app.use('/api', (req, res, next) => {
@@ -43,7 +93,10 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
         res.status(429).json({ error: '尝试次数过多，请稍后再试' })
         return
       }
-      const users = resolveAuth(options?.users)
+      if (getSession(req.cookies?.[SESSION_COOKIE])) {
+        authFailures.delete(ip)
+        return next()
+      }
       const header = req.headers.authorization || ''
       const [type, token] = header.split(' ')
       if (type === 'Basic' && token) {
@@ -57,6 +110,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
         const user = idx >= 0 ? decoded.slice(0, idx) : ''
         const pass = idx >= 0 ? decoded.slice(idx + 1) : ''
         // 恒定时间比较；用户名不存在时也与空串比较，避免用户枚举
+        const users = resolveAuth(options?.users)
         const expected = users[user] ?? ''
         if (user && expected && safeEqual(expected, pass)) {
           authFailures.delete(ip)

@@ -123,6 +123,16 @@ export function resolveAuth(
 }
 
 /**
+ * 是否仍在使用内置默认凭据（admin/123456）。
+ * 仅当既无 AUTH_PASSWORD 环境变量、也无 auth.json 自定义密码时为 true，供启动告警使用。
+ */
+export function usingDefaultAuth(): boolean {
+  if (process.env.AUTH_PASSWORD) return false
+  const file = readJsonSync<{ user?: string; password?: string }>(authFile, {})
+  return !file.password
+}
+
+/**
  * 恒定时间字符串比较：先哈希再比较，长度差异与内容差异均不通过时间泄露。
  * 用于认证凭据校验，避免逐字符短路比较被计时侧信道利用。
  */

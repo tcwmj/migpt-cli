@@ -37,7 +37,7 @@ import { Wizard } from './components/Wizard.tsx'
 import type { ModalState } from './ui-types.ts'
 
 export function App() {
-  const [authed, setAuthed] = useState<boolean>(!!api.getAuthHeader())
+  const [authed, setAuthed] = useState<boolean | null>(null)
   const [loginErr, setLoginErr] = useState('')
   const [view, setView] = useState<View>('home')
   const [settingTab, setSettingTab] = useState<'think' | 'voice'>('think')
@@ -679,13 +679,20 @@ export function App() {
       setLoading(false)
       const msg = (e as Error).message
       if (msg === 'unauthorized') {
-        api.clearAuth()
         setAuthed(false)
       } else {
         showToast(msg || '加载失败')
       }
     }
   }, [showToast])
+
+  /* 会话探测：Cookie 为 httpOnly，前端无法直接判断登录态，需向服务端查询 */
+  useEffect(() => {
+    api
+      .checkSession()
+      .then(setAuthed)
+      .catch(() => setAuthed(false))
+  }, [])
 
   /* 认证探测 */
   useEffect(() => {
@@ -709,25 +716,23 @@ export function App() {
 
   const doLogin = async (u: string, p: string) => {
     setLoginErr('')
-    api.setAuth(u, p)
     try {
-      await api.getStatusAll()
+      await api.login(u, p)
       setAuthed(true)
       setView('home')
     } catch (e) {
       const msg = (e as Error).message
+      setAuthed(false)
       if (msg === 'unauthorized') {
-        api.clearAuth()
         setLoginErr('用户名或密码错误（初始账号 admin，密码 123456）')
       } else {
-        api.clearAuth()
         setLoginErr(msg || '无法连接服务')
       }
     }
   }
 
   const doLogout = () => {
-    api.clearAuth()
+    api.logout().catch(() => undefined)
     setAuthed(false)
     setAccounts([])
     setDevices([])
@@ -1068,6 +1073,10 @@ export function App() {
   }
 
   /* ══ 渲染 ══ */
+  // 会话探测中：先不渲染，避免登录页闪烁
+  if (authed === null) {
+    return null
+  }
   if (!authed) {
     return <LoginPage onLogin={doLogin} error={loginErr} />
   }

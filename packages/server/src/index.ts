@@ -2,12 +2,15 @@
 // 日志拦截必须先加载（console.* 被包装后，其他模块的日志同样进入 system.log）
 import './logger.js'
 import express from 'express'
+import helmet from 'helmet'
+import cookieParser from 'cookie-parser'
 import open from 'open'
 import {
   seedBuiltinVoice,
   seedBuiltinModels,
   migrateRooms,
   seedDemoLogs,
+  usingDefaultAuth,
 } from './store.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerDeviceTtsRoutes } from './routes/device-tts.js'
@@ -33,13 +36,32 @@ export function runServer(options?: ServerOptions) {
   const app = express()
   app.disable('x-powered-by')
 
-  // 安全响应头：禁止 MIME 嗅探、禁止被 iframe 嵌套、不向外部泄露来源地址
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('X-Frame-Options', 'DENY')
-    res.setHeader('Referrer-Policy', 'no-referrer')
-    next()
-  })
+  // 安全响应头（helmet）：禁止 MIME 嗅探、禁止被 iframe 嵌套、不向外部泄露来源地址。
+  // CSP 用兼容型白名单；不启用 helmet 默认指令集——默认含 upgrade-insecure-requests，
+  // 会把本地 http 访问升级为 https 而无法打开面板。HSTS / 跨域隔离同样关闭以兼容本地 HTTP。
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          'default-src': ["'self'"],
+          'script-src': ["'self'"],
+          'style-src': ["'self'", "'unsafe-inline'"],
+          'img-src': ["'self'", 'data:', 'https:'],
+          'font-src': ["'self'", 'data:'],
+          'connect-src': ["'self'"],
+          'object-src': ["'none'"],
+          'base-uri': ["'self'"],
+          'frame-ancestors': ["'none'"],
+        },
+      },
+      frameguard: { action: 'deny' },
+      strictTransportSecurity: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  )
+  // Cookie 解析：登录会话（httpOnly Cookie）读取依赖此中间件
+  app.use(cookieParser())
 
   // 健康检查 / 对外地址连通性测试：GET（Docker HEALTHCHECK）与 POST（面板测试）均支持
   app.all('/ping', (_req, res) => {
@@ -78,6 +100,13 @@ export function runServer(options?: ServerOptions) {
     console.log('端口：', port)
     console.log('登录认证：', isAuth ? '已启用' : '未启用')
     console.log('秘密路径：', '已启用')
+    // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
+    if (isAuth && !options?.users && usingDefaultAuth()) {
+      console.warn(
+        '\n⚠️  安全警告：正在使用默认登录凭据 admin/123456，任何人都可登录。\n' +
+          '    请尽快在面板「我的」中修改密码，或设置 AUTH_PASSWORD 环境变量 / 使用 --pwd 启动参数。\n',
+      )
+    }
     if (options?.open) {
       open(`http://localhost:${port}`)
     }

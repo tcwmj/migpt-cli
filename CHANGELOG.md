@@ -15,6 +15,9 @@
 - 登录校验改用恒定时间比较（`timingSafeEqual`），并对连续失败做限流（20 次 / 10 分钟）
 - TTS 试听接口由 URL query 改为 POST 请求体，避免密钥进入访问日志与浏览器历史
 - 请求体大小限制为 1 MB，并补齐 `nosniff` / `X-Frame-Options` / `Referrer-Policy` 响应头
+- 接入 `helmet` 统一安全响应头，并启用兼容型 CSP（`script-src 'self'`、`style-src 'self' 'unsafe-inline'` 等）；关闭 HSTS / COEP 以兼容本地 HTTP 访问
+- 登录凭据改为 `httpOnly` + `SameSite=Strict` 会话 Cookie，前端不再把明文凭据写入 `localStorage`；新增 `/api/login`、`/api/logout`、`/api/session`，保留 Basic Auth 兼容
+- 仍在使用默认口令 `admin/123456` 时，启动阶段打印醒目安全告警
 
 ### Performance
 
@@ -37,6 +40,7 @@
 - 供应商 baseUrl 映射下沉到 `@migptgui/contracts` 单一事实源，前后端共用
 - 缓存、覆盖率、日志、临时产物统一收纳到根 `.cache/`，新增 `npm run clean:cache`
 - nx 调用统一经 `scripts/nx.mjs` 包装，避免根目录生成 `.nx/`
+- 前端登录由 Basic Auth（凭据存 `localStorage`）改为服务端 Cookie 会话，刷新页面保持登录态
 
 ### Refactor
 
