@@ -46,10 +46,30 @@ export function assertUniqueName<T extends { id: string; name?: string }>(
   return hit ? `${label}「${n}」已存在，名称需唯一` : null
 }
 
+// ── JSON 读缓存：按文件 mtime/size 校验，命中即免去重复读盘与解析 ──
+// 写入统一走 writeJson 的原子替换（临时文件 + rename），mtime 必变，故无需显式失效；
+// 设备目录被整体删除时 stat 抛 ENOENT，直接回落 fallback，也不会读到旧值。
+interface _JsonCacheEntry {
+  mtimeMs: number
+  size: number
+  data: unknown
+}
+const _jsonCache = new Map<string, _JsonCacheEntry>()
+
 export async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
-    return JSON.parse(await fs.readFile(file, 'utf-8'))
+    // 先 stat 后 read：若写入恰好落在两者之间，下次读取因 mtime/size 变化会重新读盘
+    const st = await fs.stat(file)
+    const hit = _jsonCache.get(file)
+    if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) {
+      return structuredClone(hit.data) as T
+    }
+    const data = JSON.parse(await fs.readFile(file, 'utf-8'))
+    _jsonCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, data })
+    // 返回克隆，保持「每次解析得到独立对象」的既有语义，避免调用方就地修改（如 roles.push）污染缓存
+    return structuredClone(data) as T
   } catch {
+    _jsonCache.delete(file)
     return fallback
   }
 }
