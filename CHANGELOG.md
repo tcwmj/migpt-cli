@@ -82,3 +82,4 @@
 - 补充核心模块单元测试（共 7 个测试文件 / 87 条用例）：`redact`（凭据脱敏）、`store/json`（原子写 / 读缓存 / 并发串行化）、`store/auth`（凭据解析优先级与恒定时间比较）、`store/entities`（唯一名校验 / 账号迁移 / 设备元数据 / 引用解析）、`routes/crud`（CRUD 工厂四段式与删除引用保护）、`routes/shared`（字段白名单 / 404 / 引用冲突 / 设备配置读取）
 - Jest 增加 `packages/server` 测试项目并放行 `nanoid` 等 ESM 依赖转换；配置覆盖率阈值（statements 90 / branches 78 / functions 90 / lines 90）并忽略 `dist` 构建产物，防止覆盖率无声下滑
 - Node 版本由已 EOL 的 `20.17.0` 升级到 `24.21.0`（Node 24 LTS）：`.nvmrc`、根 `engines`、两个 `Dockerfile` 基镜像与 `CONTRIBUTING.md` 同步更新；同时解决 `.nvmrc` 与 `lint-staged@17.6.0`（要求 Node ≥22.22.1）的引擎约束冲突
+- `nx.json` 迁移到 nx 20+ 新格式：移除已废弃的 `tasksRunnerOptions`（`cacheableOperations`），改为在 `targetDefaults` 中按目标声明 `cache: true`（`build` / `typecheck` / `test` / `test:ci` / `lint`）；`affected.defaultBase` 上移为顶层 `defaultBase`（该旧写法将于 Nx 20 移除）
