@@ -12,7 +12,7 @@ const config = {
   clearMocks: true,
   transformIgnorePatterns: [
     // 为了确保 jest 将这些 esm 模块传给 transformer，需要将这些模块“反”排除
-    'node_modules/(?!(node-fetch|lodash-es|date-fns|data-uri-to-buffer|fetch-blob|formdata-polyfill)/)',
+    'node_modules/(?!(nanoid|node-fetch|lodash-es|date-fns|data-uri-to-buffer|fetch-blob|formdata-polyfill)/)',
   ],
 
   // babel 配置内联在此（原根 babel.config.js 仅服务 jest，独立成根级文件易被
@@ -43,6 +43,10 @@ const config = {
     {
       displayName: 'packages/options',
       testMatch: ['<rootDir>/packages/options/src/**/*.test.{ts,tsx}'],
+    },
+    {
+      displayName: 'packages/server',
+      testMatch: ['<rootDir>/packages/server/src/**/*.test.{ts,tsx}'],
     },
   ],
 }
