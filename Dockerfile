@@ -46,9 +46,19 @@ VOLUME /home/node/.migptgui
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q -O /dev/null http://127.0.0.1:${PORT}/ping || exit 1
 
+# 镜像元数据（G11）：version / revision / created 由 CI 经 --build-arg 注入；
+# 本地构建未注入时回落占位值，保证 label 齐全可查。
+ARG VERSION=dev
+ARG REVISION=unknown
+ARG CREATED
 LABEL org.opencontainers.image.title="migpt-cli（多设备版）" \
       org.opencontainers.image.description="多台音箱、一个大脑：多设备 MiGPT 控制面板（单容器）" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/tcwmj/migpt-cli"
+      org.opencontainers.image.source="https://github.com/tcwmj/migpt-cli" \
+      org.opencontainers.image.documentation="https://github.com/tcwmj/migpt-cli#readme" \
+      org.opencontainers.image.vendor="tcwmj" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.created="${CREATED}"
 
 ENTRYPOINT ["node", "apps/server/dist/index.js"]

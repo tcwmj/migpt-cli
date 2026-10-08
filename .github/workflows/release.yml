@@ -1,0 +1,113 @@
+name: Release image
+
+# G9  发布工作流：tag 触发（nx release 产物，形如 migptgui@2.1.0）→ 多架构构建 → 推送 Docker Hub + GHCR
+# G10 供应链可信：构建期生成 SBOM 与 provenance，推送后 cosign 无密钥（OIDC）签名
+# G12 漏洞门禁：推送后 Trivy 扫描，命中可修复的 HIGH/CRITICAL 即失败
+on:
+  push:
+    tags:
+      - 'migptgui@*'
+
+permissions:
+  contents: read
+  packages: write # 推送 GHCR
+  id-token: write # cosign keyless（OIDC）
+
+env:
+  IMAGE_NAME: migpt-cli
+
+jobs:
+  release:
+    name: Build · Push · Sign
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required secrets
+        env:
+          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          [ -n "$DH_USER" ] || { echo "::error::缺少仓库 Secret：DOCKERHUB_USERNAME"; exit 1; }
+          [ -n "$DH_TOKEN" ] || { echo "::error::缺少仓库 Secret：DOCKERHUB_TOKEN"; exit 1; }
+
+      # 根 Dockerfile 自带 npm ci + build-all（.dockerignore 已排除 node_modules/dist），
+      # 构建在容器内完成，runner 无需预装 Node 或预先构建。
+      - name: Resolve version & created
+        id: ver
+        run: |
+          version="${GITHUB_REF_NAME#migptgui@}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.ver.outputs.version }}
+            type=raw,value=v${{ steps.ver.outputs.version }}
+            type=raw,value=latest
+            type=sha,format=long
+
+      - name: Build & push (multi-arch, SBOM + provenance)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.ver.outputs.version }}
+            REVISION=${{ github.sha }}
+            CREATED=${{ steps.ver.outputs.created }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Sign images (keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          DH_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+        run: |
+          cosign sign --yes "${GHCR_IMAGE}@${DIGEST}"
+          cosign sign --yes "${DH_IMAGE}@${DIGEST}"
+
+      # 注意：Trivy 供应链事件后须使用安全版本（trivy-action >= 0.35.0）
+      - name: Scan image (Trivy gate)
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'

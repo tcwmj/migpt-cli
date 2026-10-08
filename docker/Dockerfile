@@ -30,7 +30,24 @@ FROM node:24.21.0-alpine3.23 AS env-arm64
 ###### 尝试构建 armv7l 的过程 ######
 
 FROM env-$TARGETARCH
-RUN npm install -g migpt-server@2.0.0
+
+# VERSION 同时用于「安装的 npm 包版本」与「镜像元数据 version」，两者保持一致；
+# revision / created 由 CI 经 --build-arg 注入，本地构建回落占位值。
+ARG VERSION=2.0.0
+ARG REVISION=unknown
+ARG CREATED
+RUN npm install -g migpt-server@${VERSION}
+
+LABEL org.opencontainers.image.title="migpt-server" \
+      org.opencontainers.image.description="MiGPT 服务端（多设备控制面板后端）" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/tcwmj/migpt-cli" \
+      org.opencontainers.image.documentation="https://github.com/tcwmj/migpt-cli#readme" \
+      org.opencontainers.image.vendor="tcwmj" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.created="${CREATED}"
+
 EXPOSE 36597
 VOLUME /root/.migptgui
 ENTRYPOINT ["migpt-server"]
