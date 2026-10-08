@@ -1,5 +1,2 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 # 直接调用根 node_modules 的 lint-staged，避免 hook 环境 PATH 无 npx
 "$PWD/node_modules/.bin/lint-staged"
