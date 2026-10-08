@@ -16,7 +16,7 @@ import {
   roomsFile,
   authFile,
 } from './paths.js'
-import { logBuffers, demoTs } from './logger.js'
+import { appendLog, clearDeviceLog, demoTs } from './logger.js'
 import {
   type Settings,
   type Account,
@@ -636,16 +636,22 @@ export async function seedDemoLogs() {
   if (!devices.length) return
   const now = Date.now()
   for (const d of devices) {
-    const buf: string[] = []
+    // 走 appendLog 统一入口，保证原始缓冲与结构化缓冲同步生成
+    clearDeviceLog(d.id)
     for (let i = 0; i < 4; i++) {
       const s = DEMO_SCENES[i % DEMO_SCENES.length]
       const tq = new Date(now - (i * 47 + 13) * 60000)
-      buf.push(`${demoTs(tq)} [用户] 问：${s.q}`)
-      buf.push(`${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a}`)
+      appendLog(d.id, `${demoTs(tq)} [用户] 问：${s.q}`)
+      appendLog(
+        d.id,
+        `${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a}`,
+      )
       if (s.sys)
-        buf.push(`${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`)
+        appendLog(
+          d.id,
+          `${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`,
+        )
     }
-    logBuffers.set(d.id, buf)
   }
   console.log(
     `[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`,

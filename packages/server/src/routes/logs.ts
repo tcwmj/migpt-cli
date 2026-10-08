@@ -1,18 +1,13 @@
 // ── 对话日志聚合 + 系统日志查看/下载/清空 ────────────────────────
 import fs from 'node:fs/promises'
 import { systemLogFile } from '../paths.js'
-import { logBuffers, sysLogBuf, clearSysLog } from '../logger.js'
+import { logRows, sysLogBuf, clearSysLog } from '../logger.js'
 import { listDeviceMetas } from '../store.js'
 import type { RouteContext } from './shared.js'
 
-// 日志行解析正则：模块级预编译，避免每次请求在循环内重复构造
-const LOG_TS_RE = /^(\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2})/
-const LOG_TS_STRIP_RE = /^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/
-const LOG_USER_RE = /^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/
-const LOG_AI_RE = /^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
-
 export function registerLogRoutes({ app }: RouteContext): void {
   // ── 全局对话日志（聚合所有设备，供「对话记录」页）────────────────
+  // 结构化在 appendLog 写入期完成，此处仅做别名映射与排序，不再逐行正则解析。
   app.get('/api/logs', async (req, res) => {
     const limit = Math.min(Number(req.query.limit) || 200, 500)
     const rows: {
@@ -26,28 +21,11 @@ export function registerLogRoutes({ app }: RouteContext): void {
     const aliasById = new Map(
       (await listDeviceMetas()).map((m) => [m.id, m.alias]),
     )
-    for (const [deviceId, buf] of logBuffers) {
+    for (const [deviceId, list] of logRows) {
       const deviceAlias = aliasById.get(deviceId) || deviceId
-      let cur: {
-        time: string
-        kind: 'user' | 'ai' | 'system'
-        text: string
-      } | null = null
-      for (const line of buf.slice(-limit)) {
-        const m = line.match(LOG_TS_RE)
-        const body = line.replace(LOG_TS_STRIP_RE, '')
-        if (m) {
-          if (cur) rows.push({ deviceId, deviceAlias, ...cur })
-          let kind: 'user' | 'ai' | 'system' = 'system'
-          if (LOG_USER_RE.test(body)) kind = 'user'
-          else if (LOG_AI_RE.test(body)) kind = 'ai'
-          cur = { time: m[1], kind, text: body }
-        } else if (cur) {
-          // 无时间戳的续行并入上一条日志（同一条多行日志不拆成多条）
-          cur.text += '\n' + body
-        }
+      for (const r of list.slice(-limit)) {
+        rows.push({ deviceId, deviceAlias, ...r })
       }
-      if (cur) rows.push({ deviceId, deviceAlias, ...cur })
     }
     rows.sort((a, b) => (a.time < b.time ? 1 : -1))
     res.json({ total: rows.length, logs: rows.slice(0, limit) })

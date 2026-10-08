@@ -21,7 +21,7 @@ import {
   redactGuiConfig,
   redactBindings,
 } from '../redact.js'
-import { logBuffers, appendLog } from '../logger.js'
+import { logBuffers, appendLog, clearDeviceLog } from '../logger.js'
 import type { DeviceMeta } from '../types.js'
 import {
   pick,
@@ -206,7 +206,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   app.delete('/api/devices/:id', async (req, res) => {
     await stop(req.params.id)
     await fse.remove(path.join(devicesRoot, req.params.id))
-    logBuffers.delete(req.params.id)
+    clearDeviceLog(req.params.id)
     res.json({ success: true })
   })
 

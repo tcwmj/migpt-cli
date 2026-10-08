@@ -124,7 +124,22 @@ console.error = (...a: any[]) => {
 
 // ── 设备日志环形缓冲（每台设备独立的对话/运行日志） ──
 export const MAX_LOG_LINES = 500
+// 原始行缓冲：供「单设备原始日志」接口按行返回
 export const logBuffers = new Map<string, string[]>()
+
+// 结构化行缓冲：写入期解析一次，聚合接口（/api/logs）直接消费，免去每请求重复正则解析
+export interface LogRow {
+  time: string
+  kind: 'user' | 'ai' | 'system'
+  text: string
+}
+export const logRows = new Map<string, LogRow[]>()
+
+// 日志行解析正则：模块级预编译
+const LOG_TS_RE = /^(\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2})/
+const LOG_TS_STRIP_RE = /^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/
+const LOG_USER_RE = /^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/
+const LOG_AI_RE = /^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
 
 export function appendLog(id: string, line: string) {
   let buf = logBuffers.get(id)
@@ -134,6 +149,30 @@ export function appendLog(id: string, line: string) {
   }
   buf.push(line)
   if (buf.length > MAX_LOG_LINES) buf.splice(0, buf.length - MAX_LOG_LINES)
+
+  // 同步结构化：带时间戳开新条；无时间戳的续行并入上一条（多行日志不拆开）
+  let rows = logRows.get(id)
+  if (!rows) {
+    rows = []
+    logRows.set(id, rows)
+  }
+  const m = line.match(LOG_TS_RE)
+  const body = line.replace(LOG_TS_STRIP_RE, '')
+  if (m) {
+    let kind: LogRow['kind'] = 'system'
+    if (LOG_USER_RE.test(body)) kind = 'user'
+    else if (LOG_AI_RE.test(body)) kind = 'ai'
+    rows.push({ time: m[1], kind, text: body })
+  } else if (rows.length) {
+    rows[rows.length - 1].text += '\n' + body
+  }
+  if (rows.length > MAX_LOG_LINES) rows.splice(0, rows.length - MAX_LOG_LINES)
+}
+
+/** 清空某设备的原始 + 结构化日志缓冲（设备删除 / 演示数据重建时调用） */
+export function clearDeviceLog(id: string) {
+  logBuffers.delete(id)
+  logRows.delete(id)
 }
 
 /** 日志时间戳（如 2026/10/07 17:00:00） */
