@@ -8,6 +8,12 @@
     "lib": ["ESNext"],
     "strict": true,
     "skipLibCheck": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // 契约包「零手动构建」：typecheck / dev 直接把 @migptgui/contracts 解析到源码，
+    // 无需先 build 出 dist。emit 构建（tsc -d）仍走 node_modules → dist（见各 tsconfig.build.json
+    // 的 "paths": {} 覆盖），以保持产物目录结构不被源码路径污染。
+    "paths": {
+      "@migptgui/contracts": ["./packages/contracts/src/index.ts"]
+    }
   }
 }

@@ -44,8 +44,10 @@ const config = {
   },
 
   // TS 源码以 ESM 风格书写，相对导入带 .js 后缀（NodeNext 约定），
-  // 但 jest 默认解析器不会把 .js 映射回 .ts，这里去掉后缀再交给解析器
+  // 但 jest 默认解析器不会把 .js 映射回 .ts，这里去掉后缀再交给解析器；
+  // 契约包同样「零手动构建」：直接解析到源码，无需先 build 出 dist。
   moduleNameMapper: {
+    '^@migptgui/contracts$': '<rootDir>/packages/contracts/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 

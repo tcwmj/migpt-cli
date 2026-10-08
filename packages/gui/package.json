@@ -19,6 +19,7 @@
   "devDependencies": {
     "@blueprintjs/core": "^5.13.0",
     "@blueprintjs/icons": "^5.13.0",
+    "@migptgui/contracts": "*",
     "@migptgui/options": "*",
     "core-js": "^3.38.1",
     "normalize.css": "^8.0.1",

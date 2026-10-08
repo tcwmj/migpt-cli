@@ -1,5 +1,11 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // emit 构建不套用基类的 @migptgui/contracts → 源码映射：
+    // 否则契约源码会被并入本包 program，推断出的 rootDir 上移导致产物嵌套（dist/server/…），
+    // 破坏 main: dist/index.js。清空 paths 即回落到 node_modules → contracts/dist（由 nx ^build 保证已构建）。
+    "paths": {}
+  },
   "exclude": [
     "src/**/*.test.tsx",
     "src/**/*.test.ts",

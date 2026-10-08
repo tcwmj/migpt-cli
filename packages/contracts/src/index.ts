@@ -210,3 +210,126 @@ export const PROVIDER_BASE_URLS: Record<string, string> = {
   yi: 'https://api.lingyiwanwu.com/v1',
   baichuan: 'https://api.baichuan-ai.com/v1',
 }
+
+// ── 契约字段清单（运行期事实源）────────────────────────────────
+// 接口类型只在编译期生效，运行期读不到字段名：server 的 zod schema、路由写字段白名单
+// 都需自己维护字段列表，容易与契约悄悄漂移。此处用常量固化各实体字段，供运行期一致性校验
+// （如「存储 schema ↔ 契约」「路由白名单 ↔ 契约」测试）引用。
+export const ENTITY_FIELDS = {
+  settings: ['miUserId', 'miPassword', 'passToken', 'hasPassToken'],
+  account: [
+    'id',
+    'name',
+    'miUserId',
+    'miPassword',
+    'passToken',
+    'createdAt',
+    'hasPassToken',
+    'hasMiPassword',
+  ],
+  role: [
+    'id',
+    'name',
+    'profile',
+    'callAIKeywords',
+    'wakeUpKeywords',
+    'exitKeywords',
+    'checkContinueKeywords',
+    'checkNotContinueKeywords',
+    'onEnterAI',
+    'onExitAI',
+    'onAIAsking',
+    'onAIReplied',
+    'onAIError',
+    'exitKeepAliveAfter',
+    'thinkServiceId',
+    'voiceId',
+  ],
+  thinkService: [
+    'id',
+    'name',
+    'provider',
+    'model',
+    'apiKey',
+    'baseUrl',
+    'temperature',
+    'isDefault',
+    'createdAt',
+    'hasApiKey',
+  ],
+  voiceService: [
+    'id',
+    'name',
+    'provider',
+    'voiceId',
+    'ttsCommand',
+    'builtin',
+    'isDefault',
+    'tts',
+    'createdAt',
+  ],
+  speakerModel: [
+    'id',
+    'name',
+    'did',
+    'desc',
+    'ttsCommand',
+    'wakeUpCommand',
+    'playingCommand',
+    'consecutive',
+    'imageUrl',
+    'builtin',
+    'createdAt',
+  ],
+  room: ['id', 'name', 'description', 'createdAt'],
+  deviceMeta: [
+    'id',
+    'alias',
+    'did',
+    'speakerModel',
+    'roleId',
+    'accountId',
+    'thinkServiceId',
+    'voiceOverrideId',
+    'exitKeepAliveAfter',
+    'roomRef',
+    'roomName',
+    'roomDescription',
+    'ttsSecret',
+    'createdAt',
+    'hasTtsSecret',
+  ],
+} as const
+
+/** 清单键名 → 对应实体接口 */
+interface EntityMap {
+  settings: Settings
+  account: Account
+  role: Role
+  thinkService: ThinkService
+  voiceService: VoiceService
+  speakerModel: SpeakerModel
+  room: Room
+  deviceMeta: DeviceMeta
+}
+
+/** 清单与接口字段严格一致时求值为 true，否则退化为 never（用于编译期断言） */
+type ExactKeys<T, K extends readonly string[]> = [
+  Exclude<keyof T, K[number]> | Exclude<K[number], keyof T>,
+] extends [never]
+  ? true
+  : never
+
+// 编译期断言：清单漏键 / 多键即在此报错（运行期不使用，仅作类型守卫）
+const _fieldExactness: {
+  [E in keyof EntityMap]: ExactKeys<EntityMap[E], (typeof ENTITY_FIELDS)[E]>
+} = {
+  settings: true,
+  account: true,
+  role: true,
+  thinkService: true,
+  voiceService: true,
+  speakerModel: true,
+  room: true,
+  deviceMeta: true,
+}
