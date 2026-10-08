@@ -3,6 +3,42 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "cacheDirectory": ".cache/nx",
   "defaultBase": "main",
+  "release": {
+    "groups": {
+      "migptgui": {
+        "projects": [
+          "@migptgui/contracts",
+          "@migptgui/controller",
+          "@migptgui/gui",
+          "@migptgui/options",
+          "@migptgui/options-with-preview",
+          "@migptgui/server",
+          "migpt-server"
+        ],
+        "projectsRelationship": "fixed",
+        "releaseTagPattern": "migptgui@{version}",
+        "version": {
+          "conventionalCommits": true,
+          "generatorOptions": {
+            "fallbackCurrentVersionResolver": "disk"
+          }
+        },
+        "changelog": false
+      },
+      "cli": {
+        "projects": ["migpt-cli"],
+        "projectsRelationship": "independent",
+        "releaseTagPattern": "migpt-cli@{version}",
+        "version": {
+          "conventionalCommits": true,
+          "generatorOptions": {
+            "fallbackCurrentVersionResolver": "disk"
+          }
+        },
+        "changelog": false
+      }
+    }
+  },
   "targetDefaults": {
     "dev": {
       "dependsOn": ["^build"],
