@@ -157,12 +157,3 @@
 .pi.danger:hover {
   background: rgba(192, 57, 43, 0.05);
 }
-
-@media (max-width: 980px) {
-  .login-hero-inner {
-    padding: 0;
-  }
-  .login-hero h1 {
-    font-size: var(--fs-7xl);
-  }
-}

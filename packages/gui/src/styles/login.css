@@ -73,7 +73,11 @@
 .login-hero-inner {
   position: relative;
   z-index: var(--z-base);
-  width: min(600px, 100%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .login-eyebrow {
@@ -92,11 +96,13 @@
 }
 
 .login-hero h1 {
-  font-size: var(--fs-7xl);
-  line-height: 1.32;
+  font-size: var(--fs-8xl);
+  font-weight: var(--fw-black);
+  line-height: 1.12;
   letter-spacing: -0.02em;
   color: var(--ink-1);
-  margin: 0 0 var(--sp-6);
+  margin: auto auto 0;
+  text-align: center;
 }
 
 .login-hero-sub {
@@ -183,9 +189,11 @@
 
 .login-card h2 {
   font-size: var(--fs-6xl);
+  font-weight: var(--fw-heavy);
   letter-spacing: -0.01em;
-  margin-bottom: var(--sp-4);
+  margin-bottom: 26px;
   color: var(--ink-1);
+  text-align: center;
 }
 
 .login-desc {
@@ -274,9 +282,10 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-3);
-  margin-top: 18px;
+  margin-top: var(--sp-9);
   font-size: var(--fs-xs);
   color: var(--ink-3);
+  letter-spacing: 0.01em;
 }
 
 .login-safe svg {
@@ -284,7 +293,7 @@
 }
 
 .login-foot {
-  margin-top: var(--sp-12);
+  margin-top: 36px;
   font-size: var(--fs-2xs);
   color: var(--ink-3);
   opacity: 0.8;
@@ -309,14 +318,11 @@
     );
   }
   .login-hero h1 {
-    font-size: var(--fs-6xl);
+    font-size: var(--fs-7xl);
   }
   .login-panel {
     border-left: none;
     border-top: 1px solid var(--line);
     padding: var(--sp-11) var(--sp-10) 28px;
-  }
-  .login-foot {
-    margin-top: 28px;
   }
 }
