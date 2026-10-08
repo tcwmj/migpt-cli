@@ -55,6 +55,7 @@
 - 后端 6 个实体路由（账号 / 角色 / 会话群 / 思考服务 / 语音服务 / 型号）抽为 `createCrudRouter` 工厂：列表 / 创建 / 更新 / 删除四段式与参数校验、唯一名、404、内置保护集中实现，各实体只留构造 / 更新 / 脱敏钩子；删除引用校验改为注册表式（`deviceRefs` / `roleRefs` / `collectRefs`），新增引用关系只需登记规则
 - 前端 `ModalShell.tsx` 由约 679 行拆分为 `components/modals/*`：账号 / 思考服务 / 语音服务 / 角色 / 密码 / 设备绑定 6 个表单子组件，字段初始化与提交构造 / 校验抽到 `types.ts` / `values.ts`，外壳只保留标题、图标与动作按钮
 - 前端 `RolesView.tsx` 由约 635 行拆分为 `views/roles/*`：列表 `RoleList`、只读详情 `RoleDetail`、编辑表单 `RoleEditForm`；编辑表单中 10 处「关键词数组 ↔ 输入框」重复块收敛为 `KeywordField`
+- 前端 `DevicesView.tsx` 由约 811 行拆分为 `views/devices/*`：列表 `DeviceList`、只读详情 `DeviceDetail`、编辑表单 `DeviceForm`、型号搜索选择 `ModelPicker`、账号拉取列表 `PullDeviceList`；详情与表单内重复的设备 / 型号查找收敛为单次求值，并清理文件尾遗留的重复注释
 
 ### Engineering
 
