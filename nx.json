@@ -22,6 +22,9 @@
       "dependsOn": ["^build"],
       "outputs": ["{projectRoot}/dist"]
     },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["{projectRoot}/coverage"]

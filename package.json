@@ -24,7 +24,7 @@
     "clean-all": "node scripts/nx.mjs run-many --target=clean",
     "clean:cache": "node -e \"require('fs').rmSync('.cache',{recursive:true,force:true})\"",
     "build-all": "node scripts/nx.mjs run-many --target=build",
-    "typecheck": "node scripts/nx.mjs run-many --target=typecheck --exclude @mgc/root || (npx tsc -p packages/server/tsconfig.build.json --noEmit && npx tsc -p packages/gui/tsconfig.json --noEmit)",
+    "typecheck": "node scripts/nx.mjs run-many --target=typecheck --exclude @mgc/root",
     "u": "npx -y npm-check-updates -ws --root -u -x eslint,open",
     "pub-options": "node scripts/nx.mjs run @migptgui/options:build --verbose && npm publish --access public -w packages/options",
     "pub-options-preview": "node scripts/nx.mjs run @migptgui/options-with-preview:build --verbose && npm publish --access public -w packages/options-with-preview",

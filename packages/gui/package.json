@@ -6,6 +6,7 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "checktype": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "dev": "webpack --env mode=development",
     "dev:watch": "webpack --watch --env mode=development",
     "dev:serve": "webpack serve --env mode=development",
