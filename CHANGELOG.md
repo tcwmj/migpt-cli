@@ -70,6 +70,7 @@
 - 前端 `Wizard.tsx` 由约 818 行拆分为 `components/wizard/*`：三步各自成组件（`WizardAccountStep` / `WizardDeviceStep` / `WizardRoleStep`）并自带本步表单与拉取状态，草稿类型抽到 `types.ts`；外壳只保留步骤指示、底部导航与推进判定
 - 后端 `server/src/store.ts` 由约 620 行拆分为 `store/*` 子模块：`json.ts`（读缓存 / 原子写 / 同步读原语）、`auth.ts`（凭据解析与恒定时间比较）、`builtins.ts`（内置型号 / 语音的代码定义）、`overrides.ts`（内置实体的用户覆盖：合并 / 落盘 / 重置 / 迁移分离）、`entities.ts`（settings / accounts / roles / services / models / rooms / devices 读取）、`demo.ts`（演示日志种子）、`migrations.ts`（数据版本与迁移框架）；`store.ts` 收敛为门面统一再导出，既有 `./store.js` 导入面不变
 - 前端 `App.tsx` 由约 1626 行收敛为约 430 行：状态与业务逻辑抽到 `hooks/*`（`useAppData` / `useAccountsCrud` / `useServicesCrud` / `useModelsCrud` / `useDevicesCrud` / `useRolesRoomsCrud` / `useWizard` / `useToast` / `useConfirm`），UI 外壳抽到 `components/app/*`（`Sidebar` / `TopBar` / `ConfirmDialog` / `Toast` / `LoadingPanel`）与 `modal-submit.ts` / `errText.ts`；表单草稿类型统一复用 `views/drafts.ts` 单一事实源，`App` 只保留视图编排与顶栏/侧栏状态
+- 前端设计令牌体系（U1）：`styles/theme.css` 补全间距（`--sp-*`）、字号（`--fs-*`）、字重（`--fw-*`）、行高（`--lh-*`）、动效时长与缓动（`--dur-*` / `--ease-standard`）、层级（`--z-*`）与阴影梯度（`--shadow-*`）令牌；24 个样式文件共 611 处硬编码值收敛到令牌 —— 字号 / 字重 / `z-index` / 过渡时长全量覆盖，间距与圆角按 ≤1px 偏差就近归一（半像素字号就近归一，偏差 ≤0.5px），超差值与尺寸类（`width` / `height`）保持原样；顺带修复 4 个未定义变量（`--amber` / `--amber-soft` / `--teal` 归入调色板别名，`--danger` 按 warn / err 语义归一为 `--warn-ink` / `--bad-ink`）
 
 ### Engineering
 
