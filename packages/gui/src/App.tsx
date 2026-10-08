@@ -86,8 +86,6 @@ export function App() {
   const [confirm, setConfirm] = useState<{
     title: string
     msg: string
-    okText?: string
-    okIcon?: string
     danger?: boolean
     onOk: () => void
   } | null>(null)
@@ -102,6 +100,10 @@ export function App() {
       if (doIt && c) c.onOk()
     }, 200)
   }
+  // 统一确认按钮：非危险操作（danger === false）用中性「确认」，删除类操作沿用「删除」
+  const confirmNeutral = confirm?.danger === false
+  const confirmOkIcon = confirmNeutral ? 'check' : 'trash'
+  const confirmOkText = confirmNeutral ? '确认' : '删除'
 
   useEffect(() => {
     const t = setInterval(() => setBannerIdx((i) => (i + 1) % 5), 5000)
@@ -490,8 +492,6 @@ export function App() {
     setConfirm({
       title: '重置型号默认值',
       msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
-      okText: '重置',
-      okIcon: 'arrow-counter-clockwise',
       danger: false,
       onOk: async () => {
         try {
@@ -513,8 +513,6 @@ export function App() {
     setConfirm({
       title: '重置语音服务默认值',
       msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
-      okText: '重置',
-      okIcon: 'arrow-counter-clockwise',
       danger: false,
       onOk: async () => {
         try {
@@ -1185,7 +1183,7 @@ export function App() {
             <div className="srv" title="migpt-server 服务状态">
               <span className="dot" />
               <span>服务运行中</span>
-              <em>v1.12.0</em>
+              <em>v{__APP_VERSION__}</em>
             </div>
           </div>
         </header>
@@ -1646,12 +1644,7 @@ export function App() {
           />
           <div className={'modal on' + (confirmLeaving ? ' closing' : '')}>
             <h3>
-              {confirm.okIcon ? (
-                <I n={confirm.okIcon} size={18} />
-              ) : (
-                <I n="trash" size={18} />
-              )}{' '}
-              {confirm.title}
+              <I n={confirmOkIcon} size={18} /> {confirm.title}
             </h3>
             <div className="desc">{confirm.msg}</div>
             <div className="acts">
@@ -1663,8 +1656,7 @@ export function App() {
                 className={'btn' + (confirm.danger === false ? '' : ' danger')}
                 onClick={() => closeConfirm(true)}
               >
-                {confirm.okIcon ? <I n={confirm.okIcon} /> : <I n="trash" />}{' '}
-                {confirm.okText || '删除'}
+                <I n={confirmOkIcon} /> {confirmOkText}
               </button>
             </div>
           </div>

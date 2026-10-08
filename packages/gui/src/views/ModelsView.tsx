@@ -280,7 +280,7 @@ export function ModelsView(props: {
                     onClick={() => onReset(selModel || '')}
                     title="恢复为系统内置默认配置"
                   >
-                    <I n="arrow-counter-clockwise" /> 重置默认
+                    <I n="arrow-counter-clockwise" /> 重置
                   </button>
                 )}
                 <button

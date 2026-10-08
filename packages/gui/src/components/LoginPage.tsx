@@ -78,7 +78,7 @@ export function LoginPage({
             <I n="lock" size={15} /> {busy ? '登录中…' : '登录'}
           </button>
         </div>
-        <div className="login-foot">v1.12.0 · migpt-server</div>
+        <div className="login-foot">v{__APP_VERSION__} · migpt-server</div>
       </div>
     </div>
   )

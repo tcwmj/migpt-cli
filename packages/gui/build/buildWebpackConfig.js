@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import webpack from 'webpack'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
@@ -102,7 +103,14 @@ export default function buildWebpackConfig(mode) {
     },
   }
 
-  const definePluginObj = {}
+  const definePluginObj = {
+    // 版本号单一来源：取 gui/package.json，避免 UI 多处硬编码导致版本漂移
+    __APP_VERSION__: JSON.stringify(
+      JSON.parse(
+        fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8'),
+      ).version,
+    ),
+  }
   if (mode === 'development') {
     base.devtool = 'inline-source-map'
   } else if (IS_PROD) {

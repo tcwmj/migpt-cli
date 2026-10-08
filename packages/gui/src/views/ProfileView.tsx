@@ -80,7 +80,7 @@ export function ProfileView(props: {
             <div className="pcard-set">
               <div className="pi">
                 <span className="lbl">版本信息</span>
-                <span className="val">v1.12.0</span>
+                <span className="val">v{__APP_VERSION__}</span>
               </div>
               <div className="pi click danger" onClick={onLogout}>
                 <span className="lbl">退出登录</span>
