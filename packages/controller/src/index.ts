@@ -105,12 +105,6 @@ export async function stop(id: string) {
   await killChild(id)
 }
 
-export function getStatus(id: string) {
-  return {
-    running: !!children.get(id),
-  }
-}
-
 export function getAllStatus() {
   const status: Record<string, { running: boolean }> = {}
   for (const id of children.keys()) {

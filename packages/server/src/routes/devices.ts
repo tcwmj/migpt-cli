@@ -1,7 +1,6 @@
 // ── 设备管理：状态、CRUD、启动/停止、设备日志 ─────────────────────
 import path from 'node:path'
 import { nanoid } from 'nanoid'
-import _trimEnd from 'lodash/trimEnd.js'
 import createDebug from 'debug'
 import { getAllStatus, run, stop, type RunConfig } from '@migptgui/controller'
 import { type GuiConfig } from '@migptgui/options'
@@ -240,10 +239,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       config.gui.ttsProvider !== 'custom' &&
       config.tts
     ) {
-      config.env.TTS_BASE_URL = `${_trimEnd(
-        config.gui.publicURL || '',
-        '/',
-      )}/${meta.ttsSecret}/tts`
+      config.env.TTS_BASE_URL = `${(config.gui.publicURL || '').replace(/\/+$/, '')}/${meta.ttsSecret}/tts`
       dAudio('设置 TTS_BASE_URL 为：%s', config.env.TTS_BASE_URL)
     }
 

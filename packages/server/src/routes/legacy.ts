@@ -1,7 +1,6 @@
 // ── 兼容旧版单设备 API（内部映射 id=default）───────────────────
 import path from 'node:path'
 import fse from 'fs-extra'
-import _trimEnd from 'lodash/trimEnd.js'
 import { run, stop, type RunConfig } from '@migptgui/controller'
 import { type GuiConfig } from '@migptgui/options'
 import { root } from '../paths.js'
@@ -41,10 +40,7 @@ export function registerLegacyRoutes({ app }: RouteContext): void {
       migptConfig.gui.ttsProvider !== 'custom' &&
       migptConfig.tts
     ) {
-      migptConfig.env.TTS_BASE_URL = `${_trimEnd(
-        migptConfig.gui.publicURL || '',
-        '/',
-      )}/default/tts`
+      migptConfig.env.TTS_BASE_URL = `${(migptConfig.gui.publicURL || '').replace(/\/+$/, '')}/default/tts`
     }
     await run(
       'default',

@@ -1,5 +1,4 @@
 // ── 测试接口：对外地址连通性 + TTS 配置试听 ─────────────────────
-import _trimEnd from 'lodash/trimEnd.js'
 import { createTTS } from 'mi-gpt-tts'
 import { streamTTSResponse } from '../tts.js'
 import { fail, type RouteContext } from './shared.js'
@@ -7,7 +6,7 @@ import { fail, type RouteContext } from './shared.js'
 export function registerTestRoutes({ app }: RouteContext): void {
   app.post('/api/test', async (req, res) => {
     const testBaseUrl = req.body.url
-    const ping = _trimEnd(testBaseUrl, '/') + '/ping'
+    const ping = testBaseUrl.replace(/\/+$/, '') + '/ping'
     try {
       const fetchRes = await fetch(ping, {
         method: 'POST',
