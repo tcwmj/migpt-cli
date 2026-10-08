@@ -1,34 +1,25 @@
+# Dependabot 自动依赖更新
 version: 2
-
 updates:
-  # npm 依赖（含全部 workspace）
+  # npm 依赖（根 + workspace）
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
       day: monday
-      time: '09:00'
-      timezone: Asia/Shanghai
     open-pull-requests-limit: 10
     labels:
       - dependencies
     groups:
-      # 类型定义合并为一个 PR，减少噪音
-      types:
-        patterns:
-          - '@types/*'
-      # 开发工具链合并
-      tooling:
-        patterns:
-          - eslint*
-          - '@typescript-eslint/*'
-          - prettier*
-          - jest
-          - babel*
-    ignore:
-      # Node 20 升级单独评估，避免自动 PR 打乱
-      - dependency-name: '@types/node'
-        update-types: ['version-update:semver-major']
+      # 开发依赖分组更新（减少 PR 噪音）
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # 生产依赖逐个更新（便于审查）
+      production-dependencies:
+        dependency-type: production
 
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -36,20 +27,18 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: '09:00'
-      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - ci
 
-  # Docker 基础镜像
+  # Docker
   - package-ecosystem: docker
-    directory: /
+    directory: /docker
     schedule:
       interval: weekly
       day: monday
-      time: '09:00'
-      timezone: Asia/Shanghai
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - docker

@@ -82,6 +82,7 @@
 - 环境变量集中校验（A16）：新增 `store/env.ts`，用 zod 校验全部 7 个环境变量（`PORT` / `LOG_LEVEL` / `BACKUP_INTERVAL_MS` / `BACKUP_KEEP` / `AUTH_USER` / `AUTH_PASSWORD` / `MIGPT_DEMO_LOGS`），启动时 fail-fast；`logger.ts` / `auth.ts` / `demo.ts` / `index.ts` 迁移为 `getEnv()` 调用，消除散落的 `process.env` 直接读取
 - 架构决策记录（A1）：新增 `docs/adr/` 目录，记录 3 项核心架构决策 —— ADR-001 同仓分离 + 契约共享（monorepo 结构、tsconfig paths 双重路径策略、固定版本发布）、ADR-002 JSON 文件存储（数据规模评估、原子写/读缓存/zod 校验/迁移框架）、ADR-003 构建工具链选型（Nx + tsc + Webpack + Jest + ESLint）
 - 遗留/未使用物清理（M6）：移除 `controller.getStatus` 死代码（仅 `getAllStatus` 被使用）；lodash `trimEnd` 替换为原生 `str.replace(/\/+$/, '')`，从 `packages/server/package.json` 移除 lodash 依赖
+- 供应链安全（A19）：新增 `.github/dependabot.yml`，配置 npm / GitHub Actions / Docker 三类生态的每周自动依赖更新，开发依赖分组更新减少 PR 噪音，生产依赖逐个更新便于审查
 
 ### Engineering
 
