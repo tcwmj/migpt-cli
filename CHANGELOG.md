@@ -79,3 +79,5 @@
 - 修复 `typecheck` 脚本空转：此前无任何包定义 `typecheck` 目标，nx 以「0 项目」退出码 0 使 `||` 兜底永不触发，CI 类型检查实际从未运行；现为各包补 `typecheck: tsc --noEmit`，`nx.json` 声明 `typecheck.dependsOn: ["^build"]`，根脚本收敛为单一 nx 调用
 - 生产构建的体积分析（`BundleAnalyzerPlugin`）改为按需开启：默认关闭不再拖慢构建，需要时设 `ANALYZE=1` 再构建，报告仍输出到根 `.cache/`
 - `scripts/dev.ps1` 的仓库根路径改为由 `$PSScriptRoot` 推导，去除硬编码的绝对路径
+- 补充核心模块单元测试（共 7 个测试文件 / 87 条用例）：`redact`（凭据脱敏）、`store/json`（原子写 / 读缓存 / 并发串行化）、`store/auth`（凭据解析优先级与恒定时间比较）、`store/entities`（唯一名校验 / 账号迁移 / 设备元数据 / 引用解析）、`routes/crud`（CRUD 工厂四段式与删除引用保护）、`routes/shared`（字段白名单 / 404 / 引用冲突 / 设备配置读取）
+- Jest 增加 `packages/server` 测试项目并放行 `nanoid` 等 ESM 依赖转换；配置覆盖率阈值（statements 90 / branches 78 / functions 90 / lines 90）并忽略 `dist` 构建产物，防止覆盖率无声下滑

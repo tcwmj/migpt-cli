@@ -6,6 +6,17 @@ const config = {
   // 缓存/产物统一收纳到根 .cache/（见根 .gitignore）
   coverageDirectory: '.cache/coverage',
   cacheDirectory: '.cache/jest',
+  // 不统计构建产物（如 contracts/dist 的编译结果），覆盖率只反映 src 源码
+  coveragePathIgnorePatterns: ['/dist/', '/node_modules/'],
+  // 覆盖率阈值：留出小幅余量，防止核心模块被改动后覆盖率无声下滑
+  coverageThreshold: {
+    global: {
+      statements: 90,
+      branches: 78,
+      functions: 90,
+      lines: 90,
+    },
+  },
   // 设为 false 才能正常显示 console.log，见 https://stackoverflow.com/a/53684761
   verbose: false,
   // 完全重置所有 mock 函数，详细说明见 https://github.com/lmk123/blog/issues/114
@@ -59,6 +70,8 @@ const keys = [
   'transformIgnorePatterns',
   'moduleNameMapper',
   'transform',
+  'coveragePathIgnorePatterns',
+  'coverageThreshold',
 ]
 config.projects.forEach((p) => {
   keys.forEach((key) => {
