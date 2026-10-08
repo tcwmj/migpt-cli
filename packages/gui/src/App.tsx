@@ -31,6 +31,7 @@ import { useRolesRoomsCrud } from './hooks/useRolesRoomsCrud.ts'
 import { useServicesCrud } from './hooks/useServicesCrud.ts'
 import { useToast } from './hooks/useToast.ts'
 import { useWizard } from './hooks/useWizard.ts'
+import { useHashRouter, useNav } from './hooks/useHashRouter.ts'
 import type { ModalState } from './ui-types.ts'
 
 export function App() {
@@ -62,6 +63,10 @@ export function App() {
   const [sideOff, setSideOff] = useState<boolean>(
     () => localStorage.getItem('migpt-side-off') === '1',
   )
+
+  // Hash 路由同步：视图状态与 URL hash 双向绑定
+  useHashRouter(view, setView)
+  const nav = useNav(setView, setSettingTab, setQuery)
   useEffect(() => {
     localStorage.setItem('migpt-side-off', sideOff ? '1' : '0')
   }, [sideOff])
@@ -122,13 +127,6 @@ export function App() {
 
   const detail = dev.detail
   const wizard = wz.wizard
-
-  const nav = (v: View) => {
-    setView(v)
-    if (v === 'think') setSettingTab('think')
-    if (v === 'voice') setSettingTab('voice')
-    setQuery('')
-  }
 
   /* ══ 渲染 ══ */
   // 会话探测中：先不渲染，避免登录页闪烁

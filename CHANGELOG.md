@@ -84,6 +84,7 @@
 - 遗留/未使用物清理（M6）：移除 `controller.getStatus` 死代码（仅 `getAllStatus` 被使用）；lodash `trimEnd` 替换为原生 `str.replace(/\/+$/, '')`，从 `packages/server/package.json` 移除 lodash 依赖
 - 供应链安全（A19）：新增 `.github/dependabot.yml`，配置 npm / GitHub Actions / Docker 三类生态的每周自动依赖更新，开发依赖分组更新减少 PR 噪音，生产依赖逐个更新便于审查
 - main 与 upstream 同步策略（G3）：新增 `scripts/sync-upstream.ps1` 自动化脚本，执行 `git fetch upstream && merge upstream/main`；文档化同步流程
+- 前端 Hash 路由（M5）：新增 `hooks/useHashRouter.ts`，实现视图状态与 URL hash 双向绑定 —— 初始化从 hash 读取视图、视图变化时更新 hash、浏览器前进/后退同步视图；`App.tsx` 的 `nav` 函数抽取为 `useNav` hook，支持深链分享与页面刷新恢复
 
 ### Engineering
 
