@@ -7,7 +7,7 @@ import {
   speakerModelListSchema,
 } from '../store.js'
 import type { SpeakerModel } from '../types.js'
-import { fail, pick, MODEL_FIELDS } from './shared.js'
+import { API_PREFIX, fail, pick, MODEL_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
 
 export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
@@ -45,7 +45,7 @@ export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
   refMessage: '该型号正被设备引用，无法删除',
   extra: ({ app }) => {
     // 重置内置型号为官方默认值（仅 builtin 可用；用户改动可随时恢复）
-    app.post('/api/speaker-models/:id/reset', async (req, res) => {
+    app.post(`${API_PREFIX}/speaker-models/:id/reset`, async (req, res) => {
       const model = await resetBuiltinModel(req.params.id)
       if (!model) {
         fail(res, 404, '仅系统内置型号支持重置默认')

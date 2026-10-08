@@ -102,7 +102,7 @@ describe('createCrudRouter · GET', () => {
   test('返回列表', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('GET /api/items')!(req(), res as unknown as Response)
+    await routes.get('GET /api/v1/items')!(req(), res as unknown as Response)
     expect(res.body).toEqual([
       { id: 'i1', name: '一' },
       { id: 'i2', name: '二' },
@@ -114,7 +114,7 @@ describe('createCrudRouter · GET', () => {
       listTransform: (list) => list.map((x) => ({ ...x, tag: 't' })),
     })
     const res = makeRes()
-    await routes.get('GET /api/items')!(req(), res as unknown as Response)
+    await routes.get('GET /api/v1/items')!(req(), res as unknown as Response)
     expect(res.body).toEqual([
       { id: 'i1', name: '一', tag: 't' },
       { id: 'i2', name: '二', tag: 't' },
@@ -128,7 +128,7 @@ describe('createCrudRouter · POST', () => {
       validate: (b) => (b.name ? null : '名称必填'),
     })
     const res = makeRes()
-    await routes.get('POST /api/items')!(req({}), res as unknown as Response)
+    await routes.get('POST /api/v1/items')!(req({}), res as unknown as Response)
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: '名称必填' })
   })
@@ -136,7 +136,7 @@ describe('createCrudRouter · POST', () => {
   test('重名回 409', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('POST /api/items')!(
+    await routes.get('POST /api/v1/items')!(
       req({ name: '一' }),
       res as unknown as Response,
     )
@@ -147,7 +147,7 @@ describe('createCrudRouter · POST', () => {
   test('成功创建：构造 + 追加 + 落盘', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('POST /api/items')!(
+    await routes.get('POST /api/v1/items')!(
       req({ name: '三' }),
       res as unknown as Response,
     )
@@ -161,7 +161,7 @@ describe('createCrudRouter · POST', () => {
       respond: (e) => ({ ...e, name: e.name?.toUpperCase() }),
     })
     const res = makeRes()
-    await routes.get('POST /api/items')!(
+    await routes.get('POST /api/v1/items')!(
       req({ name: '三' }),
       res as unknown as Response,
     )
@@ -173,7 +173,7 @@ describe('createCrudRouter · PUT', () => {
   test('目标不存在回 404', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('PUT /api/items/:id')!(
+    await routes.get('PUT /api/v1/items/:id')!(
       req({ name: '新' }, 'missing'),
       res as unknown as Response,
     )
@@ -184,7 +184,7 @@ describe('createCrudRouter · PUT', () => {
   test('改成已存在的名称回 409', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('PUT /api/items/:id')!(
+    await routes.get('PUT /api/v1/items/:id')!(
       req({ name: '二' }, 'i1'),
       res as unknown as Response,
     )
@@ -194,7 +194,7 @@ describe('createCrudRouter · PUT', () => {
   test('成功更新并落盘', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('PUT /api/items/:id')!(
+    await routes.get('PUT /api/v1/items/:id')!(
       req({ name: '改' }, 'i2'),
       res as unknown as Response,
     )
@@ -207,7 +207,7 @@ describe('createCrudRouter · DELETE', () => {
   test('目标不存在回 404', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('DELETE /api/items/:id')!(
+    await routes.get('DELETE /api/v1/items/:id')!(
       req(undefined, 'missing'),
       res as unknown as Response,
     )
@@ -219,7 +219,7 @@ describe('createCrudRouter · DELETE', () => {
       deleteGuard: (t) => (t.id === 'i1' ? '内置不可删' : null),
     })
     const res = makeRes()
-    await routes.get('DELETE /api/items/:id')!(
+    await routes.get('DELETE /api/v1/items/:id')!(
       req(undefined, 'i1'),
       res as unknown as Response,
     )
@@ -235,7 +235,7 @@ describe('createCrudRouter · DELETE', () => {
       refMessage: '正被引用',
     })
     const res = makeRes()
-    await routes.get('DELETE /api/items/:id')!(
+    await routes.get('DELETE /api/v1/items/:id')!(
       req(undefined, 'i1'),
       res as unknown as Response,
     )
@@ -246,7 +246,7 @@ describe('createCrudRouter · DELETE', () => {
   test('成功删除：从列表移除并落盘', async () => {
     const routes = register()
     const res = makeRes()
-    await routes.get('DELETE /api/items/:id')!(
+    await routes.get('DELETE /api/v1/items/:id')!(
       req(undefined, 'i1'),
       res as unknown as Response,
     )
@@ -259,10 +259,10 @@ describe('createCrudRouter · extra', () => {
   test('追加自定义路由', async () => {
     const routes = register({
       extra: (ctx) =>
-        ctx.app.get('/api/items/custom', ((_r: Request, res: Response) =>
+        ctx.app.get('/api/v1/items/custom', ((_r: Request, res: Response) =>
           res.json({ ok: true })) as unknown as RequestHandler),
     })
-    expect(routes.has('GET /api/items/custom')).toBe(true)
+    expect(routes.has('GET /api/v1/items/custom')).toBe(true)
   })
 })
 
@@ -284,7 +284,7 @@ describe('createCrudRouter · schema 落盘校验', () => {
     })
     const res = makeRes()
     await expect(
-      routes.get('POST /api/items')!(req({}), res as unknown as Response),
+      routes.get('POST /api/v1/items')!(req({}), res as unknown as Response),
     ).rejects.toThrow(DataValidationError)
     expect(save).not.toHaveBeenCalled()
   })
@@ -293,7 +293,7 @@ describe('createCrudRouter · schema 落盘校验', () => {
     const save = jest.fn(async () => {})
     const routes = register({ schema: itemSchema, save })
     const res = makeRes()
-    await routes.get('POST /api/items')!(
+    await routes.get('POST /api/v1/items')!(
       req({ name: '三' }),
       res as unknown as Response,
     )

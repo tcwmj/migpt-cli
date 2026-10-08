@@ -93,6 +93,12 @@ export function runServer(options?: ServerOptions) {
     )
   }
 
+  // 向后兼容：/api/* → /api/v1/*（307 保留原 HTTP 方法）
+  app.use('/api', (req, _res, next) => {
+    if (req.path.startsWith('/v1')) return next()
+    _res.redirect(307, `/api/v1${req.path}`)
+  })
+
   // 认证中间件必须先于其他 /api 路由挂载
   registerAuthRoutes({ app, options })
 

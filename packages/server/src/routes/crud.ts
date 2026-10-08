@@ -11,6 +11,7 @@ import {
 } from '../store.js'
 import type { DeviceMeta, Role } from '../types.js'
 import {
+  API_PREFIX,
   asyncHandler,
   fail,
   findIndexOr404,
@@ -115,7 +116,7 @@ export interface CrudConfig<T extends { id: string; name?: string }> {
 export function createCrudRouter<T extends { id: string; name?: string }>(
   cfg: CrudConfig<T>,
 ): (ctx: RouteContext) => void {
-  const base = `/api/${cfg.path}`
+  const base = `${API_PREFIX}/${cfg.path}`
   return (ctx: RouteContext) => {
     const app: Express = ctx.app
 

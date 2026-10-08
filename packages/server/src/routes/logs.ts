@@ -7,12 +7,12 @@ import {
   getSystemLogSize,
   getSystemLogFull,
 } from '../store.js'
-import { ok, fail, type RouteContext } from './shared.js'
+import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
 
 export function registerLogRoutes({ app }: RouteContext): void {
   // ── 全局对话日志（聚合所有设备，供「对话记录」页）────────────────
   // 结构化在 appendLog 写入期完成，此处仅做别名映射与排序，不再逐行正则解析。
-  app.get('/api/logs', async (req, res) => {
+  app.get(`${API_PREFIX}/logs`, async (req, res) => {
     const limit = Math.min(Number(req.query.limit) || 200, 500)
     const rows: {
       deviceId: string
@@ -36,7 +36,7 @@ export function registerLogRoutes({ app }: RouteContext): void {
   })
 
   // ── 系统日志（实时查看 + 下载历史）───────────────────────────
-  app.get('/api/system/logs', async (req, res) => {
+  app.get(`${API_PREFIX}/system/logs`, async (req, res) => {
     const lines = Math.min(Number(req.query.lines) || 300, 2000)
     let arr = sysLogBuf.slice(-lines)
     if (arr.length < lines) {
@@ -47,7 +47,7 @@ export function registerLogRoutes({ app }: RouteContext): void {
     res.json({ lines: arr, file: systemLogFile, size })
   })
 
-  app.get('/api/system/logs/download', async (_req, res) => {
+  app.get(`${API_PREFIX}/system/logs/download`, async (_req, res) => {
     try {
       const text = await getSystemLogFull()
       res.setHeader('Content-Type', 'text/plain; charset=utf-8')
@@ -61,7 +61,7 @@ export function registerLogRoutes({ app }: RouteContext): void {
     }
   })
 
-  app.post('/api/system/logs/clear', async (_req, res) => {
+  app.post(`${API_PREFIX}/system/logs/clear`, async (_req, res) => {
     try {
       await clearSysLog()
       ok(res)

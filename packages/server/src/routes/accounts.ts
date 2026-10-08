@@ -11,7 +11,7 @@ import { redactAccount, redactAccounts, redactSettings } from '../redact.js'
 import type { Account, Settings } from '../types.js'
 import { logger } from '../logger.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
-import { ok, fail } from './shared.js'
+import { API_PREFIX, ok, fail } from './shared.js'
 
 export const registerAccountRoutes = createCrudRouter<Account>({
   path: 'accounts',
@@ -48,7 +48,7 @@ export const registerAccountRoutes = createCrudRouter<Account>({
   refMessage: '该账号正被设备引用，无法删除；请先解绑相关设备',
   extra: ({ app }) => {
     // 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
-    app.post('/api/accounts/:id/pull-devices', async (req, res) => {
+    app.post(`${API_PREFIX}/accounts/:id/pull-devices`, async (req, res) => {
       const accounts = await getAccounts()
       const account = accounts.find((a) => a.id === req.params.id)
       if (!account) {
@@ -75,7 +75,7 @@ export const registerAccountRoutes = createCrudRouter<Account>({
     })
 
     // 兼容旧版：/api/settings 读写第一个（默认）账号
-    app.get('/api/settings', async (req, res) => {
+    app.get(`${API_PREFIX}/settings`, async (req, res) => {
       const account = await getAccountById()
       res.json(
         account
@@ -88,7 +88,7 @@ export const registerAccountRoutes = createCrudRouter<Account>({
       )
     })
 
-    app.put('/api/settings', async (req, res) => {
+    app.put(`${API_PREFIX}/settings`, async (req, res) => {
       const body = req.body as Settings
       const accounts = await getAccounts()
       // 脱敏后前端不再回读明文：未传的凭据字段保持原值，避免误清空

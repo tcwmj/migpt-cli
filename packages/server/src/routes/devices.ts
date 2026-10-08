@@ -26,6 +26,7 @@ import {
 import { logBuffers, appendLog, clearDeviceLog } from '../logger.js'
 import type { DeviceMeta } from '../types.js'
 import {
+  API_PREFIX,
   pick,
   DEVICE_META_FIELDS,
   ok,
@@ -37,7 +38,7 @@ const dAudio = createDebug('@migptgui/server:audio')
 
 export function registerDeviceRoutes({ app }: RouteContext): void {
   // ── 状态：全部设备 ─────────────────────────────────────────────
-  app.get('/api/status', async (req, res) => {
+  app.get(`${API_PREFIX}/status`, async (req, res) => {
     const devices = await listDeviceMetas()
     const status = getAllStatus()
     res.json({
@@ -48,7 +49,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     })
   })
 
-  app.get('/api/devices', async (req, res) => {
+  app.get(`${API_PREFIX}/devices`, async (req, res) => {
     const devices = await listDeviceMetas()
     const status = getAllStatus()
     res.json(
@@ -59,7 +60,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     )
   })
 
-  app.post('/api/devices', async (req, res) => {
+  app.post(`${API_PREFIX}/devices`, async (req, res) => {
     const body = req.body as {
       alias: string
       did: string
@@ -115,7 +116,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     res.json({ id, meta: redactDeviceMeta(meta) })
   })
 
-  app.get('/api/devices/:id', async (req, res) => {
+  app.get(`${API_PREFIX}/devices/:id`, async (req, res) => {
     const meta = await getDeviceMeta(req.params.id)
     if (!meta) {
       fail(res, 404, '设备不存在')
@@ -132,7 +133,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     })
   })
 
-  app.put('/api/devices/:id', async (req, res) => {
+  app.put(`${API_PREFIX}/devices/:id`, async (req, res) => {
     const id = req.params.id
     const meta = await getDeviceMeta(id)
     if (!meta) {
@@ -201,7 +202,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     ok(res)
   })
 
-  app.delete('/api/devices/:id', async (req, res) => {
+  app.delete(`${API_PREFIX}/devices/:id`, async (req, res) => {
     await stop(req.params.id)
     await removeDevice(req.params.id)
     clearDeviceLog(req.params.id)
@@ -209,7 +210,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   })
 
   // ── 启动/停止 ─────────────────────────────────────────────────
-  app.post('/api/devices/:id/start', async (req, res) => {
+  app.post(`${API_PREFIX}/devices/:id/start`, async (req, res) => {
     const id = req.params.id
     const meta = await getDeviceMeta(id)
     if (!meta) {
@@ -250,12 +251,12 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     ok(res)
   })
 
-  app.post('/api/devices/:id/stop', async (req, res) => {
+  app.post(`${API_PREFIX}/devices/:id/stop`, async (req, res) => {
     await stop(req.params.id)
     ok(res)
   })
 
-  app.get('/api/devices/:id/logs', async (req, res) => {
+  app.get(`${API_PREFIX}/devices/:id/logs`, async (req, res) => {
     const limit = Number(req.query.limit) || 100
     const buf = logBuffers.get(req.params.id) || []
     res.json({ logs: buf.slice(-limit) })

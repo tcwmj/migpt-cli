@@ -6,22 +6,22 @@ import { type GuiConfig } from '@migptgui/options'
 import { root } from '../paths.js'
 import { loadDeviceConfig, saveDeviceConfig } from '../store.js'
 import { logBuffers, appendLog } from '../logger.js'
-import { ok, fail, type RouteContext } from './shared.js'
+import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
 
 export function registerLegacyRoutes({ app }: RouteContext): void {
   const defaultDeviceCwd = path.join(root, 'default')
 
-  app.get('/api/default', async (_req, res) => {
+  app.get(`${API_PREFIX}/default`, async (_req, res) => {
     const config = await loadDeviceConfig('default')
     res.json(config ? { config } : {})
   })
 
-  app.put('/api/default', async (req, res) => {
+  app.put(`${API_PREFIX}/default`, async (req, res) => {
     await saveDeviceConfig('default', req.body as GuiConfig)
     ok(res)
   })
 
-  app.delete('/api/default', (_req, res) => {
+  app.delete(`${API_PREFIX}/default`, (_req, res) => {
     Promise.all([
       fse.remove(path.join(defaultDeviceCwd, '.mi.json')),
       fse.remove(path.join(defaultDeviceCwd, '.bot.json')),
@@ -31,7 +31,7 @@ export function registerLegacyRoutes({ app }: RouteContext): void {
     )
   })
 
-  app.post('/api/default/start', async (req, res) => {
+  app.post(`${API_PREFIX}/default/start`, async (req, res) => {
     const migptConfig = req.body as GuiConfig
     await saveDeviceConfig('default', migptConfig)
     if (
@@ -51,12 +51,12 @@ export function registerLegacyRoutes({ app }: RouteContext): void {
     ok(res)
   })
 
-  app.post('/api/default/stop', async (_req, res) => {
+  app.post(`${API_PREFIX}/default/stop`, async (_req, res) => {
     await stop('default')
     ok(res)
   })
 
-  app.get('/api/default/logs', async (_req, res) => {
+  app.get(`${API_PREFIX}/default/logs`, async (_req, res) => {
     const limit = Number(_req.query.limit) || 100
     const buf = logBuffers.get('default') || []
     res.json({ logs: buf.slice(-limit) })

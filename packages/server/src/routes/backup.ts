@@ -7,7 +7,7 @@ import {
   listBackups,
   DataValidationError,
 } from '../store.js'
-import { asyncHandler, fail, type RouteContext } from './shared.js'
+import { API_PREFIX, asyncHandler, fail, type RouteContext } from './shared.js'
 
 function stamp(at = new Date()): string {
   return at.toISOString().replace(/[:.]/g, '-')
@@ -16,7 +16,7 @@ function stamp(at = new Date()): string {
 export function registerBackupRoutes({ app }: RouteContext): void {
   // 导出：默认脱敏（抹除明文凭据），可直接分享 / 迁移
   app.get(
-    '/api/backup/export',
+    `${API_PREFIX}/backup/export`,
     asyncHandler(async (_req, res) => {
       const bundle = await buildBundle(true)
       const name = `migptgui-export-${stamp()}.json`
@@ -28,7 +28,7 @@ export function registerBackupRoutes({ app }: RouteContext): void {
 
   // 导入：覆盖同 id、补齐缺失；包非法回 400
   app.post(
-    '/api/backup/import',
+    `${API_PREFIX}/backup/import`,
     asyncHandler(async (req, res) => {
       try {
         const result = await applyBackup(req.body)
@@ -45,7 +45,7 @@ export function registerBackupRoutes({ app }: RouteContext): void {
 
   // 备份列表（backupsRoot 下的备份文件）
   app.get(
-    '/api/backup/list',
+    `${API_PREFIX}/backup/list`,
     asyncHandler(async (_req, res) => {
       res.json({ backups: await listBackups() })
     }),
@@ -53,7 +53,7 @@ export function registerBackupRoutes({ app }: RouteContext): void {
 
   // 立即生成一份完整备份（未脱敏）
   app.post(
-    '/api/backup/run',
+    `${API_PREFIX}/backup/run`,
     asyncHandler(async (_req, res) => {
       const file = await createBackupFile()
       res.json({ success: true, file: path.basename(file) })

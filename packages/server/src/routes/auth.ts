@@ -7,7 +7,7 @@ import {
   getSession,
   destroySession,
 } from '../session.js'
-import { ok, fail, type RouteContext } from './shared.js'
+import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
 
 // 认证失败限流：同一来源在窗口内失败次数超限后直接拒绝，抵御口令爆破。
 // 注意：若部署在反向代理之后，需配置 app.set('trust proxy') 才能拿到真实客户端 IP。
@@ -37,7 +37,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
 
   // ── 登录 / 登出 / 会话探测：须先于认证中间件注册（匿名可访问）─────
   // 登录成功后签发 httpOnly Cookie，前端不再持有明文凭据。
-  app.post('/api/login', (req, res) => {
+  app.post(`${API_PREFIX}/login`, (req, res) => {
     const ip = req.ip || 'unknown'
     if (authBlocked(ip)) {
       fail(res, 429, '尝试次数过多，请稍后再试')
@@ -63,13 +63,13 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
     fail(res, 401, 'unauthorized')
   })
 
-  app.post('/api/logout', (req, res) => {
+  app.post(`${API_PREFIX}/logout`, (req, res) => {
     destroySession(req.cookies?.[SESSION_COOKIE])
     res.clearCookie(SESSION_COOKIE, { path: '/' })
     ok(res)
   })
 
-  app.get('/api/session', (req, res) => {
+  app.get(`${API_PREFIX}/session`, (req, res) => {
     // 关闭认证时视为已登录，前端直接进入面板
     if (options?.auth === false) {
       res.json({ authed: true })
@@ -81,7 +81,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
   // ── 认证中间件：优先校验会话 Cookie，其次兼容 Basic Auth ──────────
   // 认证默认启用：凭据按 环境变量/--pwd > auth.json（面板可改）> 默认 admin/123456 解析。
   if (options?.auth !== false) {
-    app.use('/api', (req, res, next) => {
+    app.use(API_PREFIX, (req, res, next) => {
       const ip = req.ip || 'unknown'
       if (authBlocked(ip)) {
         fail(res, 429, '尝试次数过多，请稍后再试')
@@ -117,7 +117,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
   }
 
   // ── 修改登录凭据（持久化到 auth.json，前端「我的」页调用）─────
-  app.put('/api/auth', async (req, res) => {
+  app.put(`${API_PREFIX}/auth`, async (req, res) => {
     const body = req.body as {
       oldUser?: string
       oldPassword?: string

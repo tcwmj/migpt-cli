@@ -12,6 +12,9 @@ import type {
   ThinkService,
   VoiceService,
 } from '@migptgui/contracts'
+// ── API 版本前缀（与服务端 API_PREFIX 保持一致）────────────────
+const API = '/api/v1'
+
 // 契约单一事实源：@migptgui/contracts（与 server 共享，修改契约两端同时生效）
 export type {
   Account,
@@ -33,7 +36,7 @@ export function login(
   user: string,
   password: string,
 ): Promise<{ success: boolean }> {
-  return fetch('/api/login', {
+  return fetch(api('/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user, password }),
@@ -41,14 +44,14 @@ export function login(
 }
 
 export function logout(): Promise<{ success: boolean }> {
-  return fetch('/api/logout', { method: 'POST' }).then((r) =>
+  return fetch(api('/logout'), { method: 'POST' }).then((r) =>
     j<{ success: boolean }>(r),
   )
 }
 
 /** 会话探测：页面加载时判断是否已登录（Cookie 为 httpOnly，前端无法直接读取） */
 export function checkSession(): Promise<boolean> {
-  return fetch('/api/session')
+  return fetch(api('/session'))
     .then((r) => j<{ authed: boolean }>(r))
     .then((d) => d.authed)
 }
@@ -59,7 +62,7 @@ export function changeAuth(
   newUser: string,
   newPassword: string,
 ) {
-  return fetch('/api/auth', {
+  return fetch(api('/auth'), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify({
@@ -74,6 +77,9 @@ export function changeAuth(
 function headers(withBody: boolean): Record<string, string> {
   return withBody ? { 'Content-Type': 'application/json' } : {}
 }
+
+/** 拼接 API 版本前缀 */
+const api = (path: string) => `${API}${path}`
 
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -120,17 +126,17 @@ export interface DeviceDetail {
 
 // ── 状态与账号 ───────────────────────────────────────────────
 export const getStatusAll = () =>
-  fetch('/api/status', { headers: headers(false) }).then((r) =>
+  fetch(api('/status'), { headers: headers(false) }).then((r) =>
     j<{ devices: DeviceRow[] }>(r),
   )
 
 export const getSettings = () =>
-  fetch('/api/settings', { headers: headers(false) }).then((r) =>
+  fetch(api('/settings'), { headers: headers(false) }).then((r) =>
     j<Settings>(r),
   )
 
 export const saveSettings = (s: Settings) =>
-  fetch('/api/settings', {
+  fetch(api('/settings'), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(s),
@@ -138,126 +144,126 @@ export const saveSettings = (s: Settings) =>
 
 // ── 云端账号（多账号）─────────────────────────────────────────
 export const getAccounts = () =>
-  fetch('/api/accounts', { headers: headers(false) }).then((r) =>
+  fetch(api('/accounts'), { headers: headers(false) }).then((r) =>
     j<Account[]>(r),
   )
 
 export const createAccount = (a: Partial<Account>) =>
-  post<Account>('/api/accounts', a)
+  post<Account>(api('/accounts'), a)
 
 export const updateAccount = (id: string, a: Partial<Account>) =>
-  fetch(`/api/accounts/${id}`, {
+  fetch(api(`/accounts/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(a),
   }).then((r) => j<Account>(r))
 
 export const deleteAccount = (id: string) =>
-  fetch(`/api/accounts/${id}`, {
+  fetch(api(`/accounts/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 // 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
 export const pullDevices = (accountId: string) =>
-  post<{ devices: PulledDevice[] }>(`/api/accounts/${accountId}/pull-devices`)
+  post<{ devices: PulledDevice[] }>(api(`/accounts/${accountId}/pull-devices`))
 
 // ── AI 角色 ─────────────────────────────────────────────────
 export const getRoles = () =>
-  fetch('/api/roles', { headers: headers(false) }).then((r) => j<Role[]>(r))
+  fetch(api('/roles'), { headers: headers(false) }).then((r) => j<Role[]>(r))
 
 export const createRole = (role: Partial<Role>) =>
-  post<Role>('/api/roles', role)
+  post<Role>(api('/roles'), role)
 
 export const updateRole = (id: string, role: Partial<Role>) =>
-  fetch(`/api/roles/${id}`, {
+  fetch(api(`/roles/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(role),
   }).then((r) => j<Role>(r))
 
 export const deleteRole = (id: string) =>
-  fetch(`/api/roles/${id}`, {
+  fetch(api(`/roles/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 // ── 思考服务 ─────────────────────────────────────────────────
 export const getThinkServices = () =>
-  fetch('/api/think-services', { headers: headers(false) }).then((r) =>
+  fetch(api('/think-services'), { headers: headers(false) }).then((r) =>
     j<ThinkService[]>(r),
   )
 
 export const createThinkService = (s: Partial<ThinkService>) =>
-  post<ThinkService>('/api/think-services', s)
+  post<ThinkService>(api('/think-services'), s)
 
 export const updateThinkService = (id: string, s: Partial<ThinkService>) =>
-  fetch(`/api/think-services/${id}`, {
+  fetch(api(`/think-services/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(s),
   }).then((r) => j<ThinkService>(r))
 
 export const deleteThinkService = (id: string) =>
-  fetch(`/api/think-services/${id}`, {
+  fetch(api(`/think-services/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 // ── 语音服务 ─────────────────────────────────────────────────
 export const getVoiceServices = () =>
-  fetch('/api/voice-services', { headers: headers(false) }).then((r) =>
+  fetch(api('/voice-services'), { headers: headers(false) }).then((r) =>
     j<VoiceService[]>(r),
   )
 
 export const createVoiceService = (s: Partial<VoiceService>) =>
-  post<VoiceService>('/api/voice-services', s)
+  post<VoiceService>(api('/voice-services'), s)
 
 export const updateVoiceService = (id: string, s: Partial<VoiceService>) =>
-  fetch(`/api/voice-services/${id}`, {
+  fetch(api(`/voice-services/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(s),
   }).then((r) => j<VoiceService>(r))
 
 export const deleteVoiceService = (id: string) =>
-  fetch(`/api/voice-services/${id}`, {
+  fetch(api(`/voice-services/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 /** 重置内置语音服务为系统默认值（仅 builtin 可用） */
 export const resetVoiceService = (id: string) =>
-  fetch(`/api/voice-services/${id}/reset`, {
+  fetch(api(`/voice-services/${id}/reset`), {
     method: 'POST',
     headers: headers(false),
   }).then((r) => j<VoiceService>(r))
 
 // ── 音箱型号 ─────────────────────────────────────────────────
 export const getSpeakerModels = () =>
-  fetch('/api/speaker-models', { headers: headers(false) }).then((r) =>
+  fetch(api('/speaker-models'), { headers: headers(false) }).then((r) =>
     j<SpeakerModel[]>(r),
   )
 
 export const createSpeakerModel = (s: Partial<SpeakerModel>) =>
-  post<SpeakerModel>('/api/speaker-models', s)
+  post<SpeakerModel>(api('/speaker-models'), s)
 
 export const updateSpeakerModel = (id: string, s: Partial<SpeakerModel>) =>
-  fetch(`/api/speaker-models/${id}`, {
+  fetch(api(`/speaker-models/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(s),
   }).then((r) => j<SpeakerModel>(r))
 
 export const deleteSpeakerModel = (id: string) =>
-  fetch(`/api/speaker-models/${id}`, {
+  fetch(api(`/speaker-models/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 /** 重置内置型号为系统默认值（仅 builtin 可用） */
 export const resetSpeakerModel = (id: string) =>
-  fetch(`/api/speaker-models/${id}/reset`, {
+  fetch(api(`/speaker-models/${id}/reset`), {
     method: 'POST',
     headers: headers(false),
   }).then((r) => j<SpeakerModel>(r))
@@ -269,31 +275,31 @@ export interface Room extends ContractRoom {
 }
 
 export const getRooms = () =>
-  fetch('/api/rooms', { headers: headers(false) }).then((r) => j<Room[]>(r))
+  fetch(api('/rooms'), { headers: headers(false) }).then((r) => j<Room[]>(r))
 
 export const createRoom = (r: Partial<Room>) =>
-  fetch('/api/rooms', {
+  fetch(api('/rooms'), {
     method: 'POST',
     headers: headers(true),
     body: JSON.stringify(r),
   }).then((x) => j<Room>(x))
 
 export const updateRoom = (id: string, r: Partial<Room>) =>
-  fetch(`/api/rooms/${id}`, {
+  fetch(api(`/rooms/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(r),
   }).then((x) => j<Room>(x))
 
 export const deleteRoom = (id: string) =>
-  fetch(`/api/rooms/${id}`, {
+  fetch(api(`/rooms/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 // ── 设备管理 ─────────────────────────────────────────────────
 export const listDevices = () =>
-  fetch('/api/devices', { headers: headers(false) }).then((r) =>
+  fetch(api('/devices'), { headers: headers(false) }).then((r) =>
     j<DeviceRow[]>(r),
   )
 
@@ -305,10 +311,10 @@ export const createDevice = (d: {
   accountId?: string
   thinkServiceId?: string
   voiceOverrideId?: string
-}) => post<{ id: string }>('/api/devices', d)
+}) => post<{ id: string }>(api('/devices'), d)
 
 export const getDevice = (id: string) =>
-  fetch(`/api/devices/${id}`, { headers: headers(false) }).then((r) =>
+  fetch(api(`/devices/${id}`), { headers: headers(false) }).then((r) =>
     j<DeviceDetail>(r),
   )
 
@@ -316,26 +322,26 @@ export const saveDevice = (
   id: string,
   body: { meta?: Partial<DeviceMeta>; config?: GuiConfig },
 ) =>
-  fetch(`/api/devices/${id}`, {
+  fetch(api(`/devices/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(body),
   }).then((r) => j<{ success: boolean }>(r))
 
 export const deleteDevice = (id: string) =>
-  fetch(`/api/devices/${id}`, {
+  fetch(api(`/devices/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 export const startDevice = (id: string, config?: GuiConfig) =>
-  post<{ success: boolean }>(`/api/devices/${id}/start`, config)
+  post<{ success: boolean }>(api(`/devices/${id}/start`), config)
 
 export const stopDevice = (id: string) =>
-  post<{ success: boolean }>(`/api/devices/${id}/stop`)
+  post<{ success: boolean }>(api(`/devices/${id}/stop`))
 
 export const getDeviceLogs = (id: string, limit = 200) =>
-  fetch(`/api/devices/${id}/logs?limit=${limit}`, {
+  fetch(api(`/devices/${id}/logs?limit=${limit}`), {
     headers: headers(false),
   }).then((r) => j<{ logs: string[] }>(r))
 
@@ -349,7 +355,7 @@ export interface LogEntry {
 }
 
 export const getLogs = (limit = 200) =>
-  fetch(`/api/logs?limit=${limit}`, { headers: headers(false) }).then((r) =>
+  fetch(api(`/logs?limit=${limit}`), { headers: headers(false) }).then((r) =>
     j<{ total: number; logs: LogEntry[] }>(r),
   )
 
@@ -361,18 +367,18 @@ export interface SystemLogs {
 }
 
 export const getSystemLogs = (lines = 300) =>
-  fetch(`/api/system/logs?lines=${lines}`, { headers: headers(false) }).then(
+  fetch(api(`/system/logs?lines=${lines}`), { headers: headers(false) }).then(
     (r) => j<SystemLogs>(r),
   )
 
 export const clearSystemLogs = () =>
-  fetch('/api/system/logs/clear', {
+  fetch(api('/system/logs/clear'), {
     method: 'POST',
     headers: headers(false),
   }).then((r) => j<{ success: boolean; error?: string }>(r))
 
 export async function downloadSystemLogs(): Promise<void> {
-  const r = await fetch('/api/system/logs/download', {
+  const r = await fetch(api('/system/logs/download'), {
     headers: headers(false),
   })
   if (!r.ok) throw new Error('HTTP ' + r.status)
@@ -388,11 +394,11 @@ export async function downloadSystemLogs(): Promise<void> {
 
 // ── 测试接口 ─────────────────────────────────────────────────
 export const testPublicURL = (url: string) =>
-  post<{ success: boolean }>('/api/test', { url })
+  post<{ success: boolean }>(api('/test'), { url })
 
 export async function testTts(ttsConfig: TTSConfig) {
   // TTS 配置含密钥，改走 POST body（原实现放在 URL query 中，会进入访问日志与浏览器历史）
-  const res = await fetch('/api/test/audio', {
+  const res = await fetch(api('/test/audio'), {
     method: 'POST',
     headers: headers(true),
     body: JSON.stringify({ ttsConfig }),

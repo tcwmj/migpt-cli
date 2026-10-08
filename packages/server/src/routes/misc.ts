@@ -1,10 +1,10 @@
 // ── 测试接口：对外地址连通性 + TTS 配置试听 ─────────────────────
 import { createTTS } from 'mi-gpt-tts'
 import { streamTTSResponse } from '../tts.js'
-import { fail, type RouteContext } from './shared.js'
+import { API_PREFIX, fail, type RouteContext } from './shared.js'
 
 export function registerTestRoutes({ app }: RouteContext): void {
-  app.post('/api/test', async (req, res) => {
+  app.post(`${API_PREFIX}/test`, async (req, res) => {
     const testBaseUrl = req.body.url
     const ping = testBaseUrl.replace(/\/+$/, '') + '/ping'
     try {
@@ -18,7 +18,7 @@ export function registerTestRoutes({ app }: RouteContext): void {
     }
   })
 
-  app.post('/api/test/audio', (req, res) => {
+  app.post(`${API_PREFIX}/test/audio`, (req, res) => {
     // TTS 配置含密钥，必须走请求体而非 URL（避免进入访问日志 / 浏览器历史）
     const raw = (req.body as { ttsConfig?: unknown })?.ttsConfig
     let options: Record<string, unknown>

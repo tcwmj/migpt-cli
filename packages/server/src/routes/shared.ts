@@ -12,6 +12,9 @@ import type { DeviceMeta } from '../types.js'
 // 从 store 层重新导出，保持既有导入面不变
 export { loadDeviceConfig } from '../store.js'
 
+// ── API 版本前缀：所有业务路由统一挂在 /api/v1/ ────────────────
+export const API_PREFIX = '/api/v1'
+
 export interface ServerOptions {
   open?: boolean
   port?: number
