@@ -100,40 +100,6 @@
   box-shadow: var(--shadow-card);
 }
 
-.rform .fld {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-7);
-}
-
-.rform .fld label {
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  color: var(--ink-2);
-}
-
-.rform .fld input,
-.rform .fld textarea,
-.rform .fld select {
-  border: 1px solid var(--line);
-  border-radius: var(--r-m);
-  padding: var(--sp-4) var(--sp-6);
-  font: inherit;
-  color: var(--ink-1);
-  background: var(--panel-2);
-}
-
-.rform .fld textarea {
-  min-height: 76px;
-  resize: vertical;
-}
-
-.rform .fld .hint {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
 .rform .acts {
   display: flex;
   gap: var(--sp-4);
@@ -358,21 +324,6 @@
 .grp .fld select {
   flex: 1 1 0;
   min-width: 0;
-}
-/* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */
-.grp .fld label .req,
-.form-card .fld label .req,
-.form-card .grp .fld label .req,
-.modal .fld label .req,
-.rform .fld label .req,
-.wizard .fld label .req,
-.wizard .form-card .fld label .req,
-.login-page .fld label .req,
-.login-card .fld label .req {
-  color: #c0453c;
-  font-weight: var(--fw-bold);
-  margin-left: var(--sp-1);
-  line-height: var(--lh-none);
 }
 /* 提示信息改为 label 右侧的 tooltip 符号，悬浮显示 */
 .grp .fld label .tip {

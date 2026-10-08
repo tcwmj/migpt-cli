@@ -1,0 +1,186 @@
+/* ══ 基础组件层（base） ══
+   跨视图复用的通用原子：表单字段 / 徽标 / 筛选芯片 / 开关。
+   仅收录多视图共用的外观与结构，视图特有的差异留在各自文件。 */
+
+/* ── 表单字段 ──
+   .form-card / .rform / .modal 共用同一套字段结构、标签与控件外观 */
+.form-card .fld,
+.rform .fld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-7);
+}
+
+.form-card .fld label,
+.rform .fld label,
+.modal .fld label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-2);
+}
+
+.form-card .fld input,
+.form-card .fld select,
+.form-card .fld textarea,
+.rform .fld input,
+.rform .fld textarea,
+.rform .fld select,
+.modal .fld input,
+.modal .fld select,
+.modal .fld textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: var(--sp-4) var(--sp-6);
+  font: inherit;
+  color: var(--ink-1);
+  background: var(--panel-2);
+}
+
+.form-card .fld textarea,
+.modal .fld textarea {
+  min-height: 152px;
+  resize: vertical;
+  line-height: var(--lh-relaxed);
+}
+
+.rform .fld textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.form-card .fld .hint,
+.rform .fld .hint,
+.modal .fld .hint {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */
+.grp .fld label .req,
+.form-card .fld label .req,
+.form-card .grp .fld label .req,
+.modal .fld label .req,
+.rform .fld label .req,
+.wizard .fld label .req,
+.wizard .form-card .fld label .req,
+.login-page .fld label .req,
+.login-card .fld label .req {
+  color: #c0453c;
+  font-weight: var(--fw-bold);
+  margin-left: var(--sp-1);
+  line-height: var(--lh-none);
+}
+
+/* ── 徽标（badge） ── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-5);
+  border-radius: var(--pill);
+  font-size: var(--fs-xs);
+  background: var(--ok-soft);
+  color: var(--ok-ink);
+}
+
+.tag svg {
+  width: 11px;
+  height: 11px;
+}
+
+.tag.warn {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+
+.tag.bad {
+  background: var(--bad-soft);
+  color: var(--bad-ink);
+}
+
+.tag.accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tag.neu {
+  background: var(--panel-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+}
+
+.tag.builtin {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+/* ── 筛选芯片（chip） ── */
+.chip {
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  padding: var(--sp-3) var(--sp-7);
+  color: var(--ink-2);
+  background: var(--bg);
+  font-size: var(--fs-sm);
+}
+
+.chip:hover {
+  border-color: var(--accent);
+}
+
+.chip.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: var(--fw-semibold);
+}
+
+/* ── 开关（连续对话等布尔配置） ── */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch .track {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--pill);
+  background: var(--line);
+  transition: background var(--dur-200) ease;
+  flex: none;
+}
+.switch .track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform var(--dur-200) ease;
+}
+.switch input:checked + .track {
+  background: var(--accent, #ff6900);
+}
+.switch input:disabled + .track {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.switch input:disabled + .track::after {
+  box-shadow: var(--shadow-sm);
+}
+.switch input:checked + .track::after {
+  transform: translateX(16px);
+}

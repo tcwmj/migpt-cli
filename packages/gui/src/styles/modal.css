@@ -66,12 +66,6 @@
   margin-bottom: var(--sp-6);
 }
 
-.modal .fld label {
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  color: var(--ink-2);
-}
-
 /* 修改密码等表单：label 与输入框同行 */
 .modal .fld.row {
   flex-direction: row;
@@ -91,21 +85,6 @@
   flex-basis: 100%;
   margin-left: 122px;
   margin-top: -2px;
-}
-
-.modal .fld input,
-.modal .fld select {
-  border: 1px solid var(--line);
-  border-radius: var(--r-m);
-  padding: var(--sp-4) var(--sp-6);
-  font: inherit;
-  color: var(--ink-1);
-  background: var(--panel-2);
-}
-
-.modal .fld .hint {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
 }
 
 .modal .fld .hint.warn {

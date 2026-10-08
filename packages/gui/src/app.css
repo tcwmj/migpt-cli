@@ -1,8 +1,15 @@
 /* ══ MiGPT 控制面板 · 样式入口 ══
-/* 说明：原 app.css 已按模块拆分至 styles/ 目录，此处仅按原始级联顺序引入，样式行为零变更。 */
+   分层约定：tokens（设计令牌）→ base（动效原语 + 跨视图基础组件）→ 组件 → 视图。
+   注意：@import 顺序即级联顺序；为保持样式行为零变更，组件与视图层仍沿用原始引入顺序。 */
 
+/* ── tokens：设计令牌 ── */
 @import './styles/theme.css';
+
+/* ── base：动效原语 + 跨视图基础组件（表单字段 / 徽标 / 芯片 / 开关） ── */
 @import './styles/keyframes.css';
+@import './styles/base.css';
+
+/* ── 组件与视图：沿用原始级联顺序（样式行为零变更） ── */
 @import './styles/shell.css';
 @import './styles/home.css';
 @import './styles/panels.css';

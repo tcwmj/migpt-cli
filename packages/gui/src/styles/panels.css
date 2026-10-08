@@ -42,26 +42,6 @@
   align-items: center;
 }
 
-.chip {
-  border: 1px solid var(--line);
-  border-radius: var(--pill);
-  padding: var(--sp-3) var(--sp-7);
-  color: var(--ink-2);
-  background: var(--bg);
-  font-size: var(--fs-sm);
-}
-
-.chip:hover {
-  border-color: var(--accent);
-}
-
-.chip.on {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-  font-weight: var(--fw-semibold);
-}
-
 .field {
   border: 1px solid var(--line);
   border-radius: var(--r-m);

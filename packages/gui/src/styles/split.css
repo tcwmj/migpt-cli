@@ -227,13 +227,6 @@
   margin-bottom: var(--sp-8);
 }
 
-.form-card .fld {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-7);
-}
-
 /* 分组表单字段：label 与输入框同行（与「对话角色」编辑页一致） */
 .form-card .grp .fld {
   flex-direction: row;
@@ -249,22 +242,6 @@
 .form-card .grp .fld > .fld-tags {
   flex: 1 1 100%;
   min-width: 0;
-}
-
-.form-card .fld label {
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  color: var(--ink-2);
-}
-
-.form-card .fld input,
-.form-card .fld select {
-  border: 1px solid var(--line);
-  border-radius: var(--r-m);
-  padding: var(--sp-4) var(--sp-6);
-  font: inherit;
-  color: var(--ink-1);
-  background: var(--panel-2);
 }
 
 .form-card .fld .arr-in {
@@ -397,24 +374,6 @@
   font-size: var(--fs-sm);
   color: var(--ink-3);
   text-align: center;
-}
-
-.form-card .fld textarea,
-.modal .fld textarea {
-  border: 1px solid var(--line);
-  border-radius: var(--r-m);
-  padding: var(--sp-4) var(--sp-6);
-  font: inherit;
-  color: var(--ink-1);
-  background: var(--panel-2);
-  min-height: 152px;
-  resize: vertical;
-  line-height: var(--lh-relaxed);
-}
-
-.form-card .fld .hint {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
 }
 
 /* 型号命令摘要（设备表单选中型号后自动带出） */

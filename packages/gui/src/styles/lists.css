@@ -94,48 +94,6 @@
   flex-wrap: wrap;
 }
 
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-1) var(--sp-5);
-  border-radius: var(--pill);
-  font-size: var(--fs-xs);
-  background: var(--ok-soft);
-  color: var(--ok-ink);
-}
-
-.tag svg {
-  width: 11px;
-  height: 11px;
-}
-
-.tag.warn {
-  background: var(--warn-soft);
-  color: var(--warn-ink);
-}
-
-.tag.bad {
-  background: var(--bad-soft);
-  color: var(--bad-ink);
-}
-
-.tag.accent {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.tag.neu {
-  background: var(--panel-2);
-  color: var(--ink-2);
-  border: 1px solid var(--line-2);
-}
-
-.tag.builtin {
-  background: var(--accent-2);
-  color: #fff;
-}
-
 th,
 td {
   text-align: left;
