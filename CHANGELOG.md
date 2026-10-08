@@ -59,6 +59,7 @@
 - 前端 `ServicesView.tsx` 由约 799 行拆分为 `views/services/*`：思考服务列表 / 详情 / 表单（`ThinkServiceList` / `ThinkServiceDetail` / `ThinkServiceForm`）与语音服务列表 / 详情 / 表单（`VoiceServiceList` / `VoiceServiceDetail` / `VoiceServiceForm`）；详情与表单内重复的服务查找收敛为单次求值，并清理文件尾遗留的注释
 - 前端 `Wizard.tsx` 由约 818 行拆分为 `components/wizard/*`：三步各自成组件（`WizardAccountStep` / `WizardDeviceStep` / `WizardRoleStep`）并自带本步表单与拉取状态，草稿类型抽到 `types.ts`；外壳只保留步骤指示、底部导航与推进判定
 - 后端 `server/src/store.ts` 由约 620 行拆分为 `store/*` 子模块：`json.ts`（读缓存 / 原子写 / 同步读原语）、`auth.ts`（凭据解析与恒定时间比较）、`entities.ts`（settings / accounts / roles / services / models / rooms / devices 读取）、`seeds.ts`（内置型号与语音服务种子、重置与旧数据迁移）；`store.ts` 收敛为门面统一再导出，既有 `./store.js` 导入面不变
+- 前端 `App.tsx` 由约 1626 行收敛为约 430 行：状态与业务逻辑抽到 `hooks/*`（`useAppData` / `useAccountsCrud` / `useServicesCrud` / `useModelsCrud` / `useDevicesCrud` / `useRolesRoomsCrud` / `useWizard` / `useToast` / `useConfirm`），UI 外壳抽到 `components/app/*`（`Sidebar` / `TopBar` / `ConfirmDialog` / `Toast` / `LoadingPanel`）与 `modal-submit.ts` / `errText.ts`；表单草稿类型统一复用 `views/drafts.ts` 单一事实源，`App` 只保留视图编排与顶栏/侧栏状态
 
 ### Engineering
 
