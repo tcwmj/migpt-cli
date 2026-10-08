@@ -4,7 +4,14 @@
 
 # MiGPT 控制面板（多设备版）
 
-> **Fork 声明**：本仓库 fork 自 [lmk123/migpt-cli](https://github.com/lmk123/migpt-cli)（上游未声明许可证），在保留上游「MiGPT GUI」全部能力的基础上，重构为**多设备、多账号**的公共服务形态，并采用 **MIT 许可证**（见 [LICENSE](./LICENSE)）对外发布。
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![CI](https://github.com/tcwmj/migpt-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/tcwmj/migpt-cli/actions/workflows/ci.yml)
+[![Release image](https://github.com/tcwmj/migpt-cli/actions/workflows/release.yml/badge.svg)](https://github.com/tcwmj/migpt-cli/actions/workflows/release.yml)
+[![Node](https://img.shields.io/badge/node-%3E%3D24-brightgreen.svg)](https://nodejs.org)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/tcwmj/migpt-cli/pkgs/container/migpt-cli)
+[![Fork of lmk123/migpt-cli](https://img.shields.io/badge/fork-lmk123%2Fmigpt--cli-informational.svg)](https://github.com/lmk123/migpt-cli)
+
+> **Fork 声明**：本仓库 fork 自 [lmk123/migpt-cli](https://github.com/lmk123/migpt-cli)（上游未声明许可证），在保留上游「MiGPT GUI」全部能力的基础上，重构为**多设备、多账号**的公共服务形态，并采用 **MIT 许可证**（见 [LICENSE](./LICENSE)）对外发布。来源与致谢详见 [NOTICE](./NOTICE)。
 
 「多个音箱，一个大脑」：用一个控制面板统一管理你的全部小爱音箱与 MiGPT 服务。
 
@@ -60,13 +67,18 @@ docker run -d --name migpt-cli --restart unless-stopped \
 │   ├── server/    # 后端 API 实现（@migptgui/server）
 │   ├── gui/       # 前端控制面板（@migptgui/gui）
 │   └── options/   # CLI 配置选项（上游遗留）
-├── docs/          # 产品设计文档（本地开发资料，不入库）
+├── docs/          # 本地开发资料（不入库，见下方「文档策略」）
 ├── scripts/       # 开发脚本（dev.ps1 三 watch 热启动等）
 ├── docker/        # Docker 打包相关
 └── .github/       # Issue/PR 模板、SECURITY.md、CI workflow
 ```
 
 > 约定：`apps/*` 为可部署入口，`packages/*` 为可复用实现；node_modules 统一 hoist 到根目录。
+
+### 文档策略
+
+- **随仓库入库（公开）**：`README.md`、`CHANGELOG.md`、`CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`、`SECURITY.md`、`NOTICE`、`LICENSE` 及 `.github/` 模板。
+- **本地资料（不入库）**：`docs/` 整体由 `.gitignore` 排除，含内部待办清单、产品信息架构与本地设计文档、设计原型等，仅在本机留存。新增需要对外公开的文档请放仓库根目录或 `.github/`；确需公开 `docs/` 内某文档时，先移出 `docs/` 再入库。
 
 ## 前后端共享契约（#5）
 

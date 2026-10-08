@@ -1,0 +1,27 @@
+# 来源与致谢（NOTICE / Attribution）
+
+本项目 **tcwmj/migpt-cli**（MiGPT 控制面板 · 多设备版）是 [lmk123/migpt-cli](https://github.com/lmk123/migpt-cli)（MiGPT GUI）的衍生作品（fork）。
+
+## 上游来源
+
+- 项目名称：MiGPT GUI（migpt-cli）
+- 上游作者：lmk123
+- 上游仓库：<https://github.com/lmk123/migpt-cli>
+- 上游许可：未声明许可证（upstream 未提供 LICENSE）
+
+## 本仓库说明
+
+- 在保留上游「MiGPT GUI」全部能力的基础上，重构为**多设备、多账号**的公共服务形态。
+- 本仓库以 **MIT 许可证**发布，详见 [LICENSE](./LICENSE)。
+- 上游未声明许可证；本仓库对上游代码的沿用遵循其原始仓库状态。若上游后续明确许可条款，将以之为准并同步更新本文件。
+
+## 第三方依赖与素材
+
+- 本项目依赖大量第三方开源组件，其版权与许可归各自作者所有，清单见各 `package.json` 与 `package-lock.json`。
+- 内置设备型号数据、设备图片等素材来源于公开信息，版权归原权利人所有。
+
+## 商标声明
+
+- 「小爱同学」「小米」等为小米公司（Xiaomi）的商标或注册商标。
+- 「MiGPT」名称及相关权利归其项目作者所有。
+- 本项目与上述主体均无隶属、赞助或背书关系。

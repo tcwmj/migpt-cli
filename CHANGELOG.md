@@ -101,3 +101,5 @@
 - 镜像漏洞门禁（G12）：`ci.yml` docker job 与 `release.yml` 均接入 Trivy 扫描，命中可修复的 HIGH/CRITICAL 即阻断；`ci.yml` 先构建单架构镜像并载入本地再扫描，仅 `main` 推送多架构。鉴于 Trivy 供应链事件，固定安全版本 `trivy-action@0.35.0`
 - 镜像元数据补全（G11）：两个 Dockerfile 补齐 OCI 标签 `version` / `revision` / `created` / `vendor` / `documentation`（`version` / `revision` / `created` 由 CI 经 `--build-arg` 注入，本地回落占位值）；`docker/Dockerfile` 的 npm 包版本改由 `VERSION` 构建参数驱动，与镜像 `version` 一致
 - 镜像使用与升级文档（G13）：README「发布镜像」重写为拉取 / 运行参数（端口、数据卷、认证、备份、健康检查）/ 发布流程 / 升级回滚 / cosign 校验 / 镜像元数据；同步修正「契约需先 build」等过时说明
+- README 徽章与上游归属（G7）：README 顶部补 License / CI / Release / Node / Docker / Fork 徽章；新增 `NOTICE` 记录上游来源（`lmk123/migpt-cli`）、本仓库许可说明、第三方依赖与商标声明；README Fork 声明链接至 NOTICE
+- 文档入库策略（A8）：`docs/` 继续整体 `.gitignore`（含内部清单 `todo.md`、本地设计 `lerio-local-design.md`、产品信息架构 `migpt-product-design.md`、设计原型 `assets/`）；公开文档（`README` / `CHANGELOG` / `CONTRIBUTING` / `CODE_OF_CONDUCT` / `SECURITY` / `NOTICE` / `LICENSE`）随仓库入库，策略与目录职责在 README「文档策略」与 `docs/README.md` 说明；已完成任务项从 `todo.md` 移除、记录沉淀到本文件
