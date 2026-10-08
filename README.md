@@ -73,40 +73,73 @@ docker run -d --name migpt-cli --restart unless-stopped \
 `packages/contracts`（`@migptgui/contracts`）是前后端**类型单一事实源**：
 
 - 后端 `packages/server/src/types.ts` 与前端 `packages/gui/src/apis.ts` 均从 `@migptgui/contracts` 导入并 re-export
-- 修改契约文件后，先重建 `packages/contracts`（产出 dist），两端类型检查与构建会同时感知变更
+- 契约包「零手动构建」：typecheck / dev / 测试直接解析到 `packages/contracts/src`（tsconfig `paths` + Jest `moduleNameMapper`），改完即生效、无需先 build；仅 emit 构建回落 `dist`（由 nx `^build` 保证构建顺序）
 - 前端 webpack 构建走 babel，不检查类型；提交前请运行 `npm run typecheck` 覆盖两端
+- 契约字段有运行期清单 `ENTITY_FIELDS` 与编译期守卫，`store/contracts.test.ts` 校验存储 schema / 路由写白名单与契约严格一致，防止接口与实现漂移
 
 ## 数据管理模型（#6）
 
 - **内置数据**（内置型号 19 款、默认语音）与用户数据统一存储在用户数据目录（`~/.migptgui`）
-- 内置数据**可修改、禁止删除**，支持在详情页点击「重置默认」恢复为系统内置默认值
+- 内置数据**可修改、禁止删除**，支持在详情页点击「重置」恢复为系统内置默认值
 - 启动时仅**补充缺失**的内置项，绝不覆盖用户已修改的数据
 - 所有 JSON 持久化采用**原子写**（临时文件 + rename），避免异常断电损坏
 
 ## 工程规范
 
-| 设施                        | 说明                                                           |
-| --------------------------- | -------------------------------------------------------------- |
-| `npm run lint` / `lint:fix` | ESLint（packages + apps）                                      |
-| `npm run typecheck`         | 两端 + 契约类型检查                                            |
-| `npm run build-all`         | nx 增量构建全部 workspace                                      |
-| husky + lint-staged         | 提交前自动 lint / prettier 修复暂存文件                        |
-| GitHub Actions CI           | lint + format + build + Docker 多架构（amd64/arm64）构建与推送 |
+| 设施                        | 说明                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| `npm run lint` / `lint:fix` | ESLint（packages + apps）                                                                 |
+| `npm run typecheck`         | 两端 + 契约类型检查                                                                       |
+| `npm run build-all`         | nx 增量构建全部 workspace                                                                 |
+| husky + lint-staged         | 提交前自动 lint / prettier 修复暂存文件                                                   |
+| GitHub Actions CI           | lint + format + test + build + Docker 多架构（amd64/arm64）构建与 Trivy 漏洞门禁          |
+| GitHub Actions Release      | tag（`migptgui@X.Y.Z`）触发：多架构推送 Docker Hub + GHCR、SBOM + provenance、cosign 签名 |
 
-## 发布镜像（#10）
+## 发布镜像（G8–G13）
 
-准备事项：
+### 拉取与运行
+
+```bash
+# Docker Hub（<user> 为维护者账号）
+docker pull <user>/migpt-cli:latest
+# GitHub Container Registry
+docker pull ghcr.io/<owner>/migpt-cli:latest
+
+docker run -d --name migpt-cli --restart unless-stopped \
+  -p 36597:36597 \
+  -v /volume1/docker/migpt-data:/home/node/.migptgui \
+  -e AUTH_PASSWORD=你的自定义密码 \
+  -e PORT=36597 \
+  <user>/migpt-cli:latest
+```
+
+### 运行参数
+
+| 项       | 说明                                                                                                                   |
+| -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 端口     | `PORT`（默认 `36597`）；容器内监听该端口，`-p` 映射到宿主                                                              |
+| 数据卷   | `/home/node/.migptgui`：账号 / 角色 / 思考服务 / 语音服务 / 型号 / 会话群 / 设备 / 备份 / 日志；**升级务必复用同一卷** |
+| 认证     | `AUTH_PASSWORD`（缺省 `admin/123456`，启动打印安全告警）；`AUTH_SECRET_PATH` 启用秘密路径                              |
+| 备份     | `BACKUP_INTERVAL_MS` / `BACKUP_KEEP` 启用定时备份与滚动保留（默认关闭）；备份落数据卷 `backups/`                       |
+| 健康检查 | 内置 `HEALTHCHECK` 命中 `/ping`（无需认证），容器编排可据此探活                                                        |
+
+### 发布流程（维护者）
 
 1. 在 GitHub 仓库配置 Secrets：`DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN`
-2. 推送 `main` 分支即触发 CI 构建 `linux/amd64,linux/arm64` 多架构镜像并推送 Docker Hub
-3. 镜像 Tag 规划：
-   - `latest`：跟随 `main` 每次发布
-   - `git-sha`：精确版本（可追溯）
-   - 建议在 CI 中补充语义化版本 Tag（`v2.0.0` 等）以对接镜像市场版本管理
-4. 面向镜像市场（如 NAS 应用中心 / 第三方镜像市场）发布时，需额外准备：
-   - 应用描述、图标、截图、支持平台清单（x86_64 / arm64）
-   - `docker-compose.yml` 模板（端口、数据卷、环境变量说明）
-   - 升级策略说明（数据卷兼容、内置数据迁移）
+2. `npm run release`（nx release）统一 `@migptgui/*` 与 `migpt-server` 版本并打 tag（`migptgui@X.Y.Z`）
+3. 推送该 tag 触发 `release.yml`：多架构构建（`linux/amd64,linux/arm64`）→ 推送 Docker Hub + GHCR → 生成 SBOM 与 provenance → cosign 无密钥签名 → Trivy 扫描（可修复的 HIGH/CRITICAL 阻断）
+4. 镜像 Tag 规划：`X.Y.Z`、`vX.Y.Z`（语义化）、`latest`、`sha-<commit>`（精确追溯）
+5. 日常分支（`develop` / PR）由 `ci.yml` 构建并执行 Trivy 扫描门禁；仅 `main` 推送
+
+### 升级与回滚
+
+- **升级**：拉取新 tag 镜像并复用原数据卷即可；启动时自动执行数据迁移（`dataVersion` 递增）与内置数据补充，内置定义以代码为准自动修正
+- **回滚**：切回上一语义化 tag 镜像；若已发生不可逆迁移，先从数据卷 `backups/`（或 `GET /api/backup/export` 导出）恢复
+- **校验来源**：`cosign verify ghcr.io/<owner>/migpt-cli:X.Y.Z --certificate-identity-regexp 'https://github.com/<owner>/migpt-cli/.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com`
+
+### 镜像元数据
+
+两个 Dockerfile 均内置 OCI 标签：`version` / `revision` / `created` / `vendor` / `documentation` / `source` / `licenses`；`version` / `revision` / `created` 由 CI 经 `--build-arg` 注入，可 `docker inspect` 追溯构建来源。
 
 ## 许可证
 

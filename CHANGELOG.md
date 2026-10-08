@@ -8,6 +8,13 @@
 
 ## [2.0.0] - 2026-10-08
 
+### Added
+
+- 数据版本与迁移框架：`version.json` 记录 `dataVersion`，启动时 `runMigrations()` 按版本增量升级并逐条落盘进度，可安全重入、中断续跑；首个基线迁移 v1 收敛旧 `settings.json` → 多账号、设备会话群 → Room 实体
+- 内置 / 用户数据分离：内置型号与内置语音的「定义」回归代码（`store/builtins.ts`，随版本升级自动修正），用户改动以补丁形式写入 `overrides.json`（`store/overrides.ts`）；「重置」只删补丁、代码默认即刻回归，不再波及其他数据；v2 迁移把既有可写文件中的内置项一次性剥离，仅保留用户自建项
+- 数据 schema 校验（zod）：为全部落盘实体定义 schema（`store/schemas.ts`），写入经 `writeJsonChecked` 前置校验、不符即抛 `DataValidationError`（经统一错误中间件回 500），脏数据不落盘；读取经 `readJsonChecked` / `readJsonListChecked` 逐条校验，非法项告警并跳过、不拖垮整份列表；`createCrudRouter` 新增 `schema` 选项，各实体 CRUD 落盘统一把关
+- 数据导出 / 导入 / 备份（`store/backup.ts` + `routes/backup.ts`）：`GET /api/backup/export` 全量导出为单个 JSON（默认脱敏，抹除账号密码 / `passToken` / `apiKey` / `ttsSecret` / TTS 令牌，保留 `hasXxx` 标记）；`POST /api/backup/import` 按 id 覆盖、补齐缺失（不删除本机多余项），脱敏包按 id 保留本机既有凭据，包非法回 400；`GET /api/backup/list` 列出备份、`POST /api/backup/run` 立即生成完整（未脱敏）备份；启动时按 `BACKUP_INTERVAL_MS` / `BACKUP_KEEP` 启用定时备份并滚动保留（默认关闭）
+
 ### Security
 
 - 恢复 HTTPS 请求的 TLS 证书校验，移除全局 `rejectUnauthorized: false`，消除中间人风险
@@ -39,6 +46,8 @@
 
 ### Changed
 
+- 系统日志由全局劫持 `console.*` 改为结构化 logger（`pino`）：结构化记录经自定义 destination 转为人可读行写入 `system.log`（GUI「系统日志」页兼容），并镜像到 stdout；凭据字段（`apiKey` / `passToken` / `miPassword` / `ttsSecret` / `password` / `token`）自动脱敏；级别由 `LOG_LEVEL` 控制（debug 级请求日志默认不落盘）
+- 新增请求 ID 贯穿：`requestId` 中间件为每个请求分配 `reqId` 并回写 `X-Request-Id` 响应头，响应结束按 debug 级记录耗时；新增统一错误处理中间件，未捕获异常记录带 `reqId` 的错误日志并返回含 `reqId` 的最小错误体
 - 写接口改为白名单字段（`pick()` + `*_FIELDS`），不再直接展开 `req.body` 落盘
 - 供应商 baseUrl 映射下沉到 `@migptgui/contracts` 单一事实源，前后端共用
 - 缓存、覆盖率、日志、临时产物统一收纳到根 `.cache/`，新增 `npm run clean:cache`
@@ -59,7 +68,7 @@
 - 前端 `DevicesView.tsx` 由约 811 行拆分为 `views/devices/*`：列表 `DeviceList`、只读详情 `DeviceDetail`、编辑表单 `DeviceForm`、型号搜索选择 `ModelPicker`、账号拉取列表 `PullDeviceList`；详情与表单内重复的设备 / 型号查找收敛为单次求值，并清理文件尾遗留的重复注释
 - 前端 `ServicesView.tsx` 由约 799 行拆分为 `views/services/*`：思考服务列表 / 详情 / 表单（`ThinkServiceList` / `ThinkServiceDetail` / `ThinkServiceForm`）与语音服务列表 / 详情 / 表单（`VoiceServiceList` / `VoiceServiceDetail` / `VoiceServiceForm`）；详情与表单内重复的服务查找收敛为单次求值，并清理文件尾遗留的注释
 - 前端 `Wizard.tsx` 由约 818 行拆分为 `components/wizard/*`：三步各自成组件（`WizardAccountStep` / `WizardDeviceStep` / `WizardRoleStep`）并自带本步表单与拉取状态，草稿类型抽到 `types.ts`；外壳只保留步骤指示、底部导航与推进判定
-- 后端 `server/src/store.ts` 由约 620 行拆分为 `store/*` 子模块：`json.ts`（读缓存 / 原子写 / 同步读原语）、`auth.ts`（凭据解析与恒定时间比较）、`entities.ts`（settings / accounts / roles / services / models / rooms / devices 读取）、`seeds.ts`（内置型号与语音服务种子、重置与旧数据迁移）；`store.ts` 收敛为门面统一再导出，既有 `./store.js` 导入面不变
+- 后端 `server/src/store.ts` 由约 620 行拆分为 `store/*` 子模块：`json.ts`（读缓存 / 原子写 / 同步读原语）、`auth.ts`（凭据解析与恒定时间比较）、`builtins.ts`（内置型号 / 语音的代码定义）、`overrides.ts`（内置实体的用户覆盖：合并 / 落盘 / 重置 / 迁移分离）、`entities.ts`（settings / accounts / roles / services / models / rooms / devices 读取）、`demo.ts`（演示日志种子）、`migrations.ts`（数据版本与迁移框架）；`store.ts` 收敛为门面统一再导出，既有 `./store.js` 导入面不变
 - 前端 `App.tsx` 由约 1626 行收敛为约 430 行：状态与业务逻辑抽到 `hooks/*`（`useAppData` / `useAccountsCrud` / `useServicesCrud` / `useModelsCrud` / `useDevicesCrud` / `useRolesRoomsCrud` / `useWizard` / `useToast` / `useConfirm`），UI 外壳抽到 `components/app/*`（`Sidebar` / `TopBar` / `ConfirmDialog` / `Toast` / `LoadingPanel`）与 `modal-submit.ts` / `errText.ts`；表单草稿类型统一复用 `views/drafts.ts` 单一事实源，`App` 只保留视图编排与顶栏/侧栏状态
 
 ### Engineering
@@ -80,7 +89,15 @@
 - 生产构建的体积分析（`BundleAnalyzerPlugin`）改为按需开启：默认关闭不再拖慢构建，需要时设 `ANALYZE=1` 再构建，报告仍输出到根 `.cache/`
 - `scripts/dev.ps1` 的仓库根路径改为由 `$PSScriptRoot` 推导，去除硬编码的绝对路径
 - 补充核心模块单元测试（共 7 个测试文件 / 87 条用例）：`redact`（凭据脱敏）、`store/json`（原子写 / 读缓存 / 并发串行化）、`store/auth`（凭据解析优先级与恒定时间比较）、`store/entities`（唯一名校验 / 账号迁移 / 设备元数据 / 引用解析）、`routes/crud`（CRUD 工厂四段式与删除引用保护）、`routes/shared`（字段白名单 / 404 / 引用冲突 / 设备配置读取）
+- 为数据与可观测层补充单元测试：迁移框架（`store/migrations`）、覆盖分离（`store/overrides`）、schema 校验（`store/schemas`）、契约一致性（`store/contracts`）、导出 / 导入 / 备份（`store/backup` + `routes/backup`）、结构化日志（`logger`）、请求 ID 与错误中间件（`middleware`）；测试总数由 87 增至 152
 - Jest 增加 `packages/server` 测试项目并放行 `nanoid` 等 ESM 依赖转换；配置覆盖率阈值（statements 90 / branches 78 / functions 90 / lines 90）并忽略 `dist` 构建产物，防止覆盖率无声下滑
 - Node 版本由已 EOL 的 `20.17.0` 升级到 `24.21.0`（Node 24 LTS）：`.nvmrc`、根 `engines`、两个 `Dockerfile` 基镜像与 `CONTRIBUTING.md` 同步更新；同时解决 `.nvmrc` 与 `lint-staged@17.6.0`（要求 Node ≥22.22.1）的引擎约束冲突
 - `nx.json` 迁移到 nx 20+ 新格式：移除已废弃的 `tasksRunnerOptions`（`cacheableOperations`），改为在 `targetDefaults` 中按目标声明 `cache: true`（`build` / `typecheck` / `test` / `test:ci` / `lint`）；`affected.defaultBase` 上移为顶层 `defaultBase`（该旧写法将于 Nx 20 移除）
 - 接入 `nx release` 版本自动化：`nx.json` 新增 `release.groups` —— `@migptgui/*` 与 `migpt-server` 归入 `fixed` 组（共用同一版本，tag 形如 `migptgui@2.1.0`），`migpt-cli` 归入 `independent` 组（tag 形如 `migpt-cli@5.1.0`）；版本号按 Conventional Commits 推导，且在尚无匹配 tag 时回退磁盘版本（`fallbackCurrentVersionResolver: disk`）；关闭自动 changelog 生成以保留人工维护的本文件。新增 `@nx/js`（`nx release` 版本化所需插件）与 `npm run release` / `npm run release:dry` 脚本；`--dry-run` 验证通过：`migptgui` 组 2.0.0 → 2.1.0、`migpt-cli` 5.0.0 → 5.1.0
+- 契约包零手动构建（A9）：`tsconfig.base.json` 将 `@migptgui/contracts` 映射到源码，typecheck / dev / 测试无需先 build 出 `dist`；emit 构建（各 `tsconfig.build.json`）清空 `paths` 回落 `node_modules → dist`，避免契约源码并入本包 program 导致 `rootDir` 上移、产物目录嵌套（`dist/server/…`）；`server` / `gui` 声明契约依赖以纳入 nx 构建排序；Jest `moduleNameMapper` 同步映射契约到源码
+- 契约一致性校验（A9）：`@migptgui/contracts` 新增运行期字段清单 `ENTITY_FIELDS` 与编译期严格一致性守卫（`ExactKeys`，清单漏键 / 多键即编译报错）；新增 `store/contracts.test.ts`，校验各实体 zod schema 字段、路由写字段白名单均与契约清单严格一致，防止接口与实现无声漂移
+- 修复 `.husky/pre-commit` 在 husky v10 失效：移除 `#!/usr/bin/env sh` 与 `. "$(dirname -- "$0")/_/husky.sh"` 两行旧写法（v10 已废弃 `_/husky.sh`），改为直接调用 `node_modules/.bin/lint-staged`
+- 发布镜像工作流（G8–G13）：新增 `.github/workflows/release.yml`，`migptgui@X.Y.Z` tag 触发 —— 多架构（`linux/amd64,linux/arm64`）构建并推送 Docker Hub 与 GHCR，镜像 tag 含 `X.Y.Z` / `vX.Y.Z`（语义化）/ `latest` / `sha-<commit>`；构建期生成 SBOM 与 provenance，推送后 cosign 无密钥（OIDC）签名；runner 不预装 Node，构建全部在容器内完成（`.dockerignore` 已排除 `node_modules`/`dist`）
+- 镜像漏洞门禁（G12）：`ci.yml` docker job 与 `release.yml` 均接入 Trivy 扫描，命中可修复的 HIGH/CRITICAL 即阻断；`ci.yml` 先构建单架构镜像并载入本地再扫描，仅 `main` 推送多架构。鉴于 Trivy 供应链事件，固定安全版本 `trivy-action@0.35.0`
+- 镜像元数据补全（G11）：两个 Dockerfile 补齐 OCI 标签 `version` / `revision` / `created` / `vendor` / `documentation`（`version` / `revision` / `created` 由 CI 经 `--build-arg` 注入，本地回落占位值）；`docker/Dockerfile` 的 npm 包版本改由 `VERSION` 构建参数驱动，与镜像 `version` 一致
+- 镜像使用与升级文档（G13）：README「发布镜像」重写为拉取 / 运行参数（端口、数据卷、认证、备份、健康检查）/ 发布流程 / 升级回滚 / cosign 校验 / 镜像元数据；同步修正「契约需先 build」等过时说明
