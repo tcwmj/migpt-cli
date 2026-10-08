@@ -35,3 +35,7 @@ docs/
 
 # 运行日志
 *.log
+
+# Build artifacts in src (tsc misplacement)
+packages/contracts/src/index.d.ts
+packages/contracts/src/index.js
