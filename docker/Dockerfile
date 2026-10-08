@@ -2,8 +2,8 @@
 # 与仓库根 Dockerfile 的区别：本文件不构建源码，直接安装 npm 上的 migpt-server。
 # 构建上下文是 docker/ 目录：
 #   docker build --build-arg TARGETARCH=amd64 -t migpt-server:2.0.0 ./docker
-FROM node:20.17.0-alpine3.20 AS env-amd64
-FROM node:20.17.0-alpine3.20 AS env-arm64
+FROM node:24.21.0-alpine3.23 AS env-amd64
+FROM node:24.21.0-alpine3.23 AS env-arm64
 
 ###### 尝试构建 armv7l 时失败，但还是把过程放在这里 ######
 # arm32v7/node:20.15.0-alpine3.20 获取不到 metadata 报错

@@ -13,7 +13,7 @@
     "url": "https://github.com/tcwmj/migpt-cli/issues"
   },
   "engines": {
-    "node": ">=20.17.0"
+    "node": ">=24.21.0"
   },
   "scripts": {
     "prepare": "husky",

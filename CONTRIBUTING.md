@@ -6,7 +6,7 @@
 
 ## 开发环境
 
-- Node.js：见根 `.nvmrc`（当前 `20.17.0`）
+- Node.js：见根 `.nvmrc`（当前 `24.21.0`，Node 24 LTS）
 - 包管理：npm（workspaces），请使用仓库根目录安装，勿在子包内单独 `npm install`
 
 ```bash

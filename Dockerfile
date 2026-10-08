@@ -16,7 +16,7 @@
 
 # ── 构建阶段 ────────────────────────────────────────────────
 # node 版本需与根 .nvmrc 保持一致
-FROM node:20.17.0-alpine3.20 AS build
+FROM node:24.21.0-alpine3.23 AS build
 WORKDIR /app
 
 # 国内镜像加速（lock 文件中的 resolved 也已改写为 npmmirror）
@@ -31,7 +31,7 @@ RUN npm ci --no-audit --no-fund \
  && rm -rf .cache
 
 # ── 运行阶段 ────────────────────────────────────────────────
-FROM node:20.17.0-alpine3.20
+FROM node:24.21.0-alpine3.23
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=36597 \
