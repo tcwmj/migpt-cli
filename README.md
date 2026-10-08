@@ -102,7 +102,7 @@ docker run -d --name migpt-cli --restart unless-stopped \
 3. 镜像 Tag 规划：
    - `latest`：跟随 `main` 每次发布
    - `git-sha`：精确版本（可追溯）
-   - 建议在 CI 中补充语义化版本 Tag（`v1.12.0` 等）以对接镜像市场版本管理
+   - 建议在 CI 中补充语义化版本 Tag（`v2.0.0` 等）以对接镜像市场版本管理
 4. 面向镜像市场（如 NAS 应用中心 / 第三方镜像市场）发布时，需额外准备：
    - 应用描述、图标、截图、支持平台清单（x86_64 / arm64）
    - `docker-compose.yml` 模板（端口、数据卷、环境变量说明）

@@ -17,9 +17,9 @@
     "start": "node dist/index.js run testrobot"
   },
   "dependencies": {
-    "@migptgui/controller": "^1.0.0",
-    "@migptgui/server": "^1.0.0",
-    "@migptgui/gui": "^1.0.0",
+    "@migptgui/controller": "^2.0.0",
+    "@migptgui/server": "^2.0.0",
+    "@migptgui/gui": "^2.0.0",
     "commander": "^12.1.0",
     "fs-extra": "^11.2.0"
   },

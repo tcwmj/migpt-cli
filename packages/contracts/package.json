@@ -1,6 +1,6 @@
 {
   "name": "@migptgui/contracts",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "MiGPT 控制面板前后端共享契约（实体类型单一事实源）",
   "main": "dist/index.js",

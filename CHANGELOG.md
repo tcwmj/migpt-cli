@@ -3,10 +3,10 @@
 本文件记录本项目的显著变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 说明：当前各包版本尚未统一（根 `0.0.0`、`@migptgui/*` 与 `migpt-server` 为 `1.12.0`、`migpt-cli` 为 `5.0.0`），
-> 统一版本与自动发布见「待办清单」中的版本治理项。在版本统一前，变更统一记录在 `Unreleased` 下。
+> 版本说明：`@migptgui/*` 产品线（`contracts` / `controller` / `gui` / `options` / `options-with-preview` / `server`）
+> 与发布包 `migpt-server` 已统一为 `2.0.0`；`migpt-cli` 独立按 `5.x` 演进；根包 `@mgc/root` 为私有占位（`0.0.0`）不参与发布。
 
-## [Unreleased]
+## [2.0.0] - 2026-10-08
 
 ### Security
 
@@ -44,6 +44,8 @@
 - 缓存、覆盖率、日志、临时产物统一收纳到根 `.cache/`，新增 `npm run clean:cache`
 - nx 调用统一经 `scripts/nx.mjs` 包装，避免根目录生成 `.nx/`
 - 前端登录由 Basic Auth（凭据存 `localStorage`）改为服务端 Cookie 会话，刷新页面保持登录态
+- 内置型号 / 语音服务的入口按钮「重置默认」更名为「重置」，与实际行为对齐
+- 二次确认弹窗统一按钮语义：非危险操作使用标准「确认」按钮（`check` 图标），删除类操作沿用「删除」；不再为单个弹窗自定义按钮文案与图标
 
 ### Refactor
 
@@ -62,3 +64,6 @@
 - ESLint 升级至 v10 并迁移到扁平配置（`eslint.config.js`），移除 `.eslintrc.json`
 - 补充 `CONTRIBUTING.md`、`CHANGELOG.md`、`CODE_OF_CONDUCT.md`、`CODEOWNERS`、Dependabot 配置与 `package.json` 仓库元数据
 - 全仓 Prettier 基线格式化，修复 29 个历史未格式化文件，恢复 CI `format:check` 绿色门禁
+- `@migptgui/*` 产品线与 `migpt-server` 版本统一为 `2.0.0`，内部依赖范围同步为 `^2.0.0`；`migpt-cli` 保持 `5.0.0`
+- 前端版本号改为构建期注入（webpack `DefinePlugin` 读取 `packages/gui/package.json`），消除 `App` / `LoginPage` / `ProfileView` 三处硬编码 `v1.12.0`
+- Docker 镜像标签与 `migpt-server` 安装版本同步至 `2.0.0`

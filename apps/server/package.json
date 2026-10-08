@@ -1,6 +1,6 @@
 {
   "name": "migpt-server",
-  "version": "1.12.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
@@ -16,8 +16,8 @@
     "dist"
   ],
   "dependencies": {
-    "@migptgui/gui": "^1.11.0",
-    "@migptgui/server": "^1.11.0",
+    "@migptgui/gui": "^2.0.0",
+    "@migptgui/server": "^2.0.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {

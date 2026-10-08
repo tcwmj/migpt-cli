@@ -9,7 +9,7 @@ assignees: ''
 ## 环境
 
 - 部署方式：Docker / npm / 源码运行
-- 版本：面板版本号（如 v1.12.0）或 commit
+- 版本：面板版本号（如 v2.0.0）或 commit
 - 运行平台：Windows / macOS / Linux / NAS
 
 ## 问题描述
