@@ -17,6 +17,7 @@
   },
   "scripts": {
     "prepare": "husky",
+    "dev": "node scripts/dev.js",
     "lint": "eslint \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\" --fix",
     "format:check": "prettier --check packages apps",
