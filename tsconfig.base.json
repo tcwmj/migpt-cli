@@ -3,13 +3,11 @@
   "compilerOptions": {
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
     "target": "ESNext",
     "module": "NodeNext",
     "lib": ["ESNext"],
     "strict": true,
     "skipLibCheck": true,
-    "jsx": "react-jsxdev"
+    "jsx": "react-jsx"
   }
 }

@@ -67,3 +67,4 @@
 - `@migptgui/*` 产品线与 `migpt-server` 版本统一为 `2.0.0`，内部依赖范围同步为 `^2.0.0`；`migpt-cli` 保持 `5.0.0`
 - 前端版本号改为构建期注入（webpack `DefinePlugin` 读取 `packages/gui/package.json`），消除 `App` / `LoginPage` / `ProfileView` 三处硬编码 `v1.12.0`
 - Docker 镜像标签与 `migpt-server` 安装版本同步至 `2.0.0`
+- 精简 tsconfig：移除未使用的 `experimentalDecorators` / `emitDecoratorMetadata`，`jsx` 由 `react-jsxdev` 改为 `react-jsx`，并删除 `gui` / `options` / `options-with-preview` 三处 `tsconfig.build.json` 中重复的 `jsx` 覆盖
