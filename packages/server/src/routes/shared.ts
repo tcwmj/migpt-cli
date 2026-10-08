@@ -104,9 +104,27 @@ export async function loadDeviceConfig(
     id === 'default'
       ? path.join(root, 'default', 'migptgui.json')
       : path.join(devicesRoot, id, 'migptgui.json')
+  let raw: string
   try {
-    return JSON.parse(await fs.readFile(file, 'utf-8'))
-  } catch {
+    raw = await fs.readFile(file, 'utf-8')
+  } catch (e) {
+    // 文件不存在属正常（设备尚未落盘配置）；其余读取错误需告警，避免静默吞掉权限/IO 问题
+    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.warn(
+        `[loadDeviceConfig] 读取配置失败：${file}`,
+        (e as Error).message,
+      )
+    }
+    return undefined
+  }
+  try {
+    return JSON.parse(raw)
+  } catch (e) {
+    // 解析失败多为文件被外部改坏：告警后按「无配置」处理，避免整机启动失败
+    console.warn(
+      `[loadDeviceConfig] 配置解析失败（已忽略）：${file}`,
+      (e as Error).message,
+    )
     return undefined
   }
 }
