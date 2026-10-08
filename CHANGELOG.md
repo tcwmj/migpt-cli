@@ -56,6 +56,7 @@
 - 前端 `ModalShell.tsx` 由约 679 行拆分为 `components/modals/*`：账号 / 思考服务 / 语音服务 / 角色 / 密码 / 设备绑定 6 个表单子组件，字段初始化与提交构造 / 校验抽到 `types.ts` / `values.ts`，外壳只保留标题、图标与动作按钮
 - 前端 `RolesView.tsx` 由约 635 行拆分为 `views/roles/*`：列表 `RoleList`、只读详情 `RoleDetail`、编辑表单 `RoleEditForm`；编辑表单中 10 处「关键词数组 ↔ 输入框」重复块收敛为 `KeywordField`
 - 前端 `DevicesView.tsx` 由约 811 行拆分为 `views/devices/*`：列表 `DeviceList`、只读详情 `DeviceDetail`、编辑表单 `DeviceForm`、型号搜索选择 `ModelPicker`、账号拉取列表 `PullDeviceList`；详情与表单内重复的设备 / 型号查找收敛为单次求值，并清理文件尾遗留的重复注释
+- 前端 `ServicesView.tsx` 由约 799 行拆分为 `views/services/*`：思考服务列表 / 详情 / 表单（`ThinkServiceList` / `ThinkServiceDetail` / `ThinkServiceForm`）与语音服务列表 / 详情 / 表单（`VoiceServiceList` / `VoiceServiceDetail` / `VoiceServiceForm`）；详情与表单内重复的服务查找收敛为单次求值，并清理文件尾遗留的注释
 
 ### Engineering
 
