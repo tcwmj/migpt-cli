@@ -5,6 +5,7 @@ import type {
   Room,
   SpeakerModel,
 } from '../../apis.ts'
+import { Button, Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 
 function consecutiveText(m: SpeakerModel | null) {
@@ -82,9 +83,9 @@ export function DeviceDetail(props: {
               <span className="k">服务状态</span>
               <span className="v">
                 {dev ? (
-                  <span className={'tag' + (dev.running ? ' accent' : ' neu')}>
+                  <Tag tone={dev.running ? 'accent' : 'neu'}>
                     {dev.running ? '运行中' : '未启动'}
-                  </span>
+                  </Tag>
                 ) : (
                   '—'
                 )}
@@ -171,18 +172,19 @@ export function DeviceDetail(props: {
       </div>
       <div className="acts">
         <span className="sp" />
-        <button
-          className="btn ghost"
+        <Button
+          variant="ghost"
+          icon="restart"
           onClick={() => props.onRestart(props.selDev)}
         >
-          <I n="restart" /> {dev?.running ? '重启' : '启动'}
-        </button>
-        <button className="btn danger" onClick={props.onDelete}>
-          <I n="trash" /> 删除
-        </button>
-        <button className="btn primary" onClick={props.onEdit}>
-          <I n="pencil" /> 编辑
-        </button>
+          {dev?.running ? '重启' : '启动'}
+        </Button>
+        <Button variant="danger" icon="trash" onClick={props.onDelete}>
+          删除
+        </Button>
+        <Button variant="primary" icon="pencil" onClick={props.onEdit}>
+          编辑
+        </Button>
       </div>
     </div>
   )

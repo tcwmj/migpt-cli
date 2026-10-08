@@ -22,7 +22,7 @@ export function registerTestRoutes({ app }: RouteContext): void {
   app.post('/api/test/audio', (req, res) => {
     // TTS 配置含密钥，必须走请求体而非 URL（避免进入访问日志 / 浏览器历史）
     const raw = (req.body as { ttsConfig?: unknown })?.ttsConfig
-    let options: any
+    let options: Record<string, unknown>
     try {
       options = typeof raw === 'string' ? JSON.parse(raw) : raw
     } catch {

@@ -65,7 +65,7 @@ export function importJSON() {
         try {
           const json = JSON.parse(e.target?.result as string)
           resolve(json)
-        } catch (error) {
+        } catch (_error) {
           reject('Invalid JSON file')
         }
       }
@@ -78,7 +78,7 @@ export function importJSON() {
 // 遍历整个对象，删除值为 null / undefined / 空对象的字段，保留其它类型的值如数字和数组。
 //
 // 如果值是一个数组，则删除其中的空字符串
-function clean(obj: any) {
+function clean(obj: Record<string, unknown>) {
   // console.log('开始遍历对象：', JSON.stringify(obj))
   for (const key in obj) {
     if (obj[key] === null || obj[key] === undefined) {

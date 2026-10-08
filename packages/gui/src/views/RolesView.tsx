@@ -1,7 +1,7 @@
 /* ══ RolesView ══ */
 import { useEffect, useState } from 'react'
 import { type Role, type ThinkService, type VoiceService } from '../apis.ts'
-import { I } from '../icons.tsx'
+import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import { RoleDetail } from './roles/RoleDetail.tsx'
 import { RoleEditForm } from './roles/RoleEditForm.tsx'
 import { RoleList } from './roles/RoleList.tsx'
@@ -88,16 +88,16 @@ export function RolesView(props: {
     return (
       <section data-view="roles" className="on">
         <div className="panel">
-          <div className="empty">
-            <div className="art">
-              <I n="chat" size={26} />
-            </div>
-            <b>还没有对话角色</b>
-            <span>创建角色后，可在设备向导中为每台音箱选择人设。</span>
-            <button className="btn primary" onClick={startCreate}>
-              <I n="plus" /> 新建
-            </button>
-          </div>
+          <EmptyState
+            icon="chat"
+            title="还没有对话角色"
+            desc="创建角色后，可在设备向导中为每台音箱选择人设。"
+            action={
+              <Button variant="primary" icon="plus" onClick={startCreate}>
+                新建
+              </Button>
+            }
+          />
         </div>
       </section>
     )
@@ -106,7 +106,7 @@ export function RolesView(props: {
   return (
     <section data-view="roles" className="on">
       <div className="filters">
-        <span className="chip on">全部角色</span>
+        <Chip on>全部角色</Chip>
         <span className="sp">
           <span className="count">共 {props.roles.length} 个</span>
         </span>

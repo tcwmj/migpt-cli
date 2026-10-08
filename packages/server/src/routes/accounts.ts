@@ -67,9 +67,10 @@ export const registerAccountRoutes = createCrudRouter<Account>({
           account.passToken,
         )
         res.json({ devices })
-      } catch (e: any) {
-        logger.error({ err: e }, `拉取账号设备失败：${e?.message || e}`)
-        fail(res, 502, `拉取设备失败：${e?.message || e}`)
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        logger.error({ err: e }, `拉取账号设备失败：${msg}`)
+        fail(res, 502, `拉取设备失败：${msg}`)
       }
     })
 

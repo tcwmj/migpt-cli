@@ -1,4 +1,5 @@
 import type { DeviceRow, SpeakerModel } from '../../apis.ts'
+import { Button, Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 import type { DevDraft, DevPullState } from '../drafts.ts'
 
@@ -14,13 +15,13 @@ export function PullDeviceList(props: {
   const { devDraft, devPull } = props
   return (
     <div className="pull-dev">
-      <button
-        className="btn"
+      <Button
+        icon="refresh"
         onClick={() => props.onPull(devDraft.accountId)}
         disabled={!devDraft.accountId || devPull.loading}
       >
-        <I n="refresh" /> {devPull.loading ? '拉取中…' : '拉取设备列表'}
-      </button>
+        {devPull.loading ? '拉取中…' : '拉取设备列表'}
+      </Button>
       {devPull.err && (
         <div className="notice err" style={{ marginTop: 8 }}>
           <I n="warning" size={15} /> {devPull.err}
@@ -64,7 +65,7 @@ export function PullDeviceList(props: {
                   </span>
                 </span>
                 {bound ? (
-                  <span className="tag neu">已接入</span>
+                  <Tag tone="neu">已接入</Tag>
                 ) : (
                   devDraft.did === d.miotDID && <I n="check" size={18} />
                 )}

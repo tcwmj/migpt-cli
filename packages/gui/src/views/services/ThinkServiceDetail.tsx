@@ -1,5 +1,6 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button } from '../../components/atoms/index.ts'
 import { PROVIDERS } from '../../constants.ts'
 
 export function ThinkServiceDetail(props: {
@@ -58,15 +59,16 @@ export function ThinkServiceDetail(props: {
       </div>
       <div className="acts">
         <span className="sp" />
-        <button
-          className="btn danger"
+        <Button
+          variant="danger"
+          icon="trash"
           onClick={() => props.onDelete(props.selThink)}
         >
-          <I n="trash" /> 删除
-        </button>
-        <button className="btn primary" onClick={props.onEdit}>
-          <I n="pencil" /> 编辑
-        </button>
+          删除
+        </Button>
+        <Button variant="primary" icon="pencil" onClick={props.onEdit}>
+          编辑
+        </Button>
       </div>
     </div>
   )

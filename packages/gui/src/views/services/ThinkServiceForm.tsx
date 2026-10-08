@@ -1,6 +1,7 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { PROVIDERS, PROVIDER_PRESETS } from '../../constants.ts'
+import { Button, Field } from '../../components/atoms/index.ts'
 import type { ThinkDraft } from '../drafts.ts'
 
 export function ThinkServiceForm(props: {
@@ -40,20 +41,14 @@ export function ThinkServiceForm(props: {
       <div className="grp">
         <h4>基本信息</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              服务名称<span className="req">*</span>
-            </label>
+          <Field label="服务名称" required>
             <input
               value={thinkDraft.name}
               placeholder="例如：豆包 Doubao-Seed"
               onChange={(e) => onDraft({ ...thinkDraft, name: e.target.value })}
             />
-          </div>
-          <div className="fld">
-            <label>
-              供应商<span className="req">*</span>
-            </label>
+          </Field>
+          <Field label="供应商" required>
             <select
               value={thinkDraft.provider}
               onChange={(e) => {
@@ -77,22 +72,16 @@ export function ThinkServiceForm(props: {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
       </div>
       <div className="grp">
         <h4>模型配置</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              接口地址
-              <span
-                className="tip"
-                data-tip="选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出"
-              >
-                ?
-              </span>
-            </label>
+          <Field
+            label="接口地址"
+            tip="选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出"
+          >
             {thinkDraft.provider === 'custom' ? (
               <input
                 value={thinkDraft.baseUrl}
@@ -113,17 +102,12 @@ export function ThinkServiceForm(props: {
                 placeholder="选择供应商后自动填充"
               />
             )}
-          </div>
-          <div className="fld">
-            <label>
-              模型端点<span className="req">*</span>
-              <span
-                className="tip"
-                data-tip="切换供应商自动带出示例模型，可修改"
-              >
-                ?
-              </span>
-            </label>
+          </Field>
+          <Field
+            label="模型端点"
+            required
+            tip="切换供应商自动带出示例模型，可修改"
+          >
             <input
               value={thinkDraft.model}
               placeholder="ep-xxxxxxxx 或模型名"
@@ -131,11 +115,10 @@ export function ThinkServiceForm(props: {
                 onDraft({ ...thinkDraft, model: e.target.value })
               }
             />
-          </div>
+          </Field>
         </div>
         <div className="row">
-          <div className="fld">
-            <label>API Key</label>
+          <Field label="API Key">
             <input
               value={thinkDraft.apiKey}
               placeholder={selThink ? '留空则保留原 Key' : 'ark- 开头的密钥'}
@@ -143,27 +126,21 @@ export function ThinkServiceForm(props: {
                 onDraft({ ...thinkDraft, apiKey: e.target.value })
               }
             />
-          </div>
-          <div className="fld">
-            <label>
-              温度
-              <span className="tip" data-tip="取值范围 0–1，越高回答越发散">
-                ?
-              </span>
-            </label>
+          </Field>
+          <Field label="温度" tip="取值范围 0–1，越高回答越发散">
             <input
               value={thinkDraft.temperature}
               onChange={(e) =>
                 onDraft({ ...thinkDraft, temperature: e.target.value })
               }
             />
-          </div>
+          </Field>
         </div>
       </div>
       <div className="acts">
         <span className="sp" />
-        <button
-          className="btn ghost"
+        <Button
+          variant="ghost"
           onClick={() =>
             selThink
               ? onEdit(false)
@@ -173,14 +150,15 @@ export function ThinkServiceForm(props: {
           }
         >
           取消
-        </button>
-        <button
-          className="btn primary"
+        </Button>
+        <Button
+          variant="primary"
+          icon="check"
           onClick={props.onSave}
           disabled={!thinkDraft.name || !thinkDraft.model}
         >
-          <I n="check" /> 保存
-        </button>
+          保存
+        </Button>
       </div>
     </div>
   )

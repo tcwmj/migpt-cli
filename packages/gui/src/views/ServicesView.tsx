@@ -1,5 +1,5 @@
 /* ══ ServicesView ══ */
-import { I } from '../icons.tsx'
+import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import type { ThinkService, VoiceService } from '../apis.ts'
 import type { ThinkDraft, VoiceDraft } from './drafts.ts'
 import { ThinkServiceList } from './services/ThinkServiceList.tsx'
@@ -64,7 +64,7 @@ export function ServicesView(props: {
       {tab === 'think' && (
         <>
           <div className="filters">
-            <span className="chip on">全部服务</span>
+            <Chip on>全部服务</Chip>
             <span className="sp">
               <span className="count">共 {thinkSvcs.length} 个</span>
             </span>
@@ -80,21 +80,20 @@ export function ServicesView(props: {
               key={'think-' + (selThink || 'new') + (thinkEdit ? '-e' : '-r')}
             >
               {thinkSvcs.length === 0 && !thinkDraft ? (
-                <div className="empty">
-                  <div className="art">
-                    <I n="bolt" size={26} />
-                  </div>
-                  <b>还没有思考服务</b>
-                  <span>
-                    配置模型供应商与端点，作为音箱的「大脑」；配置后可在角色与设备中选择。
-                  </span>
-                  <button
-                    className="btn primary"
-                    onClick={() => onSelectThink(null)}
-                  >
-                    <I n="plus" /> 新建
-                  </button>
-                </div>
+                <EmptyState
+                  icon="bolt"
+                  title="还没有思考服务"
+                  desc="配置模型供应商与端点，作为音箱的「大脑」；配置后可在角色与设备中选择。"
+                  action={
+                    <Button
+                      variant="primary"
+                      icon="plus"
+                      onClick={() => onSelectThink(null)}
+                    >
+                      新建
+                    </Button>
+                  }
+                />
               ) : selThink && !thinkEdit ? (
                 <ThinkServiceDetail
                   selThink={selThink}
@@ -123,7 +122,7 @@ export function ServicesView(props: {
       {tab === 'voice' && (
         <>
           <div className="filters">
-            <span className="chip on">全部服务</span>
+            <Chip on>全部服务</Chip>
             <span className="sp">
               <span className="count">共 {voiceSvcs.length} 个</span>
             </span>
@@ -139,21 +138,20 @@ export function ServicesView(props: {
               key={'voice-' + (selVoice || 'new') + (voiceEdit ? '-e' : '-r')}
             >
               {voiceSvcs.length === 0 && !voiceDraft ? (
-                <div className="empty">
-                  <div className="art">
-                    <I n="mic" size={26} />
-                  </div>
-                  <b>还没有语音服务</b>
-                  <span>
-                    接入第三方语音模型，为对话角色提供音色；每个语音服务可含多套音色库。
-                  </span>
-                  <button
-                    className="btn primary"
-                    onClick={() => onSelectVoice(null)}
-                  >
-                    <I n="plus" /> 新建
-                  </button>
-                </div>
+                <EmptyState
+                  icon="mic"
+                  title="还没有语音服务"
+                  desc="接入第三方语音模型，为对话角色提供音色；每个语音服务可含多套音色库。"
+                  action={
+                    <Button
+                      variant="primary"
+                      icon="plus"
+                      onClick={() => onSelectVoice(null)}
+                    >
+                      新建
+                    </Button>
+                  }
+                />
               ) : selVoice && !voiceEdit ? (
                 <VoiceServiceDetail
                   selVoice={selVoice}

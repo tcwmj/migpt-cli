@@ -8,6 +8,7 @@ import {
   type VoiceService,
 } from '../apis.ts'
 import { I } from '../icons.tsx'
+import { Button } from './atoms/index.ts'
 import { WizardAccountStep } from './wizard/WizardAccountStep.tsx'
 import { WizardDeviceStep } from './wizard/WizardDeviceStep.tsx'
 import { WizardRoleStep } from './wizard/WizardRoleStep.tsx'
@@ -126,24 +127,24 @@ export function Wizard(props: {
           />
         </div>
         <div className="wf">
-          <button
-            className="btn ghost"
+          <Button
+            variant="ghost"
+            icon="arrowL"
             disabled={step === 0}
             onClick={() => setDraft({ step: step - 1 })}
           >
-            <I n="arrowL" /> 上一步
-          </button>
+            上一步
+          </Button>
           <div className="r">
-            <button className="btn" onClick={() => close()}>
-              取消
-            </button>
-            <button
-              className="btn primary"
+            <Button onClick={() => close()}>取消</Button>
+            <Button
+              variant="primary"
+              icon="arrowR"
               disabled={!canNext && step < 2}
               onClick={finish}
             >
-              {step === 2 ? '完成' : '下一步'} <I n="arrowR" />
-            </button>
+              {step === 2 ? '完成' : '下一步'}
+            </Button>
           </div>
         </div>
       </div>

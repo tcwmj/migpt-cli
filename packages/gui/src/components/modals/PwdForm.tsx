@@ -1,39 +1,31 @@
 import { I } from '../../icons.tsx'
+import { Field } from '../atoms/index.ts'
 import type { ModalFormProps } from './types.ts'
 
 export function PwdForm({ v, setV }: ModalFormProps) {
   return (
     <>
-      <div className="fld row">
-        <label>
-          当前密码<span className="req">*</span>
-        </label>
+      <Field row label="当前密码" required>
         <input
           type="password"
           value={v.old || ''}
           onChange={(e) => setV({ ...v, old: e.target.value })}
         />
-      </div>
-      <div className="fld row">
-        <label>
-          新密码<span className="req">*</span>
-        </label>
+      </Field>
+      <Field row label="新密码" required>
         <input
           type="password"
           value={v.pwd || ''}
           onChange={(e) => setV({ ...v, pwd: e.target.value })}
         />
-      </div>
-      <div className="fld row">
-        <label>
-          确认新密码<span className="req">*</span>
-        </label>
+      </Field>
+      <Field row label="确认新密码" required>
         <input
           type="password"
           value={v.pwd2 || ''}
           onChange={(e) => setV({ ...v, pwd2: e.target.value, err: '' })}
         />
-      </div>
+      </Field>
       {v.err && (
         <div className="notice err">
           <I n="warning" size={15} /> {v.err}

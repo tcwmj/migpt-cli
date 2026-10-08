@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../apis.ts'
 import { I } from '../icons.tsx'
+import { Button, Switch } from '../components/atoms/index.ts'
 
 export function SysLogsView(props: {
   query?: string
@@ -47,26 +48,20 @@ export function SysLogsView(props: {
             title="开启后每 2 秒自动刷新最新日志；关闭即暂停实时日志，保留当前画面"
           >
             <span className="k">自动刷新</span>
-            <span className="switch">
-              <input
-                type="checkbox"
-                checked={live}
-                onChange={(e) => setLive(e.target.checked)}
-              />
-              <span className="track" />
-            </span>
+            <Switch checked={live} onChange={(v) => setLive(v)} as="span" />
           </label>
           <span className="sp" />
-          <button
-            className="btn ghost danger"
+          <Button
+            variant="ghost danger"
+            icon="trash"
             onClick={() => setAskClear(true)}
             disabled={clearing}
           >
-            <I n="trash" /> 清理日志
-          </button>
-          <button className="btn" onClick={() => api.downloadSystemLogs()}>
-            <I n="download" /> 下载日志
-          </button>
+            清理日志
+          </Button>
+          <Button icon="download" onClick={() => api.downloadSystemLogs()}>
+            下载日志
+          </Button>
         </div>
         <div className="syslog-box" ref={boxRef}>
           {shown === null ? (
@@ -96,11 +91,12 @@ export function SysLogsView(props: {
             </div>
             <div className="acts">
               <span className="sp" />
-              <button className="btn ghost" onClick={() => setAskClear(false)}>
+              <Button variant="ghost" onClick={() => setAskClear(false)}>
                 取消
-              </button>
-              <button
-                className="btn danger"
+              </Button>
+              <Button
+                variant="danger"
+                icon="trash"
                 disabled={clearing}
                 onClick={async () => {
                   setClearing(true)
@@ -116,8 +112,8 @@ export function SysLogsView(props: {
                   }
                 }}
               >
-                <I n="trash" /> 清理
-              </button>
+                清理
+              </Button>
             </div>
           </div>
         </>

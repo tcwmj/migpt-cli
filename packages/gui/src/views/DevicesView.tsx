@@ -1,5 +1,5 @@
 /* ══ DevicesView ══ */
-import { I } from '../icons.tsx'
+import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import type { Account, DeviceRow, Role, Room, SpeakerModel } from '../apis.ts'
 import type { DevDraft, DevPullState } from './drafts.ts'
 import { DeviceDetail } from './devices/DeviceDetail.tsx'
@@ -56,8 +56,8 @@ export function DevicesView(props: {
   return (
     <section data-view="devices" className="on">
       <div className="filters">
-        <span
-          className={'chip' + (devAcctFilter === 'all' ? ' on' : '')}
+        <Chip
+          on={devAcctFilter === 'all'}
           onClick={() =>
             onDevAcctFilter(
               'all',
@@ -66,11 +66,11 @@ export function DevicesView(props: {
           }
         >
           全部设备
-        </span>
+        </Chip>
         {devAcctGroups.map((g) => (
-          <span
+          <Chip
             key={g.id}
-            className={'chip' + (devAcctFilter === g.id ? ' on' : '')}
+            on={devAcctFilter === g.id}
             onClick={() =>
               onDevAcctFilter(
                 g.id,
@@ -79,7 +79,7 @@ export function DevicesView(props: {
             }
           >
             {g.name}
-          </span>
+          </Chip>
         ))}
         <span className="sp">
           <span className="count">共 {filterDevices.length} 台</span>
@@ -98,18 +98,20 @@ export function DevicesView(props: {
           key={'dev-' + (selDev || 'new') + (devEdit ? '-e' : '-r')}
         >
           {filterDevices.length === 0 && !devDraft ? (
-            <div className="empty">
-              <div className="art">
-                <I n="speaker" size={26} />
-              </div>
-              <b>还没有绑定设备</b>
-              <span>
-                先在「账号设备」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。
-              </span>
-              <button className="btn primary" onClick={() => onSelect(null)}>
-                <I n="plus" /> 新建
-              </button>
-            </div>
+            <EmptyState
+              icon="speaker"
+              title="还没有绑定设备"
+              desc="先在「账号设备」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。"
+              action={
+                <Button
+                  variant="primary"
+                  icon="plus"
+                  onClick={() => onSelect(null)}
+                >
+                  新建
+                </Button>
+              }
+            />
           ) : selDev && !devEdit ? (
             <DeviceDetail
               selDev={selDev}

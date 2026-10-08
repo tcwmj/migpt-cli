@@ -1,5 +1,13 @@
 /* ══ ModelsView ══ */
 import { I } from '../icons.tsx'
+import {
+  Button,
+  Chip,
+  EmptyState,
+  Field,
+  Switch,
+  Tag,
+} from '../components/atoms/index.ts'
 import type { DeviceRow, SpeakerModel } from '../apis.ts'
 import type { ModelDraft } from './drafts.ts'
 
@@ -38,24 +46,15 @@ export function ModelsView(props: {
   return (
     <section data-view="models" className="on">
       <div className="filters">
-        <span
-          className={'chip' + (filter === 'all' ? ' on' : '')}
-          onClick={() => onFilter('all')}
-        >
+        <Chip on={filter === 'all'} onClick={() => onFilter('all')}>
           全部型号
-        </span>
-        <span
-          className={'chip' + (filter === 'consec' ? ' on' : '')}
-          onClick={() => onFilter('consec')}
-        >
+        </Chip>
+        <Chip on={filter === 'consec'} onClick={() => onFilter('consec')}>
           支持连续对话
-        </span>
-        <span
-          className={'chip' + (filter === 'plain' ? ' on' : '')}
-          onClick={() => onFilter('plain')}
-        >
+        </Chip>
+        <Chip on={filter === 'plain'} onClick={() => onFilter('plain')}>
           无法连续对话
-        </span>
+        </Chip>
         <span className="sp">
           <span className="count">共 {filterModels.length} 个</span>
         </span>
@@ -83,7 +82,7 @@ export function ModelsView(props: {
                 </span>
               </span>
               {m.builtin ? (
-                <span className="tag">内置</span>
+                <Tag>内置</Tag>
               ) : (
                 <span className="count">
                   {devices.filter((d) => d.speakerModel === m.id).length} 台
@@ -91,31 +90,33 @@ export function ModelsView(props: {
               )}
             </div>
           ))}
-          <button
-            className="btn"
+          <Button
             style={{ justifyContent: 'center', marginTop: 4 }}
+            icon="plus"
             onClick={() => onSelect(null)}
           >
-            <I n="plus" /> 新建
-          </button>
+            新建
+          </Button>
         </aside>
         <section
           className="sdetail"
           key={'model-' + (selModel || 'new') + (modelEdit ? '-e' : '-r')}
         >
           {filterModels.length === 0 && !modelDraft ? (
-            <div className="empty">
-              <div className="art">
-                <I n="speaker" size={26} />
-              </div>
-              <b>还没有音箱型号</b>
-              <span>
-                维护各型号音箱的指令与播放配置；设备关联型号后自动生效。
-              </span>
-              <button className="btn primary" onClick={() => onSelect(null)}>
-                <I n="plus" /> 新建
-              </button>
-            </div>
+            <EmptyState
+              icon="speaker"
+              title="还没有音箱型号"
+              desc="维护各型号音箱的指令与播放配置；设备关联型号后自动生效。"
+              action={
+                <Button
+                  variant="primary"
+                  icon="plus"
+                  onClick={() => onSelect(null)}
+                >
+                  新建
+                </Button>
+              }
+            />
           ) : selModel && !modelEdit ? (
             <div className="form-card">
               <h3>
@@ -256,17 +257,12 @@ export function ModelsView(props: {
                     <div className="rr">
                       <span className="k">连续对话</span>
                       <span className="v">
-                        <label className="switch">
-                          <input
-                            type="checkbox"
-                            checked={
-                              !!models.find((x) => x.id === selModel)
-                                ?.consecutive
-                            }
-                            disabled
-                          />
-                          <span className="track" />
-                        </label>
+                        <Switch
+                          checked={
+                            !!models.find((x) => x.id === selModel)?.consecutive
+                          }
+                          disabled
+                        />
                       </span>
                     </div>
                   </div>
@@ -275,16 +271,17 @@ export function ModelsView(props: {
               <div className="acts">
                 <span className="sp" />
                 {models.find((m) => m.id === selModel)?.builtin && (
-                  <button
-                    className="btn"
+                  <Button
+                    icon="arrow-counter-clockwise"
                     onClick={() => onReset(selModel || '')}
                     title="恢复为系统内置默认配置"
                   >
-                    <I n="arrow-counter-clockwise" /> 重置
-                  </button>
+                    重置
+                  </Button>
                 )}
-                <button
-                  className="btn danger"
+                <Button
+                  variant="danger"
+                  icon="trash"
                   disabled={!!models.find((m) => m.id === selModel)?.builtin}
                   onClick={() => onDelete(selModel || '')}
                   title={
@@ -293,11 +290,15 @@ export function ModelsView(props: {
                       : ''
                   }
                 >
-                  <I n="trash" /> 删除
-                </button>
-                <button className="btn primary" onClick={() => onEdit(true)}>
-                  <I n="pencil" /> 编辑
-                </button>
+                  删除
+                </Button>
+                <Button
+                  variant="primary"
+                  icon="pencil"
+                  onClick={() => onEdit(true)}
+                >
+                  编辑
+                </Button>
               </div>
             </div>
           ) : modelDraft ? (
@@ -313,10 +314,7 @@ export function ModelsView(props: {
               <div className="grp">
                 <h4>基本信息</h4>
                 <div className="row">
-                  <div className="fld">
-                    <label>
-                      型号名称<span className="req">*</span>
-                    </label>
+                  <Field label="型号名称" required>
                     <input
                       value={modelDraft.name}
                       placeholder="例如：小米 AI 音箱第一代"
@@ -324,17 +322,12 @@ export function ModelsView(props: {
                         onDraft({ ...modelDraft, name: e.target.value })
                       }
                     />
-                  </div>
-                  <div className="fld">
-                    <label>
-                      型号标识<span className="req">*</span>
-                      <span
-                        className="tip"
-                        data-tip="硬件型号标识（did 前缀），如 X08E、L05B"
-                      >
-                        ?
-                      </span>
-                    </label>
+                  </Field>
+                  <Field
+                    label="型号标识"
+                    required
+                    tip="硬件型号标识（did 前缀），如 X08E、L05B"
+                  >
                     <input
                       value={modelDraft.did}
                       placeholder="例如：X08E"
@@ -342,11 +335,10 @@ export function ModelsView(props: {
                         onDraft({ ...modelDraft, did: e.target.value })
                       }
                     />
-                  </div>
+                  </Field>
                 </div>
                 <div className="row">
-                  <div className="fld">
-                    <label>简介</label>
+                  <Field label="简介">
                     <input
                       value={modelDraft.desc}
                       placeholder="可选"
@@ -354,9 +346,8 @@ export function ModelsView(props: {
                         onDraft({ ...modelDraft, desc: e.target.value })
                       }
                     />
-                  </div>
-                  <div className="fld">
-                    <label>图片地址</label>
+                  </Field>
+                  <Field label="图片地址">
                     <input
                       value={modelDraft.imageUrl}
                       placeholder="可选，填写设备图片 URL（http/https）"
@@ -364,7 +355,7 @@ export function ModelsView(props: {
                         onDraft({ ...modelDraft, imageUrl: e.target.value })
                       }
                     />
-                  </div>
+                  </Field>
                 </div>
               </div>
               <div className="grp">
@@ -392,16 +383,7 @@ export function ModelsView(props: {
                   ] as [string, keyof ModelDraft, number, string][]
                 ).map(([label, key, count, hint]) => (
                   <div className="row" key={key as string}>
-                    <div className="fld">
-                      <label>
-                        {label}
-                        <span
-                          className="tip"
-                          data-tip={`${hint}（${count} 位数字）`}
-                        >
-                          ?
-                        </span>
-                      </label>
+                    <Field label={label} tip={`${hint}（${count} 位数字）`}>
                       <div className="arr-in">
                         {(modelDraft[key] as string[]).map((v, i) => (
                           <input
@@ -420,43 +402,30 @@ export function ModelsView(props: {
                           />
                         ))}
                       </div>
-                    </div>
+                    </Field>
                   </div>
                 ))}
               </div>
               <div className="grp">
                 <h4>连续对话</h4>
                 <div className="row">
-                  <div className="fld">
-                    <label>
-                      连续对话
-                      <span
-                        className="tip"
-                        data-tip="启用后音箱可连续对话，无需每次唤醒"
-                      >
-                        ?
-                      </span>
-                    </label>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={!!modelDraft.consecutive}
-                        onChange={(e) =>
-                          onDraft({
-                            ...modelDraft,
-                            consecutive: e.target.checked,
-                          })
-                        }
-                      />
-                      <span className="track" />
-                    </label>
-                  </div>
+                  <Field
+                    label="连续对话"
+                    tip="启用后音箱可连续对话，无需每次唤醒"
+                  >
+                    <Switch
+                      checked={!!modelDraft.consecutive}
+                      onChange={(consecutive) =>
+                        onDraft({ ...modelDraft, consecutive })
+                      }
+                    />
+                  </Field>
                 </div>
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button
-                  className="btn ghost"
+                <Button
+                  variant="ghost"
                   onClick={() =>
                     selModel
                       ? onEdit(false)
@@ -466,14 +435,15 @@ export function ModelsView(props: {
                   }
                 >
                   取消
-                </button>
-                <button
-                  className="btn primary"
+                </Button>
+                <Button
+                  variant="primary"
+                  icon="check"
                   onClick={onSave}
                   disabled={!modelDraft.name || !modelDraft.did}
                 >
-                  <I n="check" /> 保存
-                </button>
+                  保存
+                </Button>
               </div>
             </div>
           ) : null}

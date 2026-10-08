@@ -1,5 +1,6 @@
 import type { Role, ThinkService, VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button } from '../../components/atoms/index.ts'
 
 export function RoleDetail(props: {
   role: Role
@@ -147,12 +148,12 @@ export function RoleDetail(props: {
       </div>
       <div className="acts">
         <span className="sp" />
-        <button className="btn danger" onClick={props.onDelete}>
-          <I n="trash" /> 删除
-        </button>
-        <button className="btn primary" onClick={props.onEdit}>
-          <I n="pencil" /> 编辑
-        </button>
+        <Button variant="danger" icon="trash" onClick={props.onDelete}>
+          删除
+        </Button>
+        <Button variant="primary" icon="pencil" onClick={props.onEdit}>
+          编辑
+        </Button>
       </div>
     </div>
   )

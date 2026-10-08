@@ -1,5 +1,6 @@
 import type { VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button } from '../../components/atoms/index.ts'
 import { TTS_ENGINES } from '../../constants.ts'
 
 export function VoiceServiceDetail(props: {
@@ -55,25 +56,26 @@ export function VoiceServiceDetail(props: {
       <div className="acts">
         <span className="sp" />
         {props.selVoiceObj?.builtin && (
-          <button
-            className="btn"
+          <Button
+            icon="arrow-counter-clockwise"
             onClick={() => props.onReset(props.selVoice)}
             title="恢复为系统内置默认配置"
           >
-            <I n="arrow-counter-clockwise" /> 重置
-          </button>
+            重置
+          </Button>
         )}
-        <button
-          className="btn danger"
+        <Button
+          variant="danger"
+          icon="trash"
           disabled={!!props.selVoiceObj?.builtin}
           onClick={() => props.onDelete(props.selVoice)}
           title={props.selVoiceObj?.builtin ? '内置语音服务不可删除' : ''}
         >
-          <I n="trash" /> 删除
-        </button>
-        <button className="btn primary" onClick={props.onEdit}>
-          <I n="pencil" /> 编辑
-        </button>
+          删除
+        </Button>
+        <Button variant="primary" icon="pencil" onClick={props.onEdit}>
+          编辑
+        </Button>
       </div>
     </div>
   )

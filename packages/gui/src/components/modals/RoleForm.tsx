@@ -1,20 +1,17 @@
+import { Field } from '../atoms/index.ts'
 import type { ModalFormProps } from './types.ts'
 
 export function RoleForm({ v, setV }: ModalFormProps) {
   return (
     <>
-      <div className="fld row">
-        <label>
-          角色名称<span className="req">*</span>
-        </label>
+      <Field row label="角色名称" required>
         <input
           value={v.name || ''}
           placeholder="例如：深夜电台 DJ"
           onChange={(e) => setV({ ...v, name: e.target.value })}
         />
-      </div>
-      <div className="fld">
-        <label>人设描述</label>
+      </Field>
+      <Field label="人设描述">
         <textarea
           style={{
             border: '1px solid var(--line)',
@@ -27,7 +24,7 @@ export function RoleForm({ v, setV }: ModalFormProps) {
           placeholder="你是谁、怎么说话、回答风格"
           onChange={(e) => setV({ ...v, profile: e.target.value })}
         />
-      </div>
+      </Field>
     </>
   )
 }

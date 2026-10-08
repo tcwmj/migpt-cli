@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { type Role, type ThinkService, type VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { avatarOf } from '../../utils.ts'
+import { Button, EmptyState, Field } from '../atoms/index.ts'
 import type { WizardSetDraft } from './types.ts'
 
 export function WizardRoleStep(props: {
@@ -85,10 +86,11 @@ export function WizardRoleStep(props: {
       <div className="split wsplit">
         <aside className="slist">
           {roles.length === 0 && (
-            <div className="empty" style={{ padding: '16px' }}>
-              <b>还没有对话角色</b>
-              <span>请新建一个角色，或到「对话角色」页先创建。</span>
-            </div>
+            <EmptyState
+              title="还没有对话角色"
+              desc="请新建一个角色，或到「对话角色」页先创建。"
+              style={{ padding: '16px' }}
+            />
           )}
           {roles.map((r) => (
             <div
@@ -108,8 +110,8 @@ export function WizardRoleStep(props: {
               </span>
             </div>
           ))}
-          <button
-            className="btn"
+          <Button
+            icon="plus"
             style={{ justifyContent: 'center', marginTop: 4 }}
             onClick={() => {
               setNewRole(true)
@@ -117,8 +119,8 @@ export function WizardRoleStep(props: {
               setNrDraft({ name: '', profile: '' })
             }}
           >
-            <I n="plus" /> 新建
-          </button>
+            新建
+          </Button>
         </aside>
         <section className="sdetail">
           {selRole && !newRole && !roleEdit ? (
@@ -157,9 +159,9 @@ export function WizardRoleStep(props: {
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button className="btn primary" onClick={beginRoleEdit}>
-                  <I n="pencil" /> 编辑
-                </button>
+                <Button variant="primary" icon="pencil" onClick={beginRoleEdit}>
+                  编辑
+                </Button>
               </div>
             </div>
           ) : (
@@ -173,10 +175,7 @@ export function WizardRoleStep(props: {
                   ? '更新角色信息；服务留空则跟随全局默认。'
                   : '角色名称必填；思考服务与语音服务可选，留空则跟随全局默认。'}
               </div>
-              <div className="fld">
-                <label>
-                  角色名称<span className="req">*</span>
-                </label>
+              <Field label="角色名称" required>
                 <input
                   value={nrDraft.name}
                   placeholder="例如：小爱同学"
@@ -184,9 +183,8 @@ export function WizardRoleStep(props: {
                     setNrDraft({ ...nrDraft, name: e.target.value })
                   }
                 />
-              </div>
-              <div className="fld">
-                <label>人设描述</label>
+              </Field>
+              <Field label="人设描述">
                 <textarea
                   rows={4}
                   value={nrDraft.profile}
@@ -195,9 +193,8 @@ export function WizardRoleStep(props: {
                     setNrDraft({ ...nrDraft, profile: e.target.value })
                   }
                 />
-              </div>
-              <div className="fld">
-                <label>思考服务</label>
+              </Field>
+              <Field label="思考服务">
                 <select
                   value={nrDraft.thinkServiceId || ''}
                   onChange={(e) =>
@@ -214,9 +211,8 @@ export function WizardRoleStep(props: {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="fld">
-                <label>语音服务</label>
+              </Field>
+              <Field label="语音服务">
                 <select
                   value={nrDraft.voiceId || ''}
                   onChange={(e) =>
@@ -233,7 +229,7 @@ export function WizardRoleStep(props: {
                     </option>
                   ))}
                 </select>
-              </div>
+              </Field>
               {nrErr && (
                 <div className="notice err">
                   <I n="warning" size={15} /> {nrErr}
@@ -241,8 +237,8 @@ export function WizardRoleStep(props: {
               )}
               <div className="acts">
                 <span className="sp" />
-                <button
-                  className="btn ghost"
+                <Button
+                  variant="ghost"
                   onClick={() =>
                     roleEdit && selRole
                       ? (setRoleEdit(false),
@@ -251,14 +247,14 @@ export function WizardRoleStep(props: {
                   }
                 >
                   取消
-                </button>
-                <button
-                  className="btn primary"
+                </Button>
+                <Button
+                  variant="primary"
                   disabled={nrBusy || !nrDraft.name}
                   onClick={saveRole}
                 >
                   {nrBusy ? '保存中…' : '保存'}
-                </button>
+                </Button>
               </div>
             </div>
           )}

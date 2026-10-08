@@ -3,8 +3,13 @@
 # Backend : tsc -w auto-compile + node --watch auto-restart (no manual restart)
 # Usage   : powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
 
-# 仓库根 = 本脚本所在 scripts/ 的上一级，避免硬编码绝对路径
-$root = Split-Path -Parent $PSScriptRoot
+# 仓库根 = 脚本所在目录的上一级；若自动变量不可用则回退到当前目录
+$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } elseif ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { $PWD.Path }
+$root = if ($scriptDir -and (Test-Path "$scriptDir\..\package.json")) { Split-Path -Parent $scriptDir } else { $PWD.Path }
+if (-not $root) {
+    Write-Host "ERROR: cannot determine repo root (scriptDir=$scriptDir)" -ForegroundColor Red
+    exit 1
+}
 $log  = Join-Path $root ".cache\logs"
 New-Item -ItemType Directory -Force -Path $log | Out-Null
 
@@ -22,7 +27,11 @@ Start-Sleep -Seconds 1
 # node.exe full path (dynamic with fallback)
 $nodeExe = (Get-Command node.exe -ErrorAction SilentlyContinue).Source
 if (-not $nodeExe) {
-    $nodeExe = "C:\Users\TCWMJ\AppData\Local\DoubaoWork\User Data\sandbox_runtime\bases\c98c5042338ed152c6f10ecd8591889f\node\node.exe"
+    $nodeExe = "C:\Users\TCWMJ\AppData\Roaming\TRAE SOLO CN\ModularData\ai-agent\vm\tools\node\node.exe"
+}
+if (-not (Test-Path $nodeExe)) {
+    Write-Host "ERROR: node.exe not found at $nodeExe" -ForegroundColor Red
+    exit 1
 }
 
 # 2. frontend watch: packages/gui -> dist

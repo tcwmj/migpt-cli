@@ -1,5 +1,6 @@
 import type { VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button, Tag } from '../../components/atoms/index.ts'
 import { TTS_ENGINES } from '../../constants.ts'
 
 export function VoiceServiceList(props: {
@@ -27,20 +28,16 @@ export function VoiceServiceList(props: {
                   (s.voiceId ? ' · ' + s.voiceId : '')}
             </span>
           </span>
-          {s.builtin ? (
-            <span className="tag">内置</span>
-          ) : s.isDefault ? (
-            <span className="tag">默认</span>
-          ) : null}
+          {s.builtin ? <Tag>内置</Tag> : s.isDefault ? <Tag>默认</Tag> : null}
         </div>
       ))}
-      <button
-        className="btn"
+      <Button
         style={{ justifyContent: 'center', marginTop: 4 }}
+        icon="plus"
         onClick={() => props.onSelect(null)}
       >
-        <I n="plus" /> 新建
-      </button>
+        新建
+      </Button>
     </aside>
   )
 }

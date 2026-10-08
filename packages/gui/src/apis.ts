@@ -83,9 +83,12 @@ async function j<T>(res: Response): Promise<T> {
     // 删除保护等业务错误：透出服务端 message（JSON error 字段）
     try {
       const body = await res.json()
-      const err = new Error(body.error || 'HTTP ' + res.status)
-      ;(err as any).status = res.status
-      ;(err as any).refs = body.refs
+      const err = new Error(body.error || 'HTTP ' + res.status) as Error & {
+        status?: number
+        refs?: unknown
+      }
+      err.status = res.status
+      err.refs = body.refs
       throw err
     } catch (e) {
       if ((e as Error).message !== 'HTTP ' + res.status) throw e

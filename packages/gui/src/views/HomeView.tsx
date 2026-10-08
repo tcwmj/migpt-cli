@@ -1,5 +1,6 @@
 /* ══ HomeView ══ */
 import { I } from '../icons.tsx'
+import { Button, Tag } from '../components/atoms/index.ts'
 import type {
   Account,
   DeviceRow,
@@ -222,8 +223,8 @@ export function HomeView(props: {
                     gap: 8,
                   }}
                 >
-                  <span
-                    className="tag accent"
+                  <Tag
+                    tone="accent"
                     style={{
                       borderRadius: '50%',
                       width: 20,
@@ -236,7 +237,7 @@ export function HomeView(props: {
                     }}
                   >
                     {i + 1}
-                  </span>
+                  </Tag>
                   {t}
                 </b>
                 <div
@@ -247,13 +248,13 @@ export function HomeView(props: {
               </div>
             </div>
           ))}
-          <button
-            className="btn primary"
+          <Button
+            variant="primary"
             style={{ justifyContent: 'center', alignSelf: 'center' }}
             onClick={onStartWizard}
           >
             开始三步连接
-          </button>
+          </Button>
         </div>
         <div
           className="guide-art"

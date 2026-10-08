@@ -9,6 +9,7 @@ import {
   type VoiceService,
 } from '../apis.ts'
 import { I } from '../icons.tsx'
+import { Button } from './atoms/index.ts'
 import type { ModalState } from '../ui-types.ts'
 import { AccountForm } from './modals/AccountForm.tsx'
 import { DeviceBindForm } from './modals/DeviceBindForm.tsx'
@@ -106,12 +107,10 @@ export function ModalShell(props: {
           ))}
 
         <div className="acts">
-          <button className="btn" onClick={() => close()}>
-            取消
-          </button>
-          <button className="btn primary" onClick={submit}>
+          <Button onClick={() => close()}>取消</Button>
+          <Button variant="primary" onClick={submit}>
             {noticeOnly ? '知道了' : '确定'}
-          </button>
+          </Button>
         </div>
       </div>
     </>

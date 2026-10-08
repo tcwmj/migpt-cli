@@ -1,6 +1,7 @@
 import type { VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { TTS_ENGINES } from '../../constants.ts'
+import { Button, Field } from '../../components/atoms/index.ts'
 import type { VoiceDraft } from '../drafts.ts'
 
 export function VoiceServiceForm(props: {
@@ -40,20 +41,14 @@ export function VoiceServiceForm(props: {
       <div className="grp">
         <h4>基本信息</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              服务名称<span className="req">*</span>
-            </label>
+          <Field label="服务名称" required>
             <input
               value={voiceDraft.name}
               placeholder="例如：豆包语音"
               onChange={(e) => onDraft({ ...voiceDraft, name: e.target.value })}
             />
-          </div>
-          <div className="fld">
-            <label>
-              供应商<span className="req">*</span>
-            </label>
+          </Field>
+          <Field label="供应商" required>
             <select
               value={voiceDraft.provider}
               onChange={(e) =>
@@ -68,19 +63,13 @@ export function VoiceServiceForm(props: {
                   </option>
                 ))}
             </select>
-          </div>
+          </Field>
         </div>
       </div>
       <div className="grp">
         <h4>音色配置</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              音色 ID
-              <span className="tip" data-tip="留空使用该引擎的默认音色">
-                ?
-              </span>
-            </label>
+          <Field label="音色 ID" tip="留空使用该引擎的默认音色">
             <input
               value={voiceDraft.voiceId}
               placeholder="例如：zh-CN-XiaoxiaoNeural"
@@ -88,18 +77,9 @@ export function VoiceServiceForm(props: {
                 onDraft({ ...voiceDraft, voiceId: e.target.value })
               }
             />
-          </div>
+          </Field>
           {voiceDraft.provider === 'edge' && (
-            <div className="fld">
-              <label>
-                访问令牌
-                <span
-                  className="tip"
-                  data-tip="Edge 大声朗读为免费服务，一般无需填写"
-                >
-                  ?
-                </span>
-              </label>
+            <Field label="访问令牌" tip="Edge 大声朗读为免费服务，一般无需填写">
               <input
                 value={voiceDraft.edgeToken}
                 placeholder="留空由 Edge 自动获取"
@@ -107,13 +87,10 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, edgeToken: e.target.value })
                 }
               />
-            </div>
+            </Field>
           )}
           {voiceDraft.provider === 'volcano' && (
-            <div className="fld">
-              <label>
-                App ID<span className="req">*</span>
-              </label>
+            <Field label="App ID" required>
               <input
                 value={voiceDraft.volcanoAppId}
                 placeholder="火山引擎语音合成 App ID"
@@ -121,13 +98,10 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, volcanoAppId: e.target.value })
                 }
               />
-            </div>
+            </Field>
           )}
           {voiceDraft.provider === 'openai' && (
-            <div className="fld">
-              <label>
-                API Key<span className="req">*</span>
-              </label>
+            <Field label="API Key" required>
               <input
                 value={voiceDraft.openaiKey}
                 placeholder="OpenAI API Key"
@@ -135,15 +109,12 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, openaiKey: e.target.value })
                 }
               />
-            </div>
+            </Field>
           )}
         </div>
         {voiceDraft.provider === 'volcano' && (
           <div className="row">
-            <div className="fld">
-              <label>
-                访问令牌<span className="req">*</span>
-              </label>
+            <Field label="访问令牌" required>
               <input
                 value={voiceDraft.volcanoToken}
                 placeholder="火山引擎 Access Token"
@@ -151,18 +122,12 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, volcanoToken: e.target.value })
                 }
               />
-            </div>
+            </Field>
           </div>
         )}
         {voiceDraft.provider === 'openai' && (
           <div className="row">
-            <div className="fld">
-              <label>
-                模型
-                <span className="tip" data-tip="留空使用 tts-1">
-                  ?
-                </span>
-              </label>
+            <Field label="模型" tip="留空使用 tts-1">
               <input
                 value={voiceDraft.openaiModel}
                 placeholder="tts-1"
@@ -170,14 +135,8 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, openaiModel: e.target.value })
                 }
               />
-            </div>
-            <div className="fld">
-              <label>
-                接口地址
-                <span className="tip" data-tip="支持任意 OpenAI 兼容 TTS 端点">
-                  ?
-                </span>
-              </label>
+            </Field>
+            <Field label="接口地址" tip="支持任意 OpenAI 兼容 TTS 端点">
               <input
                 value={voiceDraft.openaiBaseUrl}
                 placeholder="https://api.openai.com/v1"
@@ -185,21 +144,15 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, openaiBaseUrl: e.target.value })
                 }
               />
-            </div>
+            </Field>
           </div>
         )}
         {voiceDraft.provider === 'custom' && (
           <div className="row">
-            <div className="fld">
-              <label>
-                TTS 配置（JSON）
-                <span
-                  className="tip"
-                  data-tip="高级用法：直接填写 mi-gpt TTSConfig JSON"
-                >
-                  ?
-                </span>
-              </label>
+            <Field
+              label="TTS 配置（JSON）"
+              tip="高级用法：直接填写 mi-gpt TTSConfig JSON"
+            >
               <textarea
                 value={voiceDraft.customJson}
                 placeholder='{"edge":{"trustedToken":"…"}}'
@@ -208,14 +161,14 @@ export function VoiceServiceForm(props: {
                 }
                 rows={5}
               />
-            </div>
+            </Field>
           </div>
         )}
       </div>
       <div className="acts">
         <span className="sp" />
-        <button
-          className="btn ghost"
+        <Button
+          variant="ghost"
           onClick={() =>
             selVoice
               ? onEdit(false)
@@ -225,9 +178,10 @@ export function VoiceServiceForm(props: {
           }
         >
           取消
-        </button>
-        <button
-          className="btn primary"
+        </Button>
+        <Button
+          variant="primary"
+          icon="check"
           onClick={props.onSave}
           disabled={
             !voiceDraft.name ||
@@ -236,8 +190,8 @@ export function VoiceServiceForm(props: {
             (voiceDraft.provider === 'openai' && !voiceDraft.openaiKey)
           }
         >
-          <I n="check" /> 保存
-        </button>
+          保存
+        </Button>
       </div>
     </div>
   )

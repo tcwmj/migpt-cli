@@ -1,5 +1,12 @@
 /* ══ AccountsView ══ */
 import { I } from '../icons.tsx'
+import {
+  Button,
+  Chip,
+  EmptyState,
+  Field,
+  Tag,
+} from '../components/atoms/index.ts'
 import type { Account, DeviceRow, SpeakerModel } from '../apis.ts'
 import type { AccountDraft, AcctDevState } from './drafts.ts'
 
@@ -40,7 +47,7 @@ export function AccountsView(props: {
   return (
     <section data-view="accounts" className="on">
       <div className="filters">
-        <span className="chip on">全部账号</span>
+        <Chip on>全部账号</Chip>
         <span className="sp">
           <span className="count">共 {accounts.length} 个</span>
         </span>
@@ -70,31 +77,33 @@ export function AccountsView(props: {
               </span>
             </div>
           ))}
-          <button
-            className="btn"
+          <Button
             style={{ justifyContent: 'center', marginTop: 4 }}
+            icon="plus"
             onClick={() => onSelect(null)}
           >
-            <I n="plus" /> 新建
-          </button>
+            新建
+          </Button>
         </aside>
         <section
           className="sdetail"
           key={'acct-' + (selAcct || 'new') + (acctEdit ? '-e' : '-r')}
         >
           {filterAccounts.length === 0 && !acctDraft ? (
-            <div className="empty">
-              <div className="art">
-                <I n="user" size={26} />
-              </div>
-              <b>还没有云端账号</b>
-              <span>
-                一个账号管理一个家庭；添加后将可在设备向导中直接选择。
-              </span>
-              <button className="btn primary" onClick={() => onSelect(null)}>
-                <I n="plus" /> 新建
-              </button>
-            </div>
+            <EmptyState
+              icon="user"
+              title="还没有云端账号"
+              desc="一个账号管理一个家庭；添加后将可在设备向导中直接选择。"
+              action={
+                <Button
+                  variant="primary"
+                  icon="plus"
+                  onClick={() => onSelect(null)}
+                >
+                  新建
+                </Button>
+              }
+            />
           ) : selAcct && !acctEdit ? (
             <div className="form-card rform">
               <h3>
@@ -208,19 +217,14 @@ export function AccountsView(props: {
                               {d.miotDID ? ' · ' + d.miotDID : ''}
                             </span>
                           </span>
-                          <span
-                            className={
-                              'tag' +
-                              (d.presence === 'online' ? ' accent' : ' neu')
-                            }
+                          <Tag
+                            tone={d.presence === 'online' ? 'accent' : 'neu'}
                           >
                             {d.presence === 'online' ? '在线' : '离线'}
-                          </span>
-                          <span
-                            className={'tag' + (bound ? ' accent' : ' neu')}
-                          >
+                          </Tag>
+                          <Tag tone={bound ? 'accent' : 'neu'}>
                             {bound ? '已接入' : '未接入'}
-                          </span>
+                          </Tag>
                         </div>
                       )
                     })}
@@ -229,15 +233,20 @@ export function AccountsView(props: {
               })()}
               <div className="acts">
                 <span className="sp" />
-                <button
-                  className="btn danger"
+                <Button
+                  variant="danger"
+                  icon="trash"
                   onClick={() => selAcct && onDelete(selAcct)}
                 >
-                  <I n="trash" /> 删除
-                </button>
-                <button className="btn primary" onClick={() => onEdit(true)}>
-                  <I n="pencil" /> 编辑
-                </button>
+                  删除
+                </Button>
+                <Button
+                  variant="primary"
+                  icon="pencil"
+                  onClick={() => onEdit(true)}
+                >
+                  编辑
+                </Button>
               </div>
             </div>
           ) : acctDraft ? (
@@ -253,10 +262,7 @@ export function AccountsView(props: {
               <div className="grp">
                 <h4>基本信息</h4>
                 <div className="row">
-                  <div className="fld">
-                    <label>
-                      账号名称<span className="req">*</span>
-                    </label>
+                  <Field label="账号名称" required>
                     <input
                       value={acctDraft.name}
                       placeholder="例如：默认账号"
@@ -264,17 +270,12 @@ export function AccountsView(props: {
                         onDraft({ ...acctDraft, name: e.target.value })
                       }
                     />
-                  </div>
-                  <div className="fld">
-                    <label>
-                      小米 ID<span className="req">*</span>
-                      <span
-                        className="tip"
-                        data-tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
-                      >
-                        ?
-                      </span>
-                    </label>
+                  </Field>
+                  <Field
+                    label="小米 ID"
+                    required
+                    tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
+                  >
                     <input
                       value={acctDraft.miUserId}
                       placeholder="例如：1234567890"
@@ -282,26 +283,20 @@ export function AccountsView(props: {
                         onDraft({ ...acctDraft, miUserId: e.target.value })
                       }
                     />
-                  </div>
+                  </Field>
                 </div>
               </div>
               <div className="grp">
                 <h4>凭据</h4>
                 <div className="row">
-                  <div className="fld">
-                    <label>
-                      passToken
-                      <span
-                        className="tip"
-                        data-tip={
-                          selAcct
-                            ? '留空则保留原凭据'
-                            : '异地登录安全验证时，会给出授权链接'
-                        }
-                      >
-                        ?
-                      </span>
-                    </label>
+                  <Field
+                    label="passToken"
+                    tip={
+                      selAcct
+                        ? '留空则保留原凭据'
+                        : '异地登录安全验证时，会给出授权链接'
+                    }
+                  >
                     <textarea
                       rows={4}
                       value={acctDraft.passToken}
@@ -314,13 +309,13 @@ export function AccountsView(props: {
                         onDraft({ ...acctDraft, passToken: e.target.value })
                       }
                     />
-                  </div>
+                  </Field>
                 </div>
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button
-                  className="btn ghost"
+                <Button
+                  variant="ghost"
                   onClick={() =>
                     selAcct
                       ? onEdit(false)
@@ -330,14 +325,15 @@ export function AccountsView(props: {
                   }
                 >
                   取消
-                </button>
-                <button
-                  className="btn primary"
+                </Button>
+                <Button
+                  variant="primary"
+                  icon="check"
                   onClick={onSave}
                   disabled={!acctDraft.name || !acctDraft.miUserId}
                 >
-                  <I n="check" /> 保存
-                </button>
+                  保存
+                </Button>
               </div>
             </div>
           ) : null}

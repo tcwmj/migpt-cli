@@ -1,5 +1,6 @@
 /* ══ 二次确认弹窗 ══ */
 import { I } from '../../icons.tsx'
+import { Button } from '../atoms/index.ts'
 import type { ConfirmState } from '../../ui-types.ts'
 
 export function ConfirmDialog(props: {
@@ -25,15 +26,16 @@ export function ConfirmDialog(props: {
         <div className="desc">{confirm.msg}</div>
         <div className="acts">
           <span className="sp" />
-          <button className="btn ghost" onClick={() => onClose()}>
+          <Button variant="ghost" onClick={() => onClose()}>
             取消
-          </button>
-          <button
-            className={'btn' + (neutral ? '' : ' danger')}
+          </Button>
+          <Button
+            variant={neutral ? undefined : 'danger'}
+            icon={icon}
             onClick={() => onClose(true)}
           >
-            <I n={icon} /> {text}
-          </button>
+            {text}
+          </Button>
         </div>
       </div>
     </>

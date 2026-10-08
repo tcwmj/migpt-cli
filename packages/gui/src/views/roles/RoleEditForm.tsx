@@ -1,5 +1,6 @@
 import type { Role, ThinkService, VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button, Field } from '../../components/atoms/index.ts'
 
 /** 关键词字段：输入框文本与「、」分隔的字符串数组互转 */
 function KeywordField(props: {
@@ -9,20 +10,14 @@ function KeywordField(props: {
   onChange: (next: string[]) => void
 }) {
   return (
-    <div className="fld">
-      <label>
-        {props.label}
-        <span className="tip" data-tip={props.tip}>
-          ?
-        </span>
-      </label>
+    <Field label={props.label} tip={props.tip}>
       <input
         value={(props.value || []).join('、')}
         onChange={(e) =>
           props.onChange(e.target.value.split(/[、,，]/).filter(Boolean))
         }
       />
-    </div>
+    </Field>
   )
 }
 
@@ -52,36 +47,26 @@ export function RoleEditForm(props: {
       <div className="grp">
         <h4>基本信息</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              角色名称<span className="req">*</span>
-            </label>
+          <Field label="角色名称" required>
             <input
               value={draft.name}
               onChange={(e) => setF('name', e.target.value)}
             />
-          </div>
+          </Field>
         </div>
         <div className="row">
-          <div className="fld">
-            <label>
-              人设描述
-              <span className="tip" data-tip="供思考服务理解人格 · 热生效">
-                ?
-              </span>
-            </label>
+          <Field label="人设描述" tip="供思考服务理解人格 · 热生效">
             <textarea
               value={draft.profile}
               onChange={(e) => setF('profile', e.target.value)}
             />
-          </div>
+          </Field>
         </div>
       </div>
       <div className="grp">
         <h4>模型服务</h4>
         <div className="row">
-          <div className="fld">
-            <label>思考服务</label>
+          <Field label="思考服务">
             <select
               value={draft.thinkServiceId || ''}
               onChange={(e) =>
@@ -98,9 +83,8 @@ export function RoleEditForm(props: {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="fld">
-            <label>语音服务</label>
+          </Field>
+          <Field label="语音服务">
             <select
               value={draft.voiceId || ''}
               onChange={(e) => setF('voiceId', e.target.value || undefined)}
@@ -115,7 +99,7 @@ export function RoleEditForm(props: {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
       </div>
       <div className="grp">
@@ -146,16 +130,10 @@ export function RoleEditForm(props: {
           />
         </div>
         <div className="row">
-          <div className="fld">
-            <label>
-              自动退出时间
-              <span
-                className="tip"
-                data-tip="连续对话中无响应超过该秒数自动退出，默认 30 秒"
-              >
-                ?
-              </span>
-            </label>
+          <Field
+            label="自动退出时间"
+            tip="连续对话中无响应超过该秒数自动退出，默认 30 秒"
+          >
             <input
               value={String(draft.exitKeepAliveAfter ?? 30)}
               placeholder="默认 30"
@@ -166,7 +144,7 @@ export function RoleEditForm(props: {
                 )
               }
             />
-          </div>
+          </Field>
         </div>
         <div className="row">
           <KeywordField
@@ -224,16 +202,17 @@ export function RoleEditForm(props: {
       </div>
       <div className="acts">
         <span className="sp" />
-        <button className="btn ghost" onClick={props.onCancel}>
+        <Button variant="ghost" onClick={props.onCancel}>
           取消
-        </button>
-        <button
-          className="btn primary"
+        </Button>
+        <Button
+          variant="primary"
+          icon="check"
           onClick={props.onSave}
           disabled={!draft.name}
         >
-          <I n="check" /> 保存
-        </button>
+          保存
+        </Button>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { type Account } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button, EmptyState, Field } from '../atoms/index.ts'
 import type { WizardSetDraft } from './types.ts'
 
 export function WizardAccountStep(props: {
@@ -72,10 +73,11 @@ export function WizardAccountStep(props: {
       <div className="split wsplit">
         <aside className="slist">
           {accounts.length === 0 && (
-            <div className="empty" style={{ padding: '16px' }}>
-              <b>还没有云端账号</b>
-              <span>请新建一个账号，或在「账号设备」页先接入。</span>
-            </div>
+            <EmptyState
+              title="还没有云端账号"
+              desc="请新建一个账号，或在「账号设备」页先接入。"
+              style={{ padding: '16px' }}
+            />
           )}
           {accounts.map((a) => (
             <div
@@ -97,8 +99,8 @@ export function WizardAccountStep(props: {
               </span>
             </div>
           ))}
-          <button
-            className="btn"
+          <Button
+            icon="plus"
             style={{ justifyContent: 'center', marginTop: 4 }}
             onClick={() => {
               setNewAcct(true)
@@ -106,8 +108,8 @@ export function WizardAccountStep(props: {
               setNaDraft({ name: '', miUserId: '', passToken: '' })
             }}
           >
-            <I n="plus" /> 新建
-          </button>
+            新建
+          </Button>
         </aside>
         <section className="sdetail">
           {selAcct && !newAcct && !acctEdit ? (
@@ -136,9 +138,9 @@ export function WizardAccountStep(props: {
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button className="btn primary" onClick={beginAcctEdit}>
-                  <I n="pencil" /> 编辑
-                </button>
+                <Button variant="primary" icon="pencil" onClick={beginAcctEdit}>
+                  编辑
+                </Button>
               </div>
             </div>
           ) : (
@@ -152,10 +154,7 @@ export function WizardAccountStep(props: {
                   ? '更新名称或凭据；换绑账号后需重启受影响设备。'
                   : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}
               </div>
-              <div className="fld">
-                <label>
-                  账号名称<span className="req">*</span>
-                </label>
+              <Field label="账号名称" required>
                 <input
                   value={naDraft.name}
                   placeholder="例如：默认账号"
@@ -163,17 +162,12 @@ export function WizardAccountStep(props: {
                     setNaDraft({ ...naDraft, name: e.target.value })
                   }
                 />
-              </div>
-              <div className="fld">
-                <label>
-                  小米 ID<span className="req">*</span>
-                  <span
-                    className="tip"
-                    data-tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
-                  >
-                    ?
-                  </span>
-                </label>
+              </Field>
+              <Field
+                label="小米 ID"
+                required
+                tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
+              >
                 <input
                   value={naDraft.miUserId}
                   placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱"
@@ -181,21 +175,15 @@ export function WizardAccountStep(props: {
                     setNaDraft({ ...naDraft, miUserId: e.target.value })
                   }
                 />
-              </div>
-              <div className="fld">
-                <label>
-                  云端会话凭证 passToken
-                  <span
-                    className="tip"
-                    data-tip={
-                      acctEdit && selAcct
-                        ? '留空则保留原凭据'
-                        : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'
-                    }
-                  >
-                    ?
-                  </span>
-                </label>
+              </Field>
+              <Field
+                label="云端会话凭证 passToken"
+                tip={
+                  acctEdit && selAcct
+                    ? '留空则保留原凭据'
+                    : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'
+                }
+              >
                 <textarea
                   rows={3}
                   value={naDraft.passToken}
@@ -208,7 +196,7 @@ export function WizardAccountStep(props: {
                     setNaDraft({ ...naDraft, passToken: e.target.value })
                   }
                 />
-              </div>
+              </Field>
               {naErr && (
                 <div className="notice err">
                   <I n="warning" size={15} /> {naErr}
@@ -216,8 +204,8 @@ export function WizardAccountStep(props: {
               )}
               <div className="acts">
                 <span className="sp" />
-                <button
-                  className="btn ghost"
+                <Button
+                  variant="ghost"
                   onClick={() =>
                     acctEdit && selAcct
                       ? (setAcctEdit(false),
@@ -230,14 +218,14 @@ export function WizardAccountStep(props: {
                   }
                 >
                   取消
-                </button>
-                <button
-                  className="btn primary"
+                </Button>
+                <Button
+                  variant="primary"
                   disabled={naBusy || !naDraft.name || !naDraft.miUserId}
                   onClick={saveAcct}
                 >
                   {naBusy ? '保存中…' : '保存'}
-                </button>
+                </Button>
               </div>
             </div>
           )}

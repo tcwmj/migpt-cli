@@ -1,6 +1,7 @@
 /* ══ LoginPage ══ */
 import { useState } from 'react'
 import { I, MiLogo } from '../icons.tsx'
+import { Button, Field } from './atoms/index.ts'
 import heroImg from '../assets/speaker-hero-multi.jpg'
 
 export function LoginPage({
@@ -41,23 +42,15 @@ export function LoginPage({
               <I n="warning" size={15} /> {error}
             </div>
           )}
-          <div className="fld ic">
-            <label>
-              用户名<span className="req">*</span>
-            </label>
-            <I n="user" size={15} />
+          <Field label="用户名" required icon="user">
             <input
               value={u}
               onChange={(e) => setU(e.target.value)}
               autoFocus
               placeholder="请输入用户名"
             />
-          </div>
-          <div className="fld ic">
-            <label>
-              密码<span className="req">*</span>
-            </label>
-            <I n="lock" size={15} />
+          </Field>
+          <Field label="密码" required icon="lock">
             <input
               type="password"
               value={p}
@@ -69,14 +62,16 @@ export function LoginPage({
                 }
               }}
             />
-          </div>
-          <button
-            className="btn primary login-btn"
+          </Field>
+          <Button
+            variant="primary"
+            className="login-btn"
+            icon="lock"
             disabled={busy || !u || !p}
             onClick={submit}
           >
-            <I n="lock" size={15} /> {busy ? '登录中…' : '登录'}
-          </button>
+            {busy ? '登录中…' : '登录'}
+          </Button>
         </div>
         <div className="login-foot">v{__APP_VERSION__} · migpt-server</div>
       </div>

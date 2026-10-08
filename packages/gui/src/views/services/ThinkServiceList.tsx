@@ -1,5 +1,6 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button, Tag } from '../../components/atoms/index.ts'
 import { PROVIDERS } from '../../constants.ts'
 
 export function ThinkServiceList(props: {
@@ -24,16 +25,16 @@ export function ThinkServiceList(props: {
               {PROVIDERS[s.provider] || s.provider} · {s.model}
             </span>
           </span>
-          {s.isDefault && <span className="tag">默认</span>}
+          {s.isDefault && <Tag>默认</Tag>}
         </div>
       ))}
-      <button
-        className="btn"
+      <Button
         style={{ justifyContent: 'center', marginTop: 4 }}
+        icon="plus"
         onClick={() => props.onSelect(null)}
       >
-        <I n="plus" /> 新建
-      </button>
+        新建
+      </Button>
     </aside>
   )
 }

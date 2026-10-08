@@ -34,7 +34,7 @@ function _httpsReq(
 ): Promise<{ status: number; body: string; setCookies: string[] }> {
   return new Promise((resolve, reject) => {
     const u = new URL(url)
-    const opts: Record<string, any> = {
+    const opts: Record<string, unknown> = {
       method,
       hostname: u.hostname,
       port: 443,
@@ -63,7 +63,7 @@ function _stripJson(body: string): string {
     : body
 }
 // 云端返回体不保证是合法 JSON（网关错误页 / HTML 挑战页），解析失败时给出可读错误
-function _parseJson(body: string): any {
+function _parseJson(body: string): unknown {
   try {
     return JSON.parse(_stripJson(body))
   } catch {
@@ -89,10 +89,10 @@ export async function pullMicoDevices(
     loginCookie,
   )
   const raw = _stripJson(r.body)
-  const resp: any = _parseJson(r.body)
-  if (resp.code !== 0) {
+  const resp = _parseJson(r.body) as Record<string, unknown> | null
+  if (!resp || resp.code !== 0) {
     throw new Error(
-      `登录态无效（code=${resp.code} ${resp.description || resp.message || ''}），请重新验证 passToken`,
+      `登录态无效（code=${resp?.code} ${resp?.description || resp?.message || ''}），请重新验证 passToken`,
     )
   }
   // nonce 可能超出 JS 安全整数，须取原文
@@ -134,19 +134,19 @@ export async function pullMicoDevices(
     },
     apiCookie,
   )
-  const apiResp: any = _parseJson(r.body)
-  if (apiResp.code !== 0) {
+  const apiResp = _parseJson(r.body) as Record<string, unknown> | null
+  if (!apiResp || apiResp.code !== 0) {
     throw new Error(
-      `拉取设备列表失败（code=${apiResp.code} ${apiResp.message || ''}）`,
+      `拉取设备列表失败（code=${apiResp?.code} ${apiResp?.message || ''}）`,
     )
   }
-  return (apiResp.data || []).map((d: any) => ({
-    name: d.name || d.alias || '',
-    alias: d.alias || '',
-    deviceID: d.deviceID || d.deviceId || '',
+  return ((apiResp.data as Record<string, unknown>[]) || []).map((d) => ({
+    name: (d.name || d.alias || '') as string,
+    alias: (d.alias || '') as string,
+    deviceID: (d.deviceID || d.deviceId || '') as string,
     miotDID: String(d.miotDID || ''),
-    hardware: d.hardware || '',
-    presence: d.presence || 'offline',
+    hardware: (d.hardware || '') as string,
+    presence: (d.presence || 'offline') as string,
   }))
 }
 

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as api from '../apis.ts'
 import { type DeviceRow, type LogEntry, type SpeakerModel } from '../apis.ts'
 import { I } from '../icons.tsx'
+import { Chip, EmptyState } from '../components/atoms/index.ts'
 import { LogRow } from '../components/LogRow.tsx'
 
 export function LogsView(props: {
@@ -46,12 +47,9 @@ export function LogsView(props: {
       <div className="split">
         <aside className="slist">
           <div className="filters">
-            <span
-              className={'chip' + (devFilter === 'all' ? ' on' : '')}
-              onClick={() => setDevFilter('all')}
-            >
+            <Chip on={devFilter === 'all'} onClick={() => setDevFilter('all')}>
               全部设备
-            </span>
+            </Chip>
             <span className="sp">
               <span className="count">共 {props.devices.length} 台</span>
             </span>
@@ -89,30 +87,27 @@ export function LogsView(props: {
           key={'logs-' + devFilter + '-' + kindFilter}
         >
           <div className="filters">
-            <span
-              className={'chip' + (kindFilter === 'all' ? ' on' : '')}
+            <Chip
+              on={kindFilter === 'all'}
               onClick={() => setKindFilter('all')}
             >
               全部对话
-            </span>
-            <span
-              className={'chip' + (kindFilter === 'user' ? ' on' : '')}
+            </Chip>
+            <Chip
+              on={kindFilter === 'user'}
               onClick={() => setKindFilter('user')}
             >
               用户提问
-            </span>
-            <span
-              className={'chip' + (kindFilter === 'ai' ? ' on' : '')}
-              onClick={() => setKindFilter('ai')}
-            >
+            </Chip>
+            <Chip on={kindFilter === 'ai'} onClick={() => setKindFilter('ai')}>
               设备回复
-            </span>
-            <span
-              className={'chip' + (kindFilter === 'system' ? ' on' : '')}
+            </Chip>
+            <Chip
+              on={kindFilter === 'system'}
               onClick={() => setKindFilter('system')}
             >
               设备日志
-            </span>
+            </Chip>
             <span className="sp" />
             <button
               className="icon-btn"
@@ -134,21 +129,19 @@ export function LogsView(props: {
             </div>
           ) : list.length === 0 ? (
             <div className="panel">
-              <div className="empty">
-                <div className="art">
-                  <I n="log" size={26} />
-                </div>
-                <b>
-                  {logs && logs.length === 0
+              <EmptyState
+                icon="log"
+                title={
+                  logs && logs.length === 0
                     ? '还没有对话记录'
-                    : '没有符合条件的记录'}
-                </b>
-                <span>
-                  {logs && logs.length === 0
+                    : '没有符合条件的记录'
+                }
+                desc={
+                  logs && logs.length === 0
                     ? '唤醒音箱开始对话后，这里会按时间记录每台音箱的问答，方便你复盘每次交互。'
-                    : '换一个筛选条件，或点击右上角刷新。'}
-                </span>
-              </div>
+                    : '换一个筛选条件，或点击右上角刷新。'
+                }
+              />
             </div>
           ) : (
             <div className="logs">

@@ -2,6 +2,13 @@
 import { useEffect, useState } from 'react'
 import { type DeviceRow, type Room } from '../apis.ts'
 import { I } from '../icons.tsx'
+import {
+  Button,
+  Chip,
+  EmptyState,
+  Field,
+  Tag,
+} from '../components/atoms/index.ts'
 
 export function RoomsView(props: {
   rooms: Room[]
@@ -70,7 +77,7 @@ export function RoomsView(props: {
   return (
     <section data-view="rooms" className="on">
       <div className="filters">
-        <span className="chip on">全部会话群</span>
+        <Chip on>全部会话群</Chip>
         <span className="sp">
           <span className="count">共 {props.rooms.length} 个</span>
         </span>
@@ -96,38 +103,36 @@ export function RoomsView(props: {
                   <span>{r.description || '无描述'}</span>
                 </span>
                 {used ? (
-                  <span className="tag accent">{used} 台共用</span>
+                  <Tag tone="accent">{used} 台共用</Tag>
                 ) : (
-                  <span className="tag neu">未关联</span>
+                  <Tag tone="neu">未关联</Tag>
                 )}
               </div>
             )
           })}
-          <button
-            className="btn"
+          <Button
             style={{ justifyContent: 'center', marginTop: 4 }}
+            icon="plus"
             onClick={startCreate}
           >
-            <I n="plus" /> 新建
-          </button>
+            新建
+          </Button>
         </aside>
         <section
           className="sdetail"
           key={'room-' + (selId || 'new') + (edit ? '-e' : '-r')}
         >
           {props.rooms.length === 0 && !creating ? (
-            <div className="empty">
-              <div className="art">
-                <I n="users" size={26} />
-              </div>
-              <b>还没有会话群</b>
-              <span>
-                会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「设备服务」中关联。
-              </span>
-              <button className="btn primary" onClick={startCreate}>
-                <I n="plus" /> 新建
-              </button>
-            </div>
+            <EmptyState
+              icon="users"
+              title="还没有会话群"
+              desc="会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「设备服务」中关联。"
+              action={
+                <Button variant="primary" icon="plus" onClick={startCreate}>
+                  新建
+                </Button>
+              }
+            />
           ) : edit ? (
             <div className="form-card">
               <h3>
@@ -142,10 +147,7 @@ export function RoomsView(props: {
               <div className="grp">
                 <h4>基本信息</h4>
                 <div className="row">
-                  <div className="fld">
-                    <label>
-                      会话群名称<span className="req">*</span>
-                    </label>
+                  <Field label="会话群名称" required>
                     <input
                       value={draft.name}
                       placeholder="例如：客厅会话"
@@ -153,9 +155,8 @@ export function RoomsView(props: {
                         setDraft({ ...draft, name: e.target.value })
                       }
                     />
-                  </div>
-                  <div className="fld">
-                    <label>会话群描述</label>
+                  </Field>
+                  <Field label="会话群描述">
                     <input
                       value={draft.description}
                       placeholder="例如：家庭日常闲聊场景"
@@ -163,21 +164,22 @@ export function RoomsView(props: {
                         setDraft({ ...draft, description: e.target.value })
                       }
                     />
-                  </div>
+                  </Field>
                 </div>
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button className="btn ghost" onClick={cancel}>
+                <Button variant="ghost" onClick={cancel}>
                   取消
-                </button>
-                <button
-                  className="btn primary"
+                </Button>
+                <Button
+                  variant="primary"
+                  icon="check"
                   onClick={save}
                   disabled={!draft.name.trim()}
                 >
-                  <I n="check" /> 保存
-                </button>
+                  保存
+                </Button>
               </div>
             </div>
           ) : sel ? (
@@ -226,14 +228,16 @@ export function RoomsView(props: {
               </div>
               <div className="acts">
                 <span className="sp" />
-                <button
-                  className="btn danger"
+                <Button
+                  variant="danger"
+                  icon="trash"
                   onClick={() => props.onDelete(sel.id)}
                 >
-                  <I n="trash" /> 删除
-                </button>
-                <button
-                  className="btn primary"
+                  删除
+                </Button>
+                <Button
+                  variant="primary"
+                  icon="pencil"
                   onClick={() => {
                     setDraft({
                       name: sel.name,
@@ -242,8 +246,8 @@ export function RoomsView(props: {
                     setEdit(true)
                   }}
                 >
-                  <I n="pencil" /> 编辑
-                </button>
+                  编辑
+                </Button>
               </div>
             </div>
           ) : null}

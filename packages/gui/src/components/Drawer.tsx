@@ -11,6 +11,7 @@ import {
   type VoiceService,
 } from '../apis.ts'
 import { I } from '../icons.tsx'
+import { Button } from './atoms/index.ts'
 import { coverOf } from '../utils.ts'
 
 export function Drawer(props: {
@@ -190,19 +191,28 @@ export function Drawer(props: {
           </div>
         </div>
         <div className="acts">
-          <button className="btn ghost" onClick={() => close(props.onEdit)}>
-            <I n="pencil" /> 编辑绑定
-          </button>
-          <button className="btn danger" onClick={() => close(props.onRemove)}>
-            <I n="trash" /> 解绑设备
-          </button>
+          <Button
+            variant="ghost"
+            icon="pencil"
+            onClick={() => close(props.onEdit)}
+          >
+            编辑绑定
+          </Button>
+          <Button
+            variant="danger"
+            icon="trash"
+            onClick={() => close(props.onRemove)}
+          >
+            解绑设备
+          </Button>
           <span className="sp" />
-          <button
-            className="btn primary"
+          <Button
+            variant="primary"
+            icon="refresh"
             onClick={() => close(props.onRestart)}
           >
-            <I n="refresh" /> 重启设备
-          </button>
+            重启设备
+          </Button>
         </div>
       </aside>
     </>

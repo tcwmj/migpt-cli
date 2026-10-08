@@ -1,5 +1,5 @@
 import type { Role } from '../../apis.ts'
-import { I } from '../../icons.tsx'
+import { Button } from '../../components/atoms/index.ts'
 import { avatarOf } from '../../utils.ts'
 
 export function RoleList(props: {
@@ -23,13 +23,13 @@ export function RoleList(props: {
           </span>
         </div>
       ))}
-      <button
-        className="btn"
+      <Button
         style={{ justifyContent: 'center', marginTop: 4 }}
+        icon="plus"
         onClick={props.onCreate}
       >
-        <I n="plus" /> 新建
-      </button>
+        新建
+      </Button>
     </div>
   )
 }

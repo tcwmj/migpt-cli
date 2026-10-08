@@ -1,4 +1,5 @@
 import type { DeviceRow, Role, SpeakerModel } from '../../apis.ts'
+import { Button, Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 
 export function DeviceList(props: {
@@ -34,19 +35,19 @@ export function DeviceList(props: {
                 {d.did} · {r?.name || '未指定角色'}
               </span>
             </span>
-            <span className={'tag' + (d.running ? ' accent' : ' neu')}>
+            <Tag tone={d.running ? 'accent' : 'neu'}>
               {d.running ? '运行中' : '未启动'}
-            </span>
+            </Tag>
           </div>
         )
       })}
-      <button
-        className="btn"
+      <Button
+        icon="plus"
         style={{ justifyContent: 'center', marginTop: 4 }}
         onClick={() => props.onSelect(null)}
       >
-        <I n="plus" /> 新建
-      </button>
+        新建
+      </Button>
     </aside>
   )
 }

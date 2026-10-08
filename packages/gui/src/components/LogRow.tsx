@@ -1,5 +1,6 @@
 /* ══ LogRow ══ */
 import { I } from '../icons.tsx'
+import { Tag } from './atoms/index.ts'
 
 export function LogRow(props: {
   l: { time: string; kind: 'user' | 'ai' | 'system'; text: string }
@@ -23,7 +24,7 @@ export function LogRow(props: {
     >
       <span className="t">{l.time || '--'}</span>
       <span className="who">
-        <span className="tag accent">{devName}</span>
+        <Tag tone="accent">{devName}</Tag>
         <em className={'k k-' + l.kind}>{kindLabel}</em>
       </span>
       <span className="txt">{l.text}</span>
