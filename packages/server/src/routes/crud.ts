@@ -12,7 +12,9 @@ import {
 import type { DeviceMeta, Role } from '../types.js'
 import {
   asyncHandler,
+  fail,
   findIndexOr404,
+  ok,
   refConflict,
   type RouteContext,
 } from './shared.js'
@@ -138,7 +140,7 @@ export function createCrudRouter<T extends { id: string; name?: string }>(
         const body = (req.body ?? {}) as Partial<T>
         const invalid = cfg.validate?.(body)
         if (invalid) {
-          res.status(400).json({ error: invalid })
+          fail(res, 400, invalid)
           return
         }
         const list = await cfg.list()
@@ -150,14 +152,14 @@ export function createCrudRouter<T extends { id: string; name?: string }>(
             cfg.nameLabel,
           )
           if (dup) {
-            res.status(409).json({ error: dup })
+            fail(res, 409, dup)
             return
           }
         }
         const entity = cfg.build(body, list)
         list.push(entity)
         await save(list)
-        res.json(cfg.respond ? cfg.respond(entity) : entity)
+        ok(res, cfg.respond ? cfg.respond(entity) : entity)
       }),
     )
 
@@ -176,13 +178,13 @@ export function createCrudRouter<T extends { id: string; name?: string }>(
             cfg.nameLabel,
           )
           if (dup) {
-            res.status(409).json({ error: dup })
+            fail(res, 409, dup)
             return
           }
         }
         cfg.applyUpdate(list, idx, body)
         await save(list)
-        res.json(cfg.respond ? cfg.respond(list[idx]) : list[idx])
+        ok(res, cfg.respond ? cfg.respond(list[idx]) : list[idx])
       }),
     )
 
@@ -192,12 +194,12 @@ export function createCrudRouter<T extends { id: string; name?: string }>(
         const list = await cfg.list()
         const target = list.find((x) => x.id === req.params.id)
         if (!target) {
-          res.status(404).json({ error: `${cfg.label}不存在` })
+          fail(res, 404, `${cfg.label}不存在`)
           return
         }
         const guarded = cfg.deleteGuard?.(target)
         if (guarded) {
-          res.status(409).json({ error: guarded })
+          fail(res, 409, guarded)
           return
         }
         if (cfg.refRules?.length) {
@@ -212,7 +214,7 @@ export function createCrudRouter<T extends { id: string; name?: string }>(
           }
         }
         await save(list.filter((x) => x.id !== req.params.id))
-        res.json({ success: true })
+        ok(res)
       }),
     )
 

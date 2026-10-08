@@ -1,10 +1,9 @@
 // ── 思考服务（音箱的「大脑」：模型供应商 + 密钥）────────────────
 import { nanoid } from 'nanoid'
-import { thinkServicesFile } from '../paths.js'
 import {
   getThinkServices,
+  saveThinkServices,
   thinkServiceListSchema,
-  writeJson,
 } from '../store.js'
 import { redactThinkService, redactThinkServices } from '../redact.js'
 import type { ThinkService } from '../types.js'
@@ -16,7 +15,7 @@ export const registerThinkServiceRoutes = createCrudRouter<ThinkService>({
   label: '思考服务',
   nameLabel: '思考服务名称',
   list: getThinkServices,
-  save: (list) => writeJson(thinkServicesFile, list),
+  save: saveThinkServices,
   schema: thinkServiceListSchema,
   listTransform: redactThinkServices,
   validate: (body) =>

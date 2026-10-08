@@ -6,6 +6,7 @@ import {
   type SpeakerModel,
 } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Chip, EmptyState, Tag } from '../atoms/index.ts'
 import type { WizardSetDraft } from './types.ts'
 
 export function WizardDeviceStep(props: {
@@ -75,20 +76,19 @@ export function WizardDeviceStep(props: {
       <div className="split wsplit">
         <aside className="slist">
           {!selAcct ? (
-            <div className="empty" style={{ padding: '16px' }}>
-              <b>请先选择云端账号</b>
-              <span>回到上一步选择或新建账号。</span>
-            </div>
+            <EmptyState
+              title="请先选择云端账号"
+              desc="回到上一步选择或新建账号。"
+              style={{ padding: '16px' }}
+            />
           ) : (
             <>
               <div className="filters" style={{ margin: '0 0 8px' }}>
-                <span className="chip on">{selAcct.name}</span>
+                <Chip on>{selAcct.name}</Chip>
               </div>
               {pulling && <div className="hint">正在从小米云端拉取设备…</div>}
               {pullErr && (
-                <div className="empty" style={{ padding: '16px' }}>
-                  <b>未获取到设备信息</b>
-                </div>
+                <EmptyState title="未获取到设备信息" style={{ padding: '16px' }} />
               )}
               {pulled && pulled.length > 0
                 ? pulled.map((d) => {
@@ -125,26 +125,22 @@ export function WizardDeviceStep(props: {
                           <span>{m ? m.name : d.hardware || '未知型号'}</span>
                         </span>
                         {bound ? (
-                          <span className="tag neu">已接入</span>
+                          <Tag tone="neu">已接入</Tag>
                         ) : (
-                          <span
-                            className={
-                              'tag' +
-                              (d.presence === 'online' ? ' accent' : ' neu')
-                            }
-                          >
+                          <Tag tone={d.presence === 'online' ? 'accent' : 'neu'}>
                             {d.presence === 'online' ? '在线' : '离线'}
-                          </span>
+                          </Tag>
                         )}
                       </div>
                     )
                   })
                 : pulled !== null &&
                   !pulling && (
-                    <div className="empty" style={{ padding: '16px' }}>
-                      <b>未发现音箱设备</b>
-                      <span>请确认小米 ID 与 passToken 正确。</span>
-                    </div>
+                    <EmptyState
+                      title="未发现音箱设备"
+                      desc="请确认小米 ID 与 passToken 正确。"
+                      style={{ padding: '16px' }}
+                    />
                   )}
             </>
           )}
@@ -219,13 +215,11 @@ export function WizardDeviceStep(props: {
               </div>
             </div>
           ) : (
-            <div className="empty">
-              <div className="art">
-                <I n="speaker" size={26} />
-              </div>
-              <b>选择要接入的设备</b>
-              <span>从左侧列表选择一台音箱；设备 ID 与型号自动识别。</span>
-            </div>
+            <EmptyState
+              icon="speaker"
+              title="选择要接入的设备"
+              desc="从左侧列表选择一台音箱；设备 ID 与型号自动识别。"
+            />
           )}
         </section>
       </div>

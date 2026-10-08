@@ -6,6 +6,7 @@ import type {
   SpeakerModel,
 } from '../../apis.ts'
 import { I } from '../../icons.tsx'
+import { Button, Field } from '../../components/atoms/index.ts'
 import type { DevDraft, DevPullState } from '../drafts.ts'
 import { ModelPicker } from './ModelPicker.tsx'
 import { PullDeviceList } from './PullDeviceList.tsx'
@@ -53,10 +54,7 @@ export function DeviceForm(props: {
       <div className="grp">
         <h4>基本信息</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              设备名称<span className="req">*</span>
-            </label>
+          <Field label="设备名称" required>
             <input
               value={devDraft.alias}
               placeholder="例如：客餐厅音箱"
@@ -64,17 +62,12 @@ export function DeviceForm(props: {
                 props.onDraft({ ...devDraft, alias: e.target.value })
               }
             />
-          </div>
-          <div className="fld">
-            <label>
-              设备 ID<span className="req">*</span>
-              <span
-                className="tip"
-                data-tip="小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。"
-              >
-                ?
-              </span>
-            </label>
+          </Field>
+          <Field
+            label="设备 ID"
+            required
+            tip="小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。"
+          >
             {selDev ? (
               <input
                 value={devDraft.did}
@@ -99,22 +92,16 @@ export function DeviceForm(props: {
                 </span>
               </div>
             )}
-          </div>
+          </Field>
         </div>
       </div>
       <div className="grp">
         <h4>设备型号</h4>
         <div className="row">
-          <div className="fld">
-            <label>
-              设备型号
-              <span
-                className="tip"
-                data-tip="输入关键字可搜索型号；选择后自动带入该型号的指令与播放配置（可在「设备型号」维护）。"
-              >
-                ?
-              </span>
-            </label>
+          <Field
+            label="设备型号"
+            tip="输入关键字可搜索型号；选择后自动带入该型号的指令与播放配置（可在「设备型号」维护）。"
+          >
             <ModelPicker
               models={props.models}
               value={devDraft.speakerModel}
@@ -124,14 +111,13 @@ export function DeviceForm(props: {
               onQ={props.onPickQ}
               onPick={(id) => props.onDraft({ ...devDraft, speakerModel: id })}
             />
-          </div>
+          </Field>
         </div>
       </div>
       <div className="grp">
         <h4>绑定</h4>
         <div className="row">
-          <div className="fld">
-            <label>云端账号</label>
+          <Field label="云端账号">
             <select
               value={devDraft.accountId}
               onChange={(e) => {
@@ -151,17 +137,11 @@ export function DeviceForm(props: {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="fld">
-            <label>
-              对话角色
-              <span
-                className="tip"
-                data-tip="选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。"
-              >
-                ?
-              </span>
-            </label>
+          </Field>
+          <Field
+            label="对话角色"
+            tip="选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。"
+          >
             <select
               value={devDraft.roleId}
               onChange={(e) =>
@@ -175,20 +155,14 @@ export function DeviceForm(props: {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
         {!selDev && (
           <div className="row">
-            <div className="fld">
-              <label>
-                从账号拉取
-                <span
-                  className="tip"
-                  data-tip="从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。"
-                >
-                  ?
-                </span>
-              </label>
+            <Field
+              label="从账号拉取"
+              tip="从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。"
+            >
               <PullDeviceList
                 devDraft={devDraft}
                 devPull={props.devPull}
@@ -197,20 +171,14 @@ export function DeviceForm(props: {
                 onDraft={props.onDraft}
                 onPull={props.onPull}
               />
-            </div>
+            </Field>
           </div>
         )}
         <div className="row">
-          <div className="fld">
-            <label>
-              连续对话超时（秒）
-              <span
-                className="tip"
-                data-tip="连续对话中无响应多久自动退出唤醒模式，默认 30 秒"
-              >
-                ?
-              </span>
-            </label>
+          <Field
+            label="连续对话超时（秒）"
+            tip="连续对话中无响应多久自动退出唤醒模式，默认 30 秒"
+          >
             <input
               value={devDraft.exitKeepAliveAfter || '30'}
               placeholder="默认 30"
@@ -221,17 +189,11 @@ export function DeviceForm(props: {
                 })
               }
             />
-          </div>
-          <div className="fld">
-            <label>
-              会话群
-              <span
-                className="tip"
-                data-tip="对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建"
-              >
-                ?
-              </span>
-            </label>
+          </Field>
+          <Field
+            label="会话群"
+            tip="对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建"
+          >
             <select
               value={devDraft.roomRef}
               onChange={(e) =>
@@ -245,7 +207,7 @@ export function DeviceForm(props: {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
       </div>
       {model && !model.consecutive && (
@@ -262,8 +224,8 @@ export function DeviceForm(props: {
       )}
       <div className="acts">
         <span className="sp" />
-        <button
-          className="btn ghost"
+        <Button
+          variant="ghost"
           onClick={() =>
             selDev
               ? props.onEdit(false)
@@ -273,14 +235,15 @@ export function DeviceForm(props: {
           }
         >
           取消
-        </button>
-        <button
-          className="btn primary"
+        </Button>
+        <Button
+          variant="primary"
+          icon="check"
           onClick={props.onSave}
           disabled={!devDraft.alias || !devDraft.did}
         >
-          <I n="check" /> 保存
-        </button>
+          保存
+        </Button>
       </div>
     </div>
   )

@@ -7,7 +7,7 @@ import {
   listBackups,
   DataValidationError,
 } from '../store.js'
-import { asyncHandler, type RouteContext } from './shared.js'
+import { asyncHandler, fail, type RouteContext } from './shared.js'
 
 function stamp(at = new Date()): string {
   return at.toISOString().replace(/[:.]/g, '-')
@@ -35,7 +35,7 @@ export function registerBackupRoutes({ app }: RouteContext): void {
         res.json({ success: true, imported: result })
       } catch (e) {
         if (e instanceof DataValidationError) {
-          res.status(400).json({ error: e.message })
+          fail(res, 400, e.message)
           return
         }
         throw e

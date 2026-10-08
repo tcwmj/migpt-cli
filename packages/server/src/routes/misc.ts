@@ -2,7 +2,7 @@
 import _trimEnd from 'lodash/trimEnd.js'
 import { createTTS } from 'mi-gpt-tts'
 import { streamTTSResponse } from '../tts.js'
-import type { RouteContext } from './shared.js'
+import { fail, type RouteContext } from './shared.js'
 
 export function registerTestRoutes({ app }: RouteContext): void {
   app.post('/api/test', async (req, res) => {
@@ -26,11 +26,11 @@ export function registerTestRoutes({ app }: RouteContext): void {
     try {
       options = typeof raw === 'string' ? JSON.parse(raw) : raw
     } catch {
-      res.status(400).json({ error: 'ttsConfig 不是合法 JSON' })
+      fail(res, 400, 'ttsConfig 不是合法 JSON')
       return
     }
     if (!options || typeof options !== 'object') {
-      res.status(400).json({ error: 'ttsConfig 必填' })
+      fail(res, 400, 'ttsConfig 必填')
       return
     }
     const testTTS = createTTS(options)

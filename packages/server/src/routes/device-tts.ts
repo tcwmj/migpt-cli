@@ -7,6 +7,7 @@ import type { DeviceMeta } from '../types.js'
 import {
   findDeviceBySecret,
   loadDeviceConfig,
+  fail,
   type RouteContext,
 } from './shared.js'
 
@@ -29,7 +30,7 @@ export function registerDeviceTtsRoutes({ app }: RouteContext): void {
     }
 
     if (!config?.tts) {
-      res.status(500).send('Internal Server Error')
+      fail(res, 500, 'TTS 配置未设置')
       return
     }
 

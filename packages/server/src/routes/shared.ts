@@ -1,6 +1,4 @@
 // ── 路由共享：服务选项、请求体白名单、字段清单、设备配置/密令查找 ──
-import path from 'node:path'
-import fs from 'node:fs/promises'
 import type {
   Express,
   NextFunction,
@@ -8,11 +6,11 @@ import type {
   RequestHandler,
   Response,
 } from 'express'
-import { type GuiConfig } from '@migptgui/options'
-import { root, devicesRoot } from '../paths.js'
 import { listDeviceMetas } from '../store.js'
-import { logger } from '../logger.js'
 import type { DeviceMeta } from '../types.js'
+
+// 从 store 层重新导出，保持既有导入面不变
+export { loadDeviceConfig } from '../store.js'
 
 export interface ServerOptions {
   open?: boolean
@@ -118,36 +116,6 @@ export const DEVICE_META_FIELDS = [
 // 归一化人设描述：兼容旧版存储的字面 `\n`，统一转为真实换行符
 export const normProfile = (s?: string) => (s || '').replace(/\\n/g, '\n')
 
-export async function loadDeviceConfig(
-  id: string,
-): Promise<GuiConfig | undefined> {
-  const file =
-    id === 'default'
-      ? path.join(root, 'default', 'migptgui.json')
-      : path.join(devicesRoot, id, 'migptgui.json')
-  let raw: string
-  try {
-    raw = await fs.readFile(file, 'utf-8')
-  } catch (e) {
-    // 文件不存在属正常（设备尚未落盘配置）；其余读取错误需告警，避免静默吞掉权限/IO 问题
-    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
-      logger.warn(
-        `[loadDeviceConfig] 读取配置失败：${file} ${(e as Error).message}`,
-      )
-    }
-    return undefined
-  }
-  try {
-    return JSON.parse(raw)
-  } catch (e) {
-    // 解析失败多为文件被外部改坏：告警后按「无配置」处理，避免整机启动失败
-    logger.warn(
-      `[loadDeviceConfig] 配置解析失败（已忽略）：${file} ${(e as Error).message}`,
-    )
-    return undefined
-  }
-}
-
 export async function findDeviceBySecret(
   secret: string,
 ): Promise<DeviceMeta | undefined> {
@@ -156,6 +124,17 @@ export async function findDeviceBySecret(
 }
 
 // ── 通用响应守卫：消除各资源的「未找到 / 被引用」样板 ───────────
+
+/** 成功响应：`res.json(data ?? { success: true })` */
+export function ok(res: Response, data?: unknown): void {
+  res.json(data ?? { success: true })
+}
+
+/** 错误响应：`res.status(status).json({ error })` */
+export function fail(res: Response, status: number, error: string): void {
+  res.status(status).json({ error })
+}
+
 /** 按 id 定位实体；不存在时回 404 并返回 null */
 export function findIndexOr404<T extends { id: string }>(
   res: Response,
@@ -165,7 +144,7 @@ export function findIndexOr404<T extends { id: string }>(
 ): number | null {
   const idx = list.findIndex((x) => x.id === id)
   if (idx < 0) {
-    res.status(404).json({ error: `${label}不存在` })
+    fail(res, 404, `${label}不存在`)
     return null
   }
   return idx

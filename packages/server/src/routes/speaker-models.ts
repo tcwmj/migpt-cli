@@ -7,7 +7,7 @@ import {
   speakerModelListSchema,
 } from '../store.js'
 import type { SpeakerModel } from '../types.js'
-import { pick, MODEL_FIELDS } from './shared.js'
+import { fail, pick, MODEL_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
 
 export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
@@ -48,7 +48,7 @@ export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
     app.post('/api/speaker-models/:id/reset', async (req, res) => {
       const model = await resetBuiltinModel(req.params.id)
       if (!model) {
-        res.status(404).json({ error: '仅系统内置型号支持重置默认' })
+        fail(res, 404, '仅系统内置型号支持重置默认')
         return
       }
       res.json(model)

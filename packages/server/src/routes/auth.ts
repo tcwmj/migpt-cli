@@ -1,12 +1,5 @@
 // ── 认证：httpOnly Cookie 会话（主）+ Basic Auth（兼容）+ 凭据修改 ────
-import { authFile } from '../paths.js'
-import {
-  resolveAuth,
-  invalidateAuthCache,
-  safeEqual,
-  authSchema,
-  writeJsonChecked,
-} from '../store.js'
+import { resolveAuth, saveAuthCredentials, safeEqual } from '../store.js'
 import {
   SESSION_COOKIE,
   SESSION_TTL_MS,
@@ -14,7 +7,7 @@ import {
   getSession,
   destroySession,
 } from '../session.js'
-import type { RouteContext } from './shared.js'
+import { ok, fail, type RouteContext } from './shared.js'
 
 // 认证失败限流：同一来源在窗口内失败次数超限后直接拒绝，抵御口令爆破。
 // 注意：若部署在反向代理之后，需配置 app.set('trust proxy') 才能拿到真实客户端 IP。
@@ -47,7 +40,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
   app.post('/api/login', (req, res) => {
     const ip = req.ip || 'unknown'
     if (authBlocked(ip)) {
-      res.status(429).json({ error: '尝试次数过多，请稍后再试' })
+      fail(res, 429, '尝试次数过多，请稍后再试')
       return
     }
     const body = req.body as { user?: string; password?: string }
@@ -63,17 +56,17 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
         path: '/',
         maxAge: SESSION_TTL_MS,
       })
-      res.json({ success: true })
+      ok(res)
       return
     }
     noteAuthFailure(ip)
-    res.status(401).json({ error: 'unauthorized' })
+    fail(res, 401, 'unauthorized')
   })
 
   app.post('/api/logout', (req, res) => {
     destroySession(req.cookies?.[SESSION_COOKIE])
     res.clearCookie(SESSION_COOKIE, { path: '/' })
-    res.json({ success: true })
+    ok(res)
   })
 
   app.get('/api/session', (req, res) => {
@@ -91,7 +84,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
     app.use('/api', (req, res, next) => {
       const ip = req.ip || 'unknown'
       if (authBlocked(ip)) {
-        res.status(429).json({ error: '尝试次数过多，请稍后再试' })
+        fail(res, 429, '尝试次数过多，请稍后再试')
         return
       }
       if (getSession(req.cookies?.[SESSION_COOKIE])) {
@@ -119,7 +112,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
         }
       }
       noteAuthFailure(ip)
-      res.status(401).json({ error: 'unauthorized' })
+      fail(res, 401, 'unauthorized')
     })
   }
 
@@ -132,25 +125,16 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       newPassword?: string
     }
     if (!body.newUser || !body.newPassword) {
-      res.status(400).json({ error: '新用户名和新密码必填' })
+      fail(res, 400, '新用户名和新密码必填')
       return
     }
     const users = resolveAuth(options?.users)
     const current = users[body.oldUser || ''] ?? ''
     if (!current || !safeEqual(current, body.oldPassword || '')) {
-      res.status(403).json({ error: '旧密码不正确' })
+      fail(res, 403, '旧密码不正确')
       return
     }
-    await writeJsonChecked(
-      authFile,
-      {
-        user: body.newUser,
-        password: body.newPassword,
-      },
-      authSchema,
-      '登录凭据',
-    )
-    invalidateAuthCache()
-    res.json({ success: true })
+    await saveAuthCredentials(body.newUser, body.newPassword)
+    ok(res)
   })
 }

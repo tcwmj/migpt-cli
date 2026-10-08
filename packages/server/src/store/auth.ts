@@ -2,6 +2,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { authFile } from '../paths.js'
 import { readJsonSync } from './json.js'
+import { writeJsonChecked, authSchema } from './schemas.js'
 
 // 优先级：CLI --user/--pwd > AUTH_USER/AUTH_PASSWORD 环境变量 > auth.json（面板可改）> 默认 admin/123456
 const AUTH_CACHE_TTL = 5000
@@ -10,6 +11,15 @@ let _authCache: { users: Record<string, string>; at: number } | undefined
 /** 清空认证凭据缓存（凭据被修改后必须调用，避免旧凭据继续生效） */
 export function invalidateAuthCache() {
   _authCache = undefined
+}
+
+/** 保存登录凭据到 auth.json 并清空缓存 */
+export async function saveAuthCredentials(
+  user: string,
+  password: string,
+): Promise<void> {
+  await writeJsonChecked(authFile, { user, password }, authSchema, '登录凭据')
+  invalidateAuthCache()
 }
 
 function _resolveAuthUncached(): Record<string, string> {

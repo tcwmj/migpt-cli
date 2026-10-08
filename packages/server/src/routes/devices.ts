@@ -1,6 +1,5 @@
 // ── 设备管理：状态、CRUD、启动/停止、设备日志 ─────────────────────
 import path from 'node:path'
-import fse from 'fs-extra'
 import { nanoid } from 'nanoid'
 import _trimEnd from 'lodash/trimEnd.js'
 import createDebug from 'debug'
@@ -12,9 +11,11 @@ import {
   listDeviceMetas,
   getAccountById,
   assertUniqueName,
-  deviceMetaSchema,
-  writeJson,
-  writeJsonChecked,
+  loadDeviceConfig,
+  saveDeviceMeta,
+  saveDeviceConfig,
+  saveDeviceCredentials,
+  removeDevice,
 } from '../store.js'
 import { buildRunConfig, resolveBindings } from '../services.js'
 import {
@@ -28,7 +29,8 @@ import type { DeviceMeta } from '../types.js'
 import {
   pick,
   DEVICE_META_FIELDS,
-  loadDeviceConfig,
+  ok,
+  fail,
   type RouteContext,
 } from './shared.js'
 
@@ -73,7 +75,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       roomDescription?: string
     }
     if (!body.alias || !body.did) {
-      res.status(400).json({ error: '别名和设备 ID 必填' })
+      fail(res, 400, '别名和设备 ID 必填')
       return
     }
     const metas = await listDeviceMetas()
@@ -82,14 +84,12 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       ? metas.filter((m) => m.accountId === body.accountId)
       : metas
     if (sameAcct.some((m) => m.did === body.did)) {
-      res
-        .status(409)
-        .json({ error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置' })
+      fail(res, 409, '该账号下已接入此设备（设备 ID 相同），请勿重复配置')
       return
     }
     const dup = assertUniqueName(sameAcct, body.alias, undefined, '设备名称')
     if (dup) {
-      res.status(409).json({ error: dup })
+      fail(res, 409, dup)
       return
     }
     const id = nanoid(8)
@@ -109,23 +109,17 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       ttsSecret: nanoid(),
       createdAt: Date.now(),
     }
-    const deviceCwd = path.join(devicesRoot, id)
-    await writeJsonChecked(
-      path.join(deviceCwd, 'meta.json'),
-      meta,
-      deviceMetaSchema,
-      '设备',
-    )
+    await saveDeviceMeta(id, meta)
     // 按绑定链编译初始配置（编译投影）
     const { config } = await buildRunConfig(meta)
-    await writeJson(path.join(deviceCwd, 'migptgui.json'), config)
+    await saveDeviceConfig(id, config)
     res.json({ id, meta: redactDeviceMeta(meta) })
   })
 
   app.get('/api/devices/:id', async (req, res) => {
     const meta = await getDeviceMeta(req.params.id)
     if (!meta) {
-      res.status(404).json({ error: '设备不存在' })
+      fail(res, 404, '设备不存在')
       return
     }
     const config = await loadDeviceConfig(req.params.id)
@@ -143,7 +137,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     const id = req.params.id
     const meta = await getDeviceMeta(id)
     if (!meta) {
-      res.status(404).json({ error: '设备不存在' })
+      fail(res, 404, '设备不存在')
       return
     }
     const body = req.body as { meta?: Partial<DeviceMeta>; config?: GuiConfig }
@@ -164,9 +158,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
           : allMetas.filter((m) => m.id !== id)
         const nextDid = body.meta.did !== undefined ? body.meta.did : meta.did
         if (sameAcct.some((m) => m.did === nextDid)) {
-          res.status(409).json({
-            error: '该账号下已接入此设备（设备 ID 相同），请勿重复配置',
-          })
+          fail(res, 409, '该账号下已接入此设备（设备 ID 相同），请勿重复配置')
           return
         }
         if (body.meta.alias !== undefined) {
@@ -177,7 +169,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
             '设备名称',
           )
           if (dup) {
-            res.status(409).json({ error: dup })
+            fail(res, 409, dup)
             return
           }
         }
@@ -186,12 +178,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       const patch = pick<DeviceMeta>(body.meta, DEVICE_META_FIELDS)
       if (!patch.ttsSecret) delete patch.ttsSecret
       const nextMeta: DeviceMeta = { ...meta, ...patch, id }
-      await writeJsonChecked(
-        path.join(devicesRoot, id, 'meta.json'),
-        nextMeta,
-        deviceMetaSchema,
-        '设备',
-      )
+      await saveDeviceMeta(id, nextMeta)
       // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
       if (
         body.meta.roleId !== undefined ||
@@ -206,20 +193,20 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         body.meta.roomDescription !== undefined
       ) {
         const { config } = await buildRunConfig(nextMeta)
-        await writeJson(path.join(devicesRoot, id, 'migptgui.json'), config)
+        await saveDeviceConfig(id, config)
       }
     }
     if (body.config) {
-      await writeJson(path.join(devicesRoot, id, 'migptgui.json'), body.config)
+      await saveDeviceConfig(id, body.config)
     }
-    res.json({ success: true })
+    ok(res)
   })
 
   app.delete('/api/devices/:id', async (req, res) => {
     await stop(req.params.id)
-    await fse.remove(path.join(devicesRoot, req.params.id))
+    await removeDevice(req.params.id)
     clearDeviceLog(req.params.id)
-    res.json({ success: true })
+    ok(res)
   })
 
   // ── 启动/停止 ─────────────────────────────────────────────────
@@ -227,14 +214,14 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     const id = req.params.id
     const meta = await getDeviceMeta(id)
     if (!meta) {
-      res.status(404).json({ error: '设备不存在' })
+      fail(res, 404, '设备不存在')
       return
     }
     // 启动前按绑定链重新编译投影（角色/服务变更后无需手动改 migptgui.json）
     const existing = await loadDeviceConfig(id)
     const { config } = await buildRunConfig(meta, existing)
     const deviceCwd = path.join(devicesRoot, id)
-    await writeJson(path.join(deviceCwd, 'migptgui.json'), config)
+    await saveDeviceConfig(id, config)
 
     // 账号托管：按设备归属账号自动写入 .mi.json（minna/miiot 两段）
     const account = await getAccountById(meta.accountId)
@@ -243,7 +230,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         mina: { pass: { passToken: account.passToken } },
         miiot: { pass: { passToken: account.passToken } },
       }
-      await writeJson(path.join(deviceCwd, '.mi.json'), miJson)
+      await saveDeviceCredentials(id, miJson)
     }
 
     // 内建 TTS：为设备注入独立的 TTS_BASE_URL
@@ -264,12 +251,12 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       appendLog(deviceId, line),
     )
 
-    res.json({ success: true })
+    ok(res)
   })
 
   app.post('/api/devices/:id/stop', async (req, res) => {
     await stop(req.params.id)
-    res.json({ success: true })
+    ok(res)
   })
 
   app.get('/api/devices/:id/logs', async (req, res) => {

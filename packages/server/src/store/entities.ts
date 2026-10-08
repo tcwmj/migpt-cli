@@ -1,6 +1,7 @@
 // ── 实体读取：settings / accounts / roles / services / models / rooms / devices ──
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import fse from 'fs-extra'
 import { nanoid } from 'nanoid'
 import {
   devicesRoot,
@@ -11,6 +12,7 @@ import {
   voiceServicesFile,
   speakerModelsFile,
   roomsFile,
+  systemLogFile,
 } from '../paths.js'
 import {
   type Settings,
@@ -22,7 +24,8 @@ import {
   type DeviceMeta,
   type SpeakerModel,
 } from '../types.js'
-import { readJson } from './json.js'
+import { logger } from '../logger.js'
+import { readJson, writeJson } from './json.js'
 import {
   accountListSchema,
   accountSchema,
@@ -30,10 +33,13 @@ import {
   parseEntity,
   readJsonChecked,
   readJsonListChecked,
+  roleListSchema,
   roleSchema,
+  roomListSchema,
   roomSchema,
   settingsSchema,
   speakerModelSchema,
+  thinkServiceListSchema,
   thinkServiceSchema,
   voiceServiceSchema,
   writeJsonChecked,
@@ -43,6 +49,7 @@ import {
   mergeBuiltinModels,
   mergeBuiltinVoices,
 } from './overrides.js'
+import type { GuiConfig } from '@migptgui/options'
 
 // 同名唯一校验：同一实体的实例名称全局唯一（忽略大小写与首尾空白）。
 // 返回冲突提示文本，无冲突返回 null。
@@ -193,6 +200,123 @@ export async function getSpeakerModelByRef(
   if (!ref) return undefined
   const list = await getSpeakerModels()
   return list.find((m) => m.id === ref || m.name === ref)
+}
+
+// ── 实体写入：封装路径与 schema，路由层不再直接接触文件 ────────
+
+export async function saveAccounts(list: Account[]): Promise<void> {
+  await writeJsonChecked(accountsFile, list, accountListSchema, '账号')
+}
+
+export async function saveRoles(list: Role[]): Promise<void> {
+  await writeJsonChecked(rolesFile, list, roleListSchema, '角色')
+}
+
+export async function saveRooms(list: Room[]): Promise<void> {
+  await writeJsonChecked(roomsFile, list, roomListSchema, '会话群')
+}
+
+export async function saveThinkServices(list: ThinkService[]): Promise<void> {
+  await writeJsonChecked(
+    thinkServicesFile,
+    list,
+    thinkServiceListSchema,
+    '思考服务',
+  )
+}
+
+// ── 设备文件操作 ──────────────────────────────────────────────
+
+/** 写入设备 meta.json（含 schema 校验） */
+export async function saveDeviceMeta(
+  id: string,
+  meta: DeviceMeta,
+): Promise<void> {
+  await writeJsonChecked(
+    path.join(devicesRoot, id, 'meta.json'),
+    meta,
+    deviceMetaSchema,
+    '设备',
+  )
+}
+
+/** 写入设备 migptgui.json（编译投影） */
+export async function saveDeviceConfig(
+  id: string,
+  config: unknown,
+): Promise<void> {
+  await writeJson(path.join(devicesRoot, id, 'migptgui.json'), config)
+}
+
+/** 写入设备 .mi.json（账号凭据） */
+export async function saveDeviceCredentials(
+  id: string,
+  miJson: unknown,
+): Promise<void> {
+  await writeJson(path.join(devicesRoot, id, '.mi.json'), miJson)
+}
+
+/** 删除设备目录 */
+export async function removeDevice(id: string): Promise<void> {
+  await fse.remove(path.join(devicesRoot, id))
+}
+
+// ── 设备配置读取（从 shared.ts 下沉）─────────────────────────
+
+export async function loadDeviceConfig(
+  id: string,
+): Promise<GuiConfig | undefined> {
+  const file =
+    id === 'default'
+      ? path.join(devicesRoot, '..', 'default', 'migptgui.json')
+      : path.join(devicesRoot, id, 'migptgui.json')
+  let raw: string
+  try {
+    raw = await fs.readFile(file, 'utf-8')
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+      logger.warn(
+        `[loadDeviceConfig] 读取配置失败：${file} ${(e as Error).message}`,
+      )
+    }
+    return undefined
+  }
+  try {
+    return JSON.parse(raw)
+  } catch (e) {
+    logger.warn(
+      `[loadDeviceConfig] 配置解析失败（已忽略）：${file} ${(e as Error).message}`,
+    )
+    return undefined
+  }
+}
+
+// ── 系统日志读取 ──────────────────────────────────────────────
+
+/** 读取系统日志文件尾部 N 行 */
+export async function getSystemLogTail(lines: number): Promise<string[]> {
+  try {
+    const all = (await fs.readFile(systemLogFile, 'utf8'))
+      .split('\n')
+      .filter(Boolean)
+    return all.slice(-lines)
+  } catch {
+    return []
+  }
+}
+
+/** 获取系统日志文件大小（字节） */
+export async function getSystemLogSize(): Promise<number> {
+  try {
+    return (await fs.stat(systemLogFile)).size
+  } catch {
+    return 0
+  }
+}
+
+/** 读取系统日志文件全文 */
+export async function getSystemLogFull(): Promise<string> {
+  return fs.readFile(systemLogFile, 'utf8')
 }
 
 // 供应商 → Base URL 映射：单一事实源在 @migptgui/contracts（经 ./types.js 转发）

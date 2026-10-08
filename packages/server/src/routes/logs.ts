@@ -1,9 +1,13 @@
 // ── 对话日志聚合 + 系统日志查看/下载/清空 ────────────────────────
-import fs from 'node:fs/promises'
 import { systemLogFile } from '../paths.js'
 import { logRows, sysLogBuf, clearSysLog } from '../logger.js'
-import { listDeviceMetas } from '../store.js'
-import type { RouteContext } from './shared.js'
+import {
+  listDeviceMetas,
+  getSystemLogTail,
+  getSystemLogSize,
+  getSystemLogFull,
+} from '../store.js'
+import { ok, fail, type RouteContext } from './shared.js'
 
 export function registerLogRoutes({ app }: RouteContext): void {
   // ── 全局对话日志（聚合所有设备，供「对话记录」页）────────────────
@@ -36,27 +40,16 @@ export function registerLogRoutes({ app }: RouteContext): void {
     const lines = Math.min(Number(req.query.lines) || 300, 2000)
     let arr = sysLogBuf.slice(-lines)
     if (arr.length < lines) {
-      try {
-        const all = (await fs.readFile(systemLogFile, 'utf8'))
-          .split('\n')
-          .filter(Boolean)
-        arr = all.slice(-lines)
-      } catch {
-        /* 日志文件尚未生成 */
-      }
+      const tail = await getSystemLogTail(lines)
+      if (tail.length) arr = tail
     }
-    let size = 0
-    try {
-      size = (await fs.stat(systemLogFile)).size
-    } catch {
-      /* 忽略 */
-    }
+    const size = await getSystemLogSize()
     res.json({ lines: arr, file: systemLogFile, size })
   })
 
   app.get('/api/system/logs/download', async (_req, res) => {
     try {
-      const text = await fs.readFile(systemLogFile, 'utf8')
+      const text = await getSystemLogFull()
       res.setHeader('Content-Type', 'text/plain; charset=utf-8')
       res.setHeader(
         'Content-Disposition',
@@ -64,16 +57,16 @@ export function registerLogRoutes({ app }: RouteContext): void {
       )
       res.send(text)
     } catch {
-      res.status(404).json({ error: '系统日志文件不存在' })
+      fail(res, 404, '系统日志文件不存在')
     }
   })
 
   app.post('/api/system/logs/clear', async (_req, res) => {
     try {
       await clearSysLog()
-      res.json({ success: true })
+      ok(res)
     } catch (err) {
-      res.json({ success: false, error: String(err) })
+      fail(res, 500, String(err))
     }
   })
 }
