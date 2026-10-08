@@ -3,7 +3,8 @@
 # Backend : tsc -w auto-compile + node --watch auto-restart (no manual restart)
 # Usage   : powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
 
-$root = "D:\Workspace\migpt-cli"
+# 仓库根 = 本脚本所在 scripts/ 的上一级，避免硬编码绝对路径
+$root = Split-Path -Parent $PSScriptRoot
 $log  = Join-Path $root ".cache\logs"
 New-Item -ItemType Directory -Force -Path $log | Out-Null
 

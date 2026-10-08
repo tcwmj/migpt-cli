@@ -77,3 +77,5 @@
 - Docker 镜像标签与 `migpt-server` 安装版本同步至 `2.0.0`
 - 精简 tsconfig：移除未使用的 `experimentalDecorators` / `emitDecoratorMetadata`，`jsx` 由 `react-jsxdev` 改为 `react-jsx`，并删除 `gui` / `options` / `options-with-preview` 三处 `tsconfig.build.json` 中重复的 `jsx` 覆盖
 - 修复 `typecheck` 脚本空转：此前无任何包定义 `typecheck` 目标，nx 以「0 项目」退出码 0 使 `||` 兜底永不触发，CI 类型检查实际从未运行；现为各包补 `typecheck: tsc --noEmit`，`nx.json` 声明 `typecheck.dependsOn: ["^build"]`，根脚本收敛为单一 nx 调用
+- 生产构建的体积分析（`BundleAnalyzerPlugin`）改为按需开启：默认关闭不再拖慢构建，需要时设 `ANALYZE=1` 再构建，报告仍输出到根 `.cache/`
+- `scripts/dev.ps1` 的仓库根路径改为由 `$PSScriptRoot` 推导，去除硬编码的绝对路径

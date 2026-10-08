@@ -121,11 +121,12 @@ export default function buildWebpackConfig(mode) {
   }
   base.plugins.push(new webpack.DefinePlugin(definePluginObj))
 
-  if (IS_PROD) {
+  // 构建体积分析按需开启：默认关闭，避免每次 prod 构建都多跑一遍分析拖慢构建；
+  // 需要时设 ANALYZE=1 再构建，报告输出到根 .cache/（不入 dist，避免随包发布）
+  if (IS_PROD && process.env.ANALYZE) {
     base.plugins.push(
       new BundleAnalyzerPlugin({
         analyzerMode: 'static',
-        // 不要将 report.html 放在 dist 里（dist 会随包发布）；统一收纳到根 .cache/
         reportFilename: path.join(
           __dirname,
           '../../../.cache/webpack-report.html',
