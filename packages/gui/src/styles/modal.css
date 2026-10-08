@@ -15,15 +15,6 @@
   animation: scrimIn var(--dur-200) ease both;
 }
 
-@keyframes scrimIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .modal {
   position: fixed;
   left: 50%;
@@ -45,17 +36,6 @@
   pointer-events: auto;
   transform: translate(-50%, -50%);
   animation: modalIn var(--dur-220) ease both;
-}
-
-@keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -44%) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
 }
 
 .modal h3 {

@@ -233,7 +233,7 @@
 .app:not(.off) .brand-txt,
 .app:not(.off) .side nav a .label,
 .app:not(.off) .user-card .foot-txt {
-  transition-delay: 0.2s;
+  transition-delay: var(--dur-200);
 }
 .app.off .side nav {
   gap: var(--sp-2);

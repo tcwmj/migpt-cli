@@ -1,17 +1,6 @@
 /* ══ 全局动效 ══ */
 .body section {
-  animation: fadeUp 0.26s ease both;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  animation: fadeUp var(--dur-250) ease both;
 }
 
 .panel,
@@ -55,4 +44,16 @@
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(217, 100, 42, 0.14);
+}
+
+/* 无障碍：系统开启「减少动态效果」时关闭动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

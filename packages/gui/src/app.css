@@ -2,6 +2,7 @@
 /* 说明：原 app.css 已按模块拆分至 styles/ 目录，此处仅按原始级联顺序引入，样式行为零变更。 */
 
 @import './styles/theme.css';
+@import './styles/keyframes.css';
 @import './styles/shell.css';
 @import './styles/home.css';
 @import './styles/panels.css';

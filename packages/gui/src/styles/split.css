@@ -359,16 +359,6 @@
   transform-origin: top center;
   animation: pickIn var(--dur-160) ease both;
 }
-@keyframes pickIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scaleY(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 .model-pick .pick-li {
   display: flex;

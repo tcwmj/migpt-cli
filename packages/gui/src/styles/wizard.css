@@ -21,17 +21,6 @@
   animation: wzin var(--dur-220);
 }
 
-@keyframes wzin {
-  from {
-    transform: translateY(14px);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
 .wiz .wh {
   position: relative;
   display: flex;

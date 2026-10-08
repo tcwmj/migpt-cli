@@ -136,15 +136,9 @@
 .skel {
   background: linear-gradient(90deg, var(--line-2), var(--line), var(--line-2));
   background-size: 200% 100%;
-  animation: sk 1.2s infinite;
+  animation: sk var(--dur-1200) infinite;
   height: var(--row);
   border-radius: var(--r-m);
   margin: var(--sp-4) var(--sp-8);
   opacity: 0.75;
-}
-
-@keyframes sk {
-  to {
-    background-position: -200% 0;
-  }
 }
