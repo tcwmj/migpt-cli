@@ -23,6 +23,9 @@ Thumbs.db
 # 缓存 / 覆盖率 / 运行日志 / 临时产物：统一收纳到 .cache/，清理只需删这一个目录
 /.cache/
 
+# nx 内部状态（正常经 scripts/nx.mjs 已重定向到 .cache/nx，此处兜底防误提交）
+/.nx/
+
 # 自定义
 /apps/cli/testrobot
 /apps/cli/migptgui.json
