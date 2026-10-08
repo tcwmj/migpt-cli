@@ -1,0 +1,17 @@
+# 默认负责人：仓库维护者
+* @tcwmj
+
+# 仓库配置与 CI
+/.github/            @tcwmj
+/Dockerfile          @tcwmj
+/docker/             @tcwmj
+
+# 共享契约：改动会影响前后端两端，需重点评审
+/packages/contracts/ @tcwmj
+
+# 后端
+/packages/server/    @tcwmj
+/apps/server/        @tcwmj
+
+# 前端
+/packages/gui/       @tcwmj

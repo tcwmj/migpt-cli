@@ -15,7 +15,9 @@
   border-radius: var(--r-m);
   font-size: 13px;
   line-height: 1.6;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .log.expandable {
@@ -51,7 +53,9 @@
   align-self: center;
   color: var(--ink-3);
   opacity: 0.75;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .log.expandable:hover .more {
@@ -113,4 +117,3 @@
   background: var(--panel-2);
   border: 1px solid var(--line);
 }
-

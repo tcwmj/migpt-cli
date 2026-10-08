@@ -4,7 +4,7 @@
 # Usage   : powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
 
 $root = "D:\Workspace\migpt-cli"
-$log  = Join-Path $root ".dev-logs"
+$log  = Join-Path $root ".cache\logs"
 New-Item -ItemType Directory -Force -Path $log | Out-Null
 
 Write-Host "== MiGPT dev hot-start ==" -ForegroundColor Cyan

@@ -221,7 +221,10 @@
   background: transparent;
   color: var(--ink-3);
   cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease, transform 0.3s ease;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    transform 0.3s ease;
 }
 .form-card h3 .icbtn:hover {
   color: var(--accent);
@@ -413,7 +416,10 @@
   font-weight: 400;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    visibility 0.15s,
+    transform 0.15s;
   z-index: 40;
   pointer-events: none;
   box-shadow: var(--shadow-pop);
@@ -469,4 +475,3 @@
   background: var(--panel-2);
   cursor: pointer;
 }
-

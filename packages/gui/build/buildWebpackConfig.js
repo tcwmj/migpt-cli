@@ -69,7 +69,8 @@ export default function buildWebpackConfig(mode) {
           use: {
             loader: 'babel-loader',
             options: {
-              cacheDirectory: true,
+              // 指向根 .cache/babel，避免在 packages/gui/node_modules 下生成缓存目录
+              cacheDirectory: path.join(__dirname, '../../../.cache/babel'),
             },
           },
         },
@@ -116,8 +117,11 @@ export default function buildWebpackConfig(mode) {
     base.plugins.push(
       new BundleAnalyzerPlugin({
         analyzerMode: 'static',
-        // 不要将 report.html 放在 dist 里，因为 dist 里的文件会被复制过去作为 cli 包的一部分发布
-        reportFilename: `../webpack-report.html`,
+        // 不要将 report.html 放在 dist 里（dist 会随包发布）；统一收纳到根 .cache/
+        reportFilename: path.join(
+          __dirname,
+          '../../../.cache/webpack-report.html',
+        ),
         openAnalyzer: false,
       }),
     )

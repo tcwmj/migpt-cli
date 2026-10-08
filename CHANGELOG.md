@@ -1,0 +1,56 @@
+# 更新日志
+
+本文件记录本项目的显著变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
+版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+
+> 说明：当前各包版本尚未统一（根 `0.0.0`、`@migptgui/*` 与 `migpt-server` 为 `1.12.0`、`migpt-cli` 为 `5.0.0`），
+> 统一版本与自动发布见「待办清单」中的版本治理项。在版本统一前，变更统一记录在 `Unreleased` 下。
+
+## [Unreleased]
+
+### Security
+
+- 恢复 HTTPS 请求的 TLS 证书校验，移除全局 `rejectUnauthorized: false`，消除中间人风险
+- 读接口对凭据脱敏：`passToken` / `miPassword` / `apiKey` / `ttsSecret` 不再回传明文，仅返回 `hasXxx` 标记
+- 登录校验改用恒定时间比较（`timingSafeEqual`），并对连续失败做限流（20 次 / 10 分钟）
+- TTS 试听接口由 URL query 改为 POST 请求体，避免密钥进入访问日志与浏览器历史
+- 请求体大小限制为 1 MB，并补齐 `nosniff` / `X-Frame-Options` / `Referrer-Policy` 响应头
+
+### Performance
+
+- 设备元数据改为并行读取（`Promise.all`），缩短启动与列表加载耗时
+- JSON 落盘改为原子写（随机临时文件名 + rename）并按文件串行化写队列，避免并发丢更新
+- 系统日志改为合并缓冲 + 阈值/定时 flush + 按大小轮转，避免每行一次 `appendFile` 与无限增长
+
+### Fixed
+
+- 默认端口由 `36592` 修正为 `36597`，与 README / Docker / 启动脚本一致
+- `/api/test/audio` 对非法 `ttsConfig` 入参返回 400，不再抛出 500
+- 修正 `@types/express` 与 `express@4` 的版本错配
+- 修复 MiGPT 子进程 `destroy` 分支无法停止服务的缺陷（模块级实例从未被赋值）
+- 前端 API 错误包装时保留原始错误（`cause`），便于定位根因
+- 移除认证解析中的无用赋值（`decoded`）
+
+### Changed
+
+- 写接口改为白名单字段（`pick()` + `*_FIELDS`），不再直接展开 `req.body` 落盘
+- 供应商 baseUrl 映射下沉到 `@migptgui/contracts` 单一事实源，前后端共用
+- 缓存、覆盖率、日志、临时产物统一收纳到根 `.cache/`，新增 `npm run clean:cache`
+- nx 调用统一经 `scripts/nx.mjs` 包装，避免根目录生成 `.nx/`
+
+### Refactor
+
+- 后端 `server/src/index.ts` 由约 1360 行拆分为 `routes/*` 路由模块与 `tts` 助手
+- 前端 `App.tsx` 由约 4650 行拆分为组件与视图模块
+- TTS 流式转发逻辑抽取为共用函数，消除两处约 60 行重复
+
+### Engineering
+
+- `clean` / `typecheck` 脚本跨平台化，去除 POSIX 专有语法
+- 清理未使用依赖；Jest 支持 ESM 风格 `.js` 相对导入；CI 接入 `npm test`
+- 新增 `.gitattributes` 统一换行（`text=auto eol=lf`），修复跨平台协作与 lint-staged 部分暂存冲突
+- 两个 Dockerfile 补充用途说明，Node 版本对齐 `.nvmrc`，构建期 `.cache` 不再进入运行镜像
+- 移除仅服务 jest 的根 `babel.config.js`，配置内联进 `jest.config.js`
+- ESLint 升级至 v10 并迁移到扁平配置（`eslint.config.js`），移除 `.eslintrc.json`
+- 补充 `CONTRIBUTING.md`、`CHANGELOG.md`、`CODE_OF_CONDUCT.md`、`CODEOWNERS`、Dependabot 配置与 `package.json` 仓库元数据
+- 全仓 Prettier 基线格式化，修复 29 个历史未格式化文件，恢复 CI `format:check` 绿色门禁

@@ -2,7 +2,6 @@
 
 # compiled output
 dist
-coverage
 /tmp
 /out-tsc
 
@@ -21,19 +20,15 @@ npm-debug.log
 .DS_Store
 Thumbs.db
 
+# 缓存 / 覆盖率 / 运行日志 / 临时产物：统一收纳到 .cache/，清理只需删这一个目录
+/.cache/
+
 # 自定义
-/.nx
-/.jest-cache
 /apps/cli/testrobot
 /apps/cli/migptgui.json
-/packages/gui/webpack-report.html
 
 # 本地产品设计文档（含真实小米 ID，不入库）
 docs/
 
-# 运行日志与临时构建文件
+# 运行日志
 *.log
-.gui-build-check.txt
-.gui-webpack-out*.txt
-check_proj.py
-.dev-logs/

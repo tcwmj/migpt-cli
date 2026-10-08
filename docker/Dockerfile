@@ -1,3 +1,7 @@
+# 已发布 npm 包（migpt-server）的多架构镜像
+# 与仓库根 Dockerfile 的区别：本文件不构建源码，直接安装 npm 上的 migpt-server。
+# 构建上下文是 docker/ 目录：
+#   docker build --build-arg TARGETARCH=amd64 -t migpt-server:1.12.0 ./docker
 FROM node:20.17.0-alpine3.20 AS env-amd64
 FROM node:20.17.0-alpine3.20 AS env-arm64
 

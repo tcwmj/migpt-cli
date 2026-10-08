@@ -20,7 +20,8 @@ process.on('message', (msg: any) => {
   } else if (msg.type === 'run') {
     const config = msg.config as MiGPTConfig
     // console.log('配置：\n', config)
-    const migpt = MiGPT.create(config)
+    // 必须赋值给模块级 migpt，否则 destroy 分支拿不到实例、无法优雅停止
+    migpt = MiGPT.create(config)
     migpt.start()
   }
 })

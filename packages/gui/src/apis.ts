@@ -83,7 +83,7 @@ async function j<T>(res: Response): Promise<T> {
       throw err
     } catch (e) {
       if ((e as Error).message !== 'HTTP ' + res.status) throw e
-      throw new Error('HTTP ' + res.status + ' ' + res.statusText)
+      throw new Error('HTTP ' + res.status + ' ' + res.statusText, { cause: e })
     }
   }
   return res.json() as Promise<T>

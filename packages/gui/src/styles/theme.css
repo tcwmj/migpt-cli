@@ -51,7 +51,11 @@ body {
 body {
   background: var(--page);
   color: var(--ink-1);
-  font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei',
+  font-family:
+    system-ui,
+    -apple-system,
+    'PingFang SC',
+    'Microsoft YaHei',
     sans-serif;
   font-size: 14px;
   line-height: 1.6;
@@ -93,4 +97,3 @@ svg {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-

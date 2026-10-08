@@ -1,4 +1,9 @@
 # migpt-cli 多设备版（lerio 本地版）单容器镜像
+#
+# 与 docker/Dockerfile 的区别（两者不可混用）：
+#   - 本文件       ：从源码全量构建，产出「单容器跑完整应用」的镜像，上下文=仓库根
+#   - docker/Dockerfile：不构建源码，直接安装已发布的 npm 包 migpt-server，上下文=docker/
+#
 # 构建（在源码根目录执行，NAS 上会自动构建 arm64 架构）：
 #   docker build -t migpt-cli:latest .
 # 运行（单容器管理全部音箱，默认启用登录认证）：
@@ -10,7 +15,8 @@
 #     migpt-cli:latest
 
 # ── 构建阶段 ────────────────────────────────────────────────
-FROM node:20.15.0-alpine3.20 AS build
+# node 版本需与根 .nvmrc 保持一致
+FROM node:20.17.0-alpine3.20 AS build
 WORKDIR /app
 
 # 国内镜像加速（lock 文件中的 resolved 也已改写为 npmmirror）
@@ -18,12 +24,14 @@ RUN npm config set registry https://registry.npmmirror.com
 
 COPY . .
 
+# .cache 是构建期缓存（babel/nx/coverage），不进运行镜像
 RUN npm ci --no-audit --no-fund \
  && npm run build-all \
- && npm prune --omit=dev
+ && npm prune --omit=dev \
+ && rm -rf .cache
 
 # ── 运行阶段 ────────────────────────────────────────────────
-FROM node:20.15.0-alpine3.20
+FROM node:20.17.0-alpine3.20
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=36597 \

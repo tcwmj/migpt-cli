@@ -12,7 +12,9 @@
   overflow: hidden;
   box-shadow: var(--shadow-card);
   cursor: pointer;
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
 }
 
 .device:hover {
@@ -274,4 +276,3 @@ td .ops .icon-btn svg {
   width: 28px;
   height: 28px;
 }
-

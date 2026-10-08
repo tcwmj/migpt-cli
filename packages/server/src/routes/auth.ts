@@ -47,7 +47,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       const header = req.headers.authorization || ''
       const [type, token] = header.split(' ')
       if (type === 'Basic' && token) {
-        let decoded = ''
+        let decoded: string
         try {
           decoded = Buffer.from(token, 'base64').toString('utf-8')
         } catch {

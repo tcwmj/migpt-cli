@@ -1,0 +1,55 @@
+version: 2
+
+updates:
+  # npm 依赖（含全部 workspace）
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      # 类型定义合并为一个 PR，减少噪音
+      types:
+        patterns:
+          - '@types/*'
+      # 开发工具链合并
+      tooling:
+        patterns:
+          - eslint*
+          - '@typescript-eslint/*'
+          - prettier*
+          - jest
+          - babel*
+    ignore:
+      # Node 20 升级单独评估，避免自动 PR 打乱
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Shanghai
+    labels:
+      - dependencies
+      - ci
+
+  # Docker 基础镜像
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Shanghai
+    labels:
+      - dependencies
+      - docker

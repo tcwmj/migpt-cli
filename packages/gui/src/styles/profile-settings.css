@@ -24,7 +24,10 @@
   border-radius: var(--r-l);
   overflow: hidden;
   padding: 2px 0;
-  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
 }
 .pcard-set:hover {
   box-shadow: 0 10px 30px -18px rgba(31, 23, 16, 0.25);
@@ -163,5 +166,3 @@
     font-size: 30px;
   }
 }
-
-
