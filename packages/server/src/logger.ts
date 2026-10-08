@@ -1,28 +1,14 @@
-// ── 日志层：系统日志（console 拦截 → 环形缓冲 + 落盘）与设备日志缓冲 ──
+// ── 日志层：结构化 logger（pino）+ 系统日志落盘 + 设备日志缓冲 ──
+// pino 输出结构化记录，经自定义 destination 转成人可读行写入 system.log（GUI「系统日志」页直接展示）
+// 并镜像到 stdout（容器日志）；不再劫持全局 console.*。
+import { Writable } from 'node:stream'
 import fse from 'fs-extra'
+import pino from 'pino'
 import { systemLogFile } from './paths.js'
 
-// ── 系统日志：拦截 console → 内存环形缓冲 + 落盘 system.log ──
+// ── 系统日志：内存环形缓冲 + 轮转落盘 system.log ──
 export const sysLogBuf: string[] = []
 export const sysLogMax = 1000
-const _origLog = console.log.bind(console)
-const _origInfo = console.info.bind(console)
-const _origWarn = console.warn.bind(console)
-const _origError = console.error.bind(console)
-
-export function _fmtLogArgs(args: any[]): string {
-  return args
-    .map((a) => {
-      if (typeof a === 'string') return a
-      if (a instanceof Error) return a.stack || a.message
-      try {
-        return JSON.stringify(a)
-      } catch {
-        return String(a)
-      }
-    })
-    .join(' ')
-}
 
 // 落盘策略：合并缓冲 + 阈值/定时触发，避免每行一次 append 系统调用；
 // 超过上限时轮转为 system.log.1，防止文件无限增长。
@@ -74,12 +60,8 @@ export async function clearSysLog() {
   await fse.writeFile(systemLogFile, '', 'utf8')
 }
 
-export function _pushSysLog(level: string, text: string) {
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  const line = `[${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(
-    d.getMinutes(),
-  )}:${p(d.getSeconds())}] [${level}] ${text}`
+/** 追加一行已格式化的系统日志：环形缓冲 + 合并落盘 */
+function _pushLine(line: string) {
   sysLogBuf.push(line)
   if (sysLogBuf.length > sysLogMax)
     sysLogBuf.splice(0, sysLogBuf.length - sysLogMax)
@@ -104,23 +86,80 @@ process.on('exit', () => {
   }
 })
 
-// console 拦截（模块首次加载即安装；index.ts 应最先 import 本模块）
-console.log = (...a: any[]) => {
-  _pushSysLog('INFO', _fmtLogArgs(a))
-  _origLog(...a)
+// ── pino → 人可读行 ──────────────────────────────────────────
+const LEVEL_LABELS: Record<number, string> = {
+  10: 'TRACE',
+  20: 'DEBUG',
+  30: 'INFO',
+  40: 'WARN',
+  50: 'ERROR',
+  60: 'FATAL',
 }
-console.info = (...a: any[]) => {
-  _pushSysLog('INFO', _fmtLogArgs(a))
-  _origInfo(...a)
+// 这些字段由 pino 自身携带，不再作为附加键展示
+const _RESERVED = new Set(['level', 'time', 'msg', 'pid', 'hostname'])
+const _pad = (n: number) => String(n).padStart(2, '0')
+
+function _formatRecord(rec: Record<string, unknown>): string {
+  const d = new Date(Number(rec.time) || Date.now())
+  const ts = `${d.getFullYear()}-${_pad(d.getMonth() + 1)}-${_pad(d.getDate())} ${_pad(
+    d.getHours(),
+  )}:${_pad(d.getMinutes())}:${_pad(d.getSeconds())}`
+  const level = LEVEL_LABELS[Number(rec.level)] ?? String(rec.level)
+  const extra: string[] = []
+  for (const k of Object.keys(rec)) {
+    if (_RESERVED.has(k)) continue
+    const v = rec[k]
+    extra.push(
+      `${k}=${v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v)}`,
+    )
+  }
+  const msg = rec.msg === undefined ? '' : String(rec.msg)
+  return `[${ts}] [${level}] ${msg}${extra.length ? ' ' + extra.join(' ') : ''}`
 }
-console.warn = (...a: any[]) => {
-  _pushSysLog('WARN', _fmtLogArgs(a))
-  _origWarn(...a)
-}
-console.error = (...a: any[]) => {
-  _pushSysLog('ERROR', _fmtLogArgs(a))
-  _origError(...a)
-}
+
+const _dest = new Writable({
+  write(chunk, _enc, cb) {
+    for (const line of chunk.toString().split('\n')) {
+      if (!line.trim()) continue
+      let rec: Record<string, unknown>
+      try {
+        rec = JSON.parse(line) as Record<string, unknown>
+      } catch {
+        // 非 JSON 行（理论上不会出现）：原样落盘
+        _pushLine(line)
+        continue
+      }
+      const formatted = _formatRecord(rec)
+      _pushLine(formatted)
+      process.stdout.write(formatted + '\n')
+    }
+    cb()
+  },
+})
+
+/**
+ * 结构化 logger：`logger.info({ reqId, ... }, '消息')`。
+ * 凭据类字段（apiKey / passToken / miPassword / ttsSecret / password / token）自动脱敏。
+ * 级别由 `LOG_LEVEL` 环境变量控制，默认 info（debug 级请求日志默认不落盘）。
+ */
+export const logger = pino(
+  {
+    level: process.env.LOG_LEVEL || 'info',
+    base: null,
+    redact: {
+      paths: [
+        'apiKey',
+        'passToken',
+        'miPassword',
+        'ttsSecret',
+        'password',
+        'token',
+      ],
+      censor: '[REDACTED]',
+    },
+  },
+  _dest,
+)
 
 // ── 设备日志环形缓冲（每台设备独立的对话/运行日志） ──
 export const MAX_LOG_LINES = 500

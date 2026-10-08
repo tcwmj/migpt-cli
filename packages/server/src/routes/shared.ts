@@ -1,10 +1,17 @@
 // ── 路由共享：服务选项、请求体白名单、字段清单、设备配置/密令查找 ──
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import type { Express, Response } from 'express'
+import type {
+  Express,
+  NextFunction,
+  Request,
+  RequestHandler,
+  Response,
+} from 'express'
 import { type GuiConfig } from '@migptgui/options'
 import { root, devicesRoot } from '../paths.js'
 import { listDeviceMetas } from '../store.js'
+import { logger } from '../logger.js'
 import type { DeviceMeta } from '../types.js'
 
 export interface ServerOptions {
@@ -19,6 +26,20 @@ export interface ServerOptions {
 export interface RouteContext {
   app: Express
   options?: ServerOptions
+}
+
+/**
+ * 包装 async 处理器：把 Promise rejection 转交 next()，交给统一错误中间件。
+ * Express 4 不会自动捕获 async 处理器抛出的异常（会变成未处理 rejection、请求悬挂），
+ * 故所有可能抛错的 async 处理器都应经此包装（如落盘 schema 校验失败）。
+ * 返回值仍为原 Promise，便于测试直接 await 到处理器完成。
+ */
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
+): RequestHandler {
+  // 返回值保留原 Promise（便于测试直接 await 到处理器完成）；
+  // Express 的 RequestHandler 只声明 void | Promise<void>，故此处断言收窄类型。
+  return ((req, res, next) => fn(req, res, next).catch(next)) as RequestHandler
 }
 
 // ── 请求体白名单：只接受契约声明的字段 ────────────────────────
@@ -110,9 +131,8 @@ export async function loadDeviceConfig(
   } catch (e) {
     // 文件不存在属正常（设备尚未落盘配置）；其余读取错误需告警，避免静默吞掉权限/IO 问题
     if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.warn(
-        `[loadDeviceConfig] 读取配置失败：${file}`,
-        (e as Error).message,
+      logger.warn(
+        `[loadDeviceConfig] 读取配置失败：${file} ${(e as Error).message}`,
       )
     }
     return undefined
@@ -121,9 +141,8 @@ export async function loadDeviceConfig(
     return JSON.parse(raw)
   } catch (e) {
     // 解析失败多为文件被外部改坏：告警后按「无配置」处理，避免整机启动失败
-    console.warn(
-      `[loadDeviceConfig] 配置解析失败（已忽略）：${file}`,
-      (e as Error).message,
+    logger.warn(
+      `[loadDeviceConfig] 配置解析失败（已忽略）：${file} ${(e as Error).message}`,
     )
     return undefined
   }

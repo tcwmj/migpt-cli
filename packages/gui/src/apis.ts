@@ -2,7 +2,6 @@ import { GuiConfig } from '@migptgui/options'
 import type { TTSConfig } from 'mi-gpt-tts'
 import type {
   Account,
-  BindingRow,
   DeviceBindings,
   DeviceMeta,
   PulledDevice,

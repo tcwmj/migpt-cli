@@ -1,20 +1,26 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals'
 import type { Express, Request, RequestHandler, Response } from 'express'
 
-// crud.ts 从 '../store.js' 取唯一名校验与引用查询；唯一名校验用真实实现，
-// 引用查询用 jest.fn 以便逐用例注入数据。
+// crud.ts 从 '../store.js' 取唯一名校验、引用查询与落盘 schema 断言；
+// 唯一名校验/断言用真实实现，引用查询用 jest.fn 以便逐用例注入数据。
 jest.mock('../store.js', () => {
   const entities = jest.requireActual<typeof import('../store/entities.js')>(
     '../store/entities.js',
   )
+  const schemas = jest.requireActual<typeof import('../store/schemas.js')>(
+    '../store/schemas.js',
+  )
   return {
     assertUniqueName: entities.assertUniqueName,
+    assertEntity: schemas.assertEntity,
     getRoles: jest.fn(async () => []),
     listDeviceMetas: jest.fn(async () => []),
   }
 })
 
+import { z } from 'zod'
 import { getRoles, listDeviceMetas } from '../store.js'
+import { DataValidationError } from '../store/schemas.js'
 import type { Role } from '../types.js'
 import {
   createCrudRouter,
@@ -257,6 +263,42 @@ describe('createCrudRouter · extra', () => {
           res.json({ ok: true })) as unknown as RequestHandler),
     })
     expect(routes.has('GET /api/items/custom')).toBe(true)
+  })
+})
+
+describe('createCrudRouter · schema 落盘校验', () => {
+  // schema 校验的是「落盘的整份列表」（与各实体传入的 xxxListSchema 一致）
+  const itemSchema = z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().optional(),
+    }),
+  )
+
+  test('校验失败：save 不被调用，异常经 next 冒泡', async () => {
+    const save = jest.fn(async () => {})
+    const routes = register({
+      schema: itemSchema,
+      save,
+      build: () => ({ id: '', name: '坏' }),
+    })
+    const res = makeRes()
+    await expect(
+      routes.get('POST /api/items')!(req({}), res as unknown as Response),
+    ).rejects.toThrow(DataValidationError)
+    expect(save).not.toHaveBeenCalled()
+  })
+
+  test('校验通过：save 正常落盘', async () => {
+    const save = jest.fn(async () => {})
+    const routes = register({ schema: itemSchema, save })
+    const res = makeRes()
+    await routes.get('POST /api/items')!(
+      req({ name: '三' }),
+      res as unknown as Response,
+    )
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(res.body).toEqual({ id: 'i3', name: '三' })
   })
 })
 

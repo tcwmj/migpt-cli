@@ -8,6 +8,7 @@ import type {
   DeviceMeta,
   Settings,
   ThinkService,
+  VoiceService,
 } from './types.js'
 
 /** 账号：passToken / miPassword 为云端凭据，读接口不返回明文 */
@@ -71,4 +72,21 @@ export function redactBindings(b: DeviceBindings): DeviceBindings {
     account: b.account ? redactAccount(b.account) : undefined,
     think: b.think ? redactThinkService(b.think) : undefined,
   }
+}
+
+/** 语音服务：第三方 TTS 引擎配置中的令牌（edge / volcano / openai）不对外回传明文 */
+export function redactVoiceService(v: VoiceService): VoiceService {
+  if (!v.tts) return v
+  const next = JSON.parse(JSON.stringify(v)) as VoiceService
+  const tts = next.tts as
+    | {
+        edge?: { trustedToken?: string }
+        volcano?: { accessToken?: string }
+        openai?: { apiKey?: string }
+      }
+    | undefined
+  if (tts?.edge?.trustedToken) tts.edge.trustedToken = ''
+  if (tts?.volcano?.accessToken) tts.volcano.accessToken = ''
+  if (tts?.openai?.apiKey) tts.openai.apiKey = ''
+  return next
 }

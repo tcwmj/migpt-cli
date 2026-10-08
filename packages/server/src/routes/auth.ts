@@ -4,7 +4,8 @@ import {
   resolveAuth,
   invalidateAuthCache,
   safeEqual,
-  writeJson,
+  authSchema,
+  writeJsonChecked,
 } from '../store.js'
 import {
   SESSION_COOKIE,
@@ -140,10 +141,15 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       res.status(403).json({ error: '旧密码不正确' })
       return
     }
-    await writeJson(authFile, {
-      user: body.newUser,
-      password: body.newPassword,
-    })
+    await writeJsonChecked(
+      authFile,
+      {
+        user: body.newUser,
+        password: body.newPassword,
+      },
+      authSchema,
+      '登录凭据',
+    )
     invalidateAuthCache()
     res.json({ success: true })
   })

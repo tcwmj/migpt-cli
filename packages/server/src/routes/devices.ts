@@ -12,7 +12,9 @@ import {
   listDeviceMetas,
   getAccountById,
   assertUniqueName,
+  deviceMetaSchema,
   writeJson,
+  writeJsonChecked,
 } from '../store.js'
 import { buildRunConfig, resolveBindings } from '../services.js'
 import {
@@ -108,7 +110,12 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       createdAt: Date.now(),
     }
     const deviceCwd = path.join(devicesRoot, id)
-    await writeJson(path.join(deviceCwd, 'meta.json'), meta)
+    await writeJsonChecked(
+      path.join(deviceCwd, 'meta.json'),
+      meta,
+      deviceMetaSchema,
+      '设备',
+    )
     // 按绑定链编译初始配置（编译投影）
     const { config } = await buildRunConfig(meta)
     await writeJson(path.join(deviceCwd, 'migptgui.json'), config)
@@ -179,7 +186,12 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       const patch = pick<DeviceMeta>(body.meta, DEVICE_META_FIELDS)
       if (!patch.ttsSecret) delete patch.ttsSecret
       const nextMeta: DeviceMeta = { ...meta, ...patch, id }
-      await writeJson(path.join(devicesRoot, id, 'meta.json'), nextMeta)
+      await writeJsonChecked(
+        path.join(devicesRoot, id, 'meta.json'),
+        nextMeta,
+        deviceMetaSchema,
+        '设备',
+      )
       // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
       if (
         body.meta.roleId !== undefined ||

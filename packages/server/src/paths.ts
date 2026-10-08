@@ -13,3 +13,9 @@ export const speakerModelsFile = path.join(root, 'speakerModels.json')
 export const roomsFile = path.join(root, 'rooms.json')
 export const authFile = path.join(root, 'auth.json')
 export const systemLogFile = path.join(root, 'system.log')
+// 数据结构版本（迁移框架据此判断需要执行哪些升级步骤）
+export const dataVersionFile = path.join(root, 'version.json')
+// 内置实体的用户覆盖（与内置定义分离存储，恢复默认即删除覆盖项）
+export const overridesFile = path.join(root, 'overrides.json')
+// 备份目录（导出/导入与定时备份落盘处）
+export const backupsRoot = path.join(root, 'backups')

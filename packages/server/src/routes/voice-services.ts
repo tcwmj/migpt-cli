@@ -1,7 +1,11 @@
 // ── 语音服务（音箱的「嗓子」：内置/第三方 TTS）───────────────────
 import { nanoid } from 'nanoid'
-import { voiceServicesFile } from '../paths.js'
-import { getVoiceServices, writeJson, resetBuiltinVoice } from '../store.js'
+import {
+  getVoiceServices,
+  saveVoiceServices,
+  resetBuiltinVoice,
+  voiceServiceListSchema,
+} from '../store.js'
 import type { VoiceService } from '../types.js'
 import { pick, VOICE_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs, roleRefs } from './crud.js'
@@ -11,7 +15,8 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
   label: '语音服务',
   nameLabel: '语音服务名称',
   list: getVoiceServices,
-  save: (list) => writeJson(voiceServicesFile, list),
+  save: saveVoiceServices,
+  schema: voiceServiceListSchema,
   validate: (body) =>
     !body.name || !body.provider ? '名称与供应商必填' : null,
   build: (body, list) => {

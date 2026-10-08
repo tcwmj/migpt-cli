@@ -1,11 +1,17 @@
 // ── 云端账号（多账号）+ 旧版 settings 兼容读写 ───────────────────
 import { nanoid } from 'nanoid'
 import { accountsFile } from '../paths.js'
-import { getAccounts, getAccountById, writeJson } from '../store.js'
+import {
+  getAccounts,
+  getAccountById,
+  accountListSchema,
+  writeJson,
+  writeJsonChecked,
+} from '../store.js'
 import { pullMicoDevices } from '../services.js'
 import { redactAccount, redactAccounts, redactSettings } from '../redact.js'
 import type { Account, Settings } from '../types.js'
-import { _pushSysLog } from '../logger.js'
+import { logger } from '../logger.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
 
 export const registerAccountRoutes = createCrudRouter<Account>({
@@ -14,6 +20,7 @@ export const registerAccountRoutes = createCrudRouter<Account>({
   nameLabel: '账号名称',
   list: getAccounts,
   save: (list) => writeJson(accountsFile, list),
+  schema: accountListSchema,
   listTransform: redactAccounts,
   validate: (body) =>
     !body.name || !body.miUserId ? '名称与云端账号数字 ID 必填' : null,
@@ -62,8 +69,7 @@ export const registerAccountRoutes = createCrudRouter<Account>({
         )
         res.json({ devices })
       } catch (e: any) {
-        console.error('拉取设备失败', e)
-        _pushSysLog('ERROR', `拉取账号设备失败：${e?.message || e}`)
+        logger.error({ err: e }, `拉取账号设备失败：${e?.message || e}`)
         res.status(502).json({ error: `拉取设备失败：${e?.message || e}` })
       }
     })
@@ -103,7 +109,7 @@ export const registerAccountRoutes = createCrudRouter<Account>({
           createdAt: Date.now(),
         })
       }
-      await writeJson(accountsFile, accounts)
+      await writeJsonChecked(accountsFile, accounts, accountListSchema, '账号')
       res.json({ success: true })
     })
   },

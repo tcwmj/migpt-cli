@@ -1,28 +1,11 @@
-// ── 内置数据种子：型号/语音服务初始化、重置与旧数据迁移 ──
-import path from 'node:path'
-import { nanoid } from 'nanoid'
-import {
-  devicesRoot,
-  speakerModelsFile,
-  voiceServicesFile,
-  roomsFile,
-} from '../paths.js'
-import { appendLog, clearDeviceLog, demoTs } from '../logger.js'
-import {
-  type DeviceMeta,
-  type SpeakerModel,
-  type VoiceService,
-} from '../types.js'
-import { writeJson } from './json.js'
-import {
-  getRooms,
-  getSpeakerModels,
-  getVoiceServices,
-  listDeviceMetas,
-} from './entities.js'
+// ── 内置实体定义（代码为准，只读）────────────────────────────────
+// 内置型号 / 内置语音是系统自带、不可删除的实体；它们的「定义」放在代码里，
+// 用户的修改以补丁形式写入 overrides.json（见 ./overrides.js）。
+// 这样内置定义可随版本升级自动修正，而用户自建实体始终独立存放、不受「重置默认」影响。
+import type { SpeakerModel, VoiceService } from '../types.js'
 
 /**
- * 系统内置音箱型号（初始化时必须存在；禁删禁编辑）。
+ * 系统内置音箱型号（禁删禁编辑定义；用户改动存覆盖补丁）。
  * 清单与指令参数对齐 mi-gpt 官方兼容型号表（github.com/idootop/mi-gpt docs/compatibility.md）
  * 与 migpt-server 内置型号选择器（packages/options ChooseSpeaker）。
  * 分组：支持连续对话（完美运行）/ 不支持连续对话（正常运行）。
@@ -245,158 +228,42 @@ export const BUILTIN_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
   },
 ]
 
-export async function seedBuiltinVoice() {
-  const list = await getVoiceServices()
-  // 存量迁移：旧名「小米内置」→「默认语音」（历史数据可能存在多条 builtin，全部统一改名）
-  let changed = false
-  for (const v of list) {
-    if (v.builtin && v.name === '小米内置') {
-      v.name = '默认语音'
-      changed = true
-    }
-  }
-  if (changed) {
-    await writeJson(voiceServicesFile, list)
-    console.log('已更新内置语音服务名称：默认语音')
-    return
-  }
-  if (!list.some((v) => v.builtin)) {
-    list.unshift({
-      id: 'builtin-mi',
-      name: '默认语音',
-      provider: 'builtin',
-      builtin: true,
-      isDefault: list.length === 0,
-      createdAt: Date.now(),
-    })
-    await writeJson(voiceServicesFile, list)
-    console.log('已初始化内置语音服务：默认语音')
-  }
-}
-
-export async function seedBuiltinModels() {
-  const list = await getSpeakerModels()
-  // 只补缺失的内置型号：已存在的内置项（含用户修改）永不覆盖；
-  // 用户可通过「重置默认」恢复为 BUILTIN_MODELS 官方默认值。
-  const existing = new Set(list.map((x) => x.id))
-  const missing = BUILTIN_MODELS.filter((m) => !existing.has(m.id))
-  if (missing.length === 0) return
-  const merged = [
-    ...list,
-    ...missing.map((m) => ({ ...m, createdAt: Date.now() })),
-  ]
-  await writeJson(speakerModelsFile, merged)
-  console.log(`已初始化内置音箱型号：${missing.map((m) => m.name).join('、')}`)
-}
-
-/** 重置内置型号为官方默认值（仅 builtin 型号可用；保留 createdAt/id/builtin） */
-export async function resetBuiltinModel(
-  id: string,
-): Promise<SpeakerModel | undefined> {
-  const def = BUILTIN_MODELS.find((m) => m.id === id)
-  if (!def) return undefined
-  const list = await getSpeakerModels()
-  const idx = list.findIndex((m) => m.id === id)
-  if (idx < 0 || !list[idx].builtin) return undefined
-  list[idx] = { ...def, createdAt: list[idx].createdAt }
-  await writeJson(speakerModelsFile, list)
-  return list[idx]
-}
-
-/** 重置内置语音服务为默认（仅 builtin 语音可用） */
-export async function resetBuiltinVoice(
-  id: string,
-): Promise<VoiceService | undefined> {
-  const list = await getVoiceServices()
-  const idx = list.findIndex((v) => v.id === id)
-  if (idx < 0 || !list[idx].builtin) return undefined
-  const isDefault = list.some((v) => v.id !== id && v.isDefault) ? false : true
-  list[idx] = {
-    id: list[idx].id,
+/**
+ * 系统内置语音服务（小米内置 TTS，永不可删）。
+ * isDefault 由合并层动态决定（用户未指定默认语音时兜底为默认），故不在定义中固化。
+ */
+export const BUILTIN_VOICE_SERVICES: Omit<
+  VoiceService,
+  'createdAt' | 'isDefault'
+>[] = [
+  {
+    id: 'builtin-mi',
     name: '默认语音',
     provider: 'builtin',
     builtin: true,
-    isDefault,
-    createdAt: list[idx].createdAt,
-  }
-  await writeJson(voiceServicesFile, list)
-  return list[idx]
-}
-
-/** 迁移旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
-export async function migrateRooms() {
-  const metas = await listDeviceMetas()
-  const rooms = await getRooms()
-  let changed = false
-  for (const meta of metas) {
-    if (!meta.roomName || meta.roomRef) continue
-    let room = rooms.find((r) => r.name === meta.roomName)
-    if (!room) {
-      room = {
-        id: nanoid(8),
-        name: meta.roomName,
-        description: meta.roomDescription,
-        createdAt: Date.now(),
-      }
-      rooms.push(room)
-    }
-    const nextMeta: DeviceMeta = { ...meta, roomRef: room.id }
-    delete nextMeta.roomName
-    delete nextMeta.roomDescription
-    await writeJson(path.join(devicesRoot, meta.id, 'meta.json'), nextMeta)
-    changed = true
-  }
-  if (changed) await writeJson(roomsFile, rooms)
-}
-
-// ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话记录」页联调 ──
-const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
-  {
-    q: '小爱同学，今天天气怎么样',
-    a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。',
-    sys: '思考服务命中角色默认（豆包 Doubao-Seed）',
-  },
-  {
-    q: '帮我设一个 30 分钟的番茄钟',
-    a: '好的，30 分钟倒计时已开始，结束后我会提醒你休息一下。',
-    sys: '语音音色由角色指定（默认语音）',
-  },
-  {
-    q: '播放点轻音乐',
-    a: '为你播放《Lofi 清晨电台》，音量已调到 30%。',
-    sys: '',
-  },
-  {
-    q: '小爱同学，国庆周边有什么好玩的',
-    a: '苏州周边推荐：拙政园、平江路夜游、金鸡湖音乐喷泉，今天人流量较大建议错峰出行。',
-    sys: '语音音色热切换成功（豆包语音）',
   },
 ]
 
-export async function seedDemoLogs() {
-  if (!process.env.MIGPT_DEMO_LOGS) return
-  const devices = await listDeviceMetas()
-  if (!devices.length) return
-  const now = Date.now()
-  for (const d of devices) {
-    // 走 appendLog 统一入口，保证原始缓冲与结构化缓冲同步生成
-    clearDeviceLog(d.id)
-    for (let i = 0; i < 4; i++) {
-      const s = DEMO_SCENES[i % DEMO_SCENES.length]
-      const tq = new Date(now - (i * 47 + 13) * 60000)
-      appendLog(d.id, `${demoTs(tq)} [用户] 问：${s.q}`)
-      appendLog(
-        d.id,
-        `${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a}`,
-      )
-      if (s.sys)
-        appendLog(
-          d.id,
-          `${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`,
-        )
-    }
-  }
-  console.log(
-    `[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`,
-  )
+/**
+ * 内置实体的固定创建时间：内置项源自代码、无独立持久化时间戳，
+ * 统一取 0 以稳定排序（列表按「内置在前、自建在后」呈现）。
+ */
+export const BUILTIN_CREATED_AT = 0
+
+const BUILTIN_MODEL_IDS = new Set(BUILTIN_MODELS.map((m) => m.id))
+const BUILTIN_VOICE_IDS = new Set(BUILTIN_VOICE_SERVICES.map((v) => v.id))
+
+export const isBuiltinModel = (id: string): boolean => BUILTIN_MODEL_IDS.has(id)
+export const isBuiltinVoice = (id: string): boolean => BUILTIN_VOICE_IDS.has(id)
+
+/** 内置型号的完整默认实体（补齐 createdAt）；非内置返回 undefined */
+export function builtinModelDefault(id: string): SpeakerModel | undefined {
+  const def = BUILTIN_MODELS.find((m) => m.id === id)
+  return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
+}
+
+/** 内置语音的完整默认实体（补齐 createdAt）；isDefault 由合并层决定，此处不固化 */
+export function builtinVoiceDefault(id: string): VoiceService | undefined {
+  const def = BUILTIN_VOICE_SERVICES.find((v) => v.id === id)
+  return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }

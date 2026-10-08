@@ -1,7 +1,7 @@
 // ── AI 角色（人设 + 对话行为）───────────────────────────────────
 import { nanoid } from 'nanoid'
 import { rolesFile } from '../paths.js'
-import { getRoles, writeJson } from '../store.js'
+import { getRoles, roleListSchema, writeJson } from '../store.js'
 import { ROLE_DEFAULTS, type Role } from '../types.js'
 import { pick, normProfile, ROLE_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
@@ -12,6 +12,7 @@ export const registerRoleRoutes = createCrudRouter<Role>({
   nameLabel: '角色名称',
   list: getRoles,
   save: (list) => writeJson(rolesFile, list),
+  schema: roleListSchema,
   listTransform: (roles) =>
     roles.map((r) => ({ ...r, profile: normProfile(r.profile) })),
   build: (body) =>

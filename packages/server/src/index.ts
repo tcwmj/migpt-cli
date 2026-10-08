@@ -1,17 +1,14 @@
 // ── 服务入口：HTTP 服务组装（安全中间件 + 路由注册 + 启动）──────────
-// 日志拦截必须先加载（console.* 被包装后，其他模块的日志同样进入 system.log）
-import './logger.js'
 import express from 'express'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import open from 'open'
 import { getAllStatus, stop } from '@migptgui/controller'
 import {
-  seedBuiltinVoice,
-  seedBuiltinModels,
-  migrateRooms,
   seedDemoLogs,
+  runMigrations,
   usingDefaultAuth,
+  startBackupScheduler,
 } from './store.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerDeviceTtsRoutes } from './routes/device-tts.js'
@@ -25,7 +22,10 @@ import { registerDeviceRoutes } from './routes/devices.js'
 import { registerLogRoutes } from './routes/logs.js'
 import { registerLegacyRoutes } from './routes/legacy.js'
 import { registerTestRoutes } from './routes/misc.js'
+import { registerBackupRoutes } from './routes/backup.js'
 import type { ServerOptions } from './routes/shared.js'
+import { logger } from './logger.js'
+import { requestId, errorHandler } from './middleware.js'
 
 export type { ServerOptions }
 
@@ -36,6 +36,9 @@ export function runServer(options?: ServerOptions) {
 
   const app = express()
   app.disable('x-powered-by')
+
+  // 请求 ID：最先挂载，贯穿后续所有中间件与路由（响应头 X-Request-Id + 日志关联）
+  app.use(requestId())
 
   // 安全响应头（helmet）：禁止 MIME 嗅探、禁止被 iframe 嵌套、不向外部泄露来源地址。
   // CSP 用兼容型白名单；不启用 helmet 默认指令集——默认含 upgrade-insecure-requests，
@@ -92,26 +95,43 @@ export function runServer(options?: ServerOptions) {
   registerLogRoutes({ app, options })
   registerLegacyRoutes({ app, options })
   registerTestRoutes({ app, options })
+  registerBackupRoutes({ app, options })
 
-  seedBuiltinVoice().catch(() => {})
-  seedBuiltinModels().catch(() => {})
-  migrateRooms().catch(() => {})
-  seedDemoLogs().catch(() => {})
-  const server = app.listen(port, () => {
-    console.log('端口：', port)
-    console.log('登录认证：', isAuth ? '已启用' : '未启用')
-    console.log('秘密路径：', '已启用')
-    // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
-    if (isAuth && !options?.users && usingDefaultAuth()) {
-      console.warn(
-        '\n⚠️  安全警告：正在使用默认登录凭据 admin/123456，任何人都可登录。\n' +
-          '    请尽快在面板「我的」中修改密码，或设置 AUTH_PASSWORD 环境变量 / 使用 --pwd 启动参数。\n',
-      )
-    }
-    if (options?.open) {
-      open(`http://localhost:${port}`)
-    }
+  // 统一错误处理：置于全部路由之后，捕获未处理异常并记录带 reqId 的错误日志
+  app.use(errorHandler())
+
+  // 启动顺序：先按数据版本升级（一次性结构变更），再注入演示日志；全部就绪后才开始监听。
+  // 内置型号/语音源自代码（见 store/builtins.ts），无需种子写入；迁移/种子在监听前完成，
+  // 避免首个请求读到升级中的半成品数据。
+  let server: import('node:http').Server | undefined
+  // 定时备份：env 控制间隔与保留份数（默认关闭）；unref 的定时器不阻止进程退出
+  const stopBackups = startBackupScheduler({
+    intervalMs: Number(process.env.BACKUP_INTERVAL_MS) || 0,
+    keep: Number(process.env.BACKUP_KEEP) || 0,
   })
+  void (async () => {
+    try {
+      await runMigrations()
+    } catch (e) {
+      logger.error({ err: e }, '数据迁移失败')
+    }
+    await Promise.allSettled([seedDemoLogs()])
+    server = app.listen(port, () => {
+      logger.info({ port }, '服务已启动')
+      logger.info(`登录认证：${isAuth ? '已启用' : '未启用'}`)
+      logger.info('秘密路径：已启用')
+      // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
+      if (isAuth && !options?.users && usingDefaultAuth()) {
+        logger.warn(
+          '\n⚠️  安全警告：正在使用默认登录凭据 admin/123456，任何人都可登录。\n' +
+            '    请尽快在面板「我的」中修改密码，或设置 AUTH_PASSWORD 环境变量 / 使用 --pwd 启动参数。\n',
+        )
+      }
+      if (options?.open) {
+        open(`http://localhost:${port}`)
+      }
+    })
+  })()
 
   // 优雅退出：容器编排 / 终端 Ctrl+C 发来停止信号时，先停掉全部设备子进程
   // 再关闭 HTTP 服务；否则 MiGPT 子进程会成为孤儿进程，继续占用账号与资源。
@@ -119,11 +139,14 @@ export function runServer(options?: ServerOptions) {
   const shutdown = (signal: NodeJS.Signals) => {
     if (shuttingDown) return
     shuttingDown = true
-    console.log(`收到 ${signal}，正在停止全部设备并关闭服务…`)
+    stopBackups()
+    logger.info(`收到 ${signal}，正在停止全部设备并关闭服务…`)
     const ids = Object.keys(getAllStatus())
-    Promise.all(ids.map((id) => stop(id).catch(() => {}))).finally(() =>
-      server.close(() => process.exit(0)),
-    )
+    Promise.all(ids.map((id) => stop(id).catch(() => {}))).finally(() => {
+      // 监听尚未就绪时（迁移/种子阶段收到信号）直接退出
+      if (server) server.close(() => process.exit(0))
+      else process.exit(0)
+    })
     // 兜底：连接未及时关闭或子进程不响应时，最多等待 8 秒强制退出
     setTimeout(() => process.exit(0), 8000).unref()
   }

@@ -1,7 +1,11 @@
 // ── 音箱型号（设备的「硬件身份」配置）─────────────────────────
 import { nanoid } from 'nanoid'
-import { speakerModelsFile } from '../paths.js'
-import { getSpeakerModels, writeJson, resetBuiltinModel } from '../store.js'
+import {
+  getSpeakerModels,
+  saveSpeakerModels,
+  resetBuiltinModel,
+  speakerModelListSchema,
+} from '../store.js'
 import type { SpeakerModel } from '../types.js'
 import { pick, MODEL_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
@@ -11,7 +15,8 @@ export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
   label: '型号',
   nameLabel: '型号名称',
   list: getSpeakerModels,
-  save: (list) => writeJson(speakerModelsFile, list),
+  save: saveSpeakerModels,
+  schema: speakerModelListSchema,
   validate: (body) => (!body.name || !body.did ? '名称与型号标识必填' : null),
   build: (body) => ({
     id: nanoid(8),

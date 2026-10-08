@@ -29,6 +29,9 @@ jest.mock('../paths.js', () => {
     roomsFile: p.join(root, 'rooms.json'),
     authFile: p.join(root, 'auth.json'),
     systemLogFile: p.join(root, 'system.log'),
+    overridesFile: p.join(root, 'overrides.json'),
+    dataVersionFile: p.join(root, 'version.json'),
+    backupsRoot: p.join(root, 'backups'),
   }
 })
 
@@ -170,9 +173,9 @@ describe('默认思考 / 语音服务', () => {
     expect((await getDefaultThinkService())?.id).toBe('t1')
   })
 
-  test('列表为空时返回 undefined', async () => {
+  test('无自建语音时回退内置默认语音', async () => {
     expect(await getDefaultThinkService()).toBeUndefined()
-    expect(await getDefaultVoiceService()).toBeUndefined()
+    expect((await getDefaultVoiceService())?.id).toBe('builtin-mi')
   })
 
   test('语音服务同样遵循 isDefault 优先', async () => {
@@ -240,10 +243,10 @@ describe('按引用解析会话群 / 型号', () => {
 
   test('getSpeakerModelByRef：兼容旧数据存名称', async () => {
     await write(paths.speakerModelsFile, [
-      { id: 'm1', name: '小爱音箱', did: 'X08E', createdAt: 1 },
+      { id: 'm1', name: '自建音箱', did: 'X08E', createdAt: 1 },
     ])
-    expect((await getSpeakerModelByRef('m1'))?.name).toBe('小爱音箱')
-    expect((await getSpeakerModelByRef('小爱音箱'))?.id).toBe('m1')
+    expect((await getSpeakerModelByRef('m1'))?.name).toBe('自建音箱')
+    expect((await getSpeakerModelByRef('自建音箱'))?.id).toBe('m1')
     expect(await getSpeakerModelByRef('其他')).toBeUndefined()
   })
 })

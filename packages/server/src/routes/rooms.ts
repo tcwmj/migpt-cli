@@ -1,7 +1,12 @@
 // ── 会话群（对话记忆上下文归属，多设备共用）──────────────────────
 import { nanoid } from 'nanoid'
 import { roomsFile } from '../paths.js'
-import { getRooms, writeJson, listDeviceMetas } from '../store.js'
+import {
+  getRooms,
+  roomListSchema,
+  writeJson,
+  listDeviceMetas,
+} from '../store.js'
 import type { Room } from '../types.js'
 import { pick, ROOM_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
@@ -12,6 +17,7 @@ export const registerRoomRoutes = createCrudRouter<Room>({
   nameLabel: '会话群名称',
   list: getRooms,
   save: (list) => writeJson(roomsFile, list),
+  schema: roomListSchema,
   listTransform: async (rooms) => {
     const metas = await listDeviceMetas()
     return rooms.map((r) => ({

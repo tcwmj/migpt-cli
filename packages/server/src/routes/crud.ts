@@ -2,9 +2,20 @@
 // 各实体只提供数据读写与少量钩子（构造、更新、脱敏、校验），
 // 参数校验、唯一名检查、404、内置保护、引用冲突等样板逻辑在此集中实现，避免逐实体复制。
 import type { Express } from 'express'
-import { assertUniqueName, getRoles, listDeviceMetas } from '../store.js'
+import type { ZodTypeAny } from 'zod'
+import {
+  assertEntity,
+  assertUniqueName,
+  getRoles,
+  listDeviceMetas,
+} from '../store.js'
 import type { DeviceMeta, Role } from '../types.js'
-import { findIndexOr404, refConflict, type RouteContext } from './shared.js'
+import {
+  asyncHandler,
+  findIndexOr404,
+  refConflict,
+  type RouteContext,
+} from './shared.js'
 
 /** 引用登记规则：删除目标实体前，收集「引用了它」的实体显示名 */
 export interface RefRule {
@@ -73,6 +84,8 @@ export interface CrudConfig<T extends { id: string; name?: string }> {
   list: () => Promise<T[]>
   /** 写回全量列表（原子写 + 串行化由 store 保证） */
   save: (list: T[]) => Promise<void>
+  /** 落盘前校验的列表 schema（zod）：不符抛 DataValidationError，经统一错误中间件回 500 */
+  schema?: ZodTypeAny
   /** 列表响应转换（脱敏 / 归一化 / 附加统计），可异步 */
   listTransform?: (list: T[]) => unknown | Promise<unknown>
   /** 创建前校验：返回错误文案则回 400 */
@@ -104,80 +117,104 @@ export function createCrudRouter<T extends { id: string; name?: string }>(
   return (ctx: RouteContext) => {
     const app: Express = ctx.app
 
-    app.get(base, async (_req, res) => {
-      const list = await cfg.list()
-      res.json(cfg.listTransform ? await cfg.listTransform(list) : list)
-    })
+    // 落盘统一入口：先按 schema 把关（防脏数据写入），再交给各实体的 save。
+    // 校验失败抛 DataValidationError → asyncHandler 转交 next → 统一错误中间件回 500。
+    const save = async (list: T[]) => {
+      if (cfg.schema) assertEntity(list, cfg.schema, cfg.label)
+      await cfg.save(list)
+    }
 
-    app.post(base, async (req, res) => {
-      const body = (req.body ?? {}) as Partial<T>
-      const invalid = cfg.validate?.(body)
-      if (invalid) {
-        res.status(400).json({ error: invalid })
-        return
-      }
-      const list = await cfg.list()
-      if (cfg.nameLabel) {
-        const dup = assertUniqueName(list, body.name, undefined, cfg.nameLabel)
-        if (dup) {
-          res.status(409).json({ error: dup })
+    app.get(
+      base,
+      asyncHandler(async (_req, res) => {
+        const list = await cfg.list()
+        res.json(cfg.listTransform ? await cfg.listTransform(list) : list)
+      }),
+    )
+
+    app.post(
+      base,
+      asyncHandler(async (req, res) => {
+        const body = (req.body ?? {}) as Partial<T>
+        const invalid = cfg.validate?.(body)
+        if (invalid) {
+          res.status(400).json({ error: invalid })
           return
         }
-      }
-      const entity = cfg.build(body, list)
-      list.push(entity)
-      await cfg.save(list)
-      res.json(cfg.respond ? cfg.respond(entity) : entity)
-    })
-
-    app.put(`${base}/:id`, async (req, res) => {
-      const list = await cfg.list()
-      const idx = findIndexOr404(res, list, req.params.id, cfg.label)
-      if (idx === null) return
-      const body = (req.body ?? {}) as Partial<T>
-      if (cfg.nameLabel) {
-        const dup = assertUniqueName(
-          list,
-          body.name,
-          req.params.id,
-          cfg.nameLabel,
-        )
-        if (dup) {
-          res.status(409).json({ error: dup })
-          return
-        }
-      }
-      cfg.applyUpdate(list, idx, body)
-      await cfg.save(list)
-      res.json(cfg.respond ? cfg.respond(list[idx]) : list[idx])
-    })
-
-    app.delete(`${base}/:id`, async (req, res) => {
-      const list = await cfg.list()
-      const target = list.find((x) => x.id === req.params.id)
-      if (!target) {
-        res.status(404).json({ error: `${cfg.label}不存在` })
-        return
-      }
-      const guarded = cfg.deleteGuard?.(target)
-      if (guarded) {
-        res.status(409).json({ error: guarded })
-        return
-      }
-      if (cfg.refRules?.length) {
-        const refs = await collectRefs(req.params.id, target, cfg.refRules)
-        if (Object.keys(refs).length > 0) {
-          refConflict(
-            res,
-            refs,
-            cfg.refMessage ?? `${cfg.label}正被引用，无法删除`,
+        const list = await cfg.list()
+        if (cfg.nameLabel) {
+          const dup = assertUniqueName(
+            list,
+            body.name,
+            undefined,
+            cfg.nameLabel,
           )
+          if (dup) {
+            res.status(409).json({ error: dup })
+            return
+          }
+        }
+        const entity = cfg.build(body, list)
+        list.push(entity)
+        await save(list)
+        res.json(cfg.respond ? cfg.respond(entity) : entity)
+      }),
+    )
+
+    app.put(
+      `${base}/:id`,
+      asyncHandler(async (req, res) => {
+        const list = await cfg.list()
+        const idx = findIndexOr404(res, list, req.params.id, cfg.label)
+        if (idx === null) return
+        const body = (req.body ?? {}) as Partial<T>
+        if (cfg.nameLabel) {
+          const dup = assertUniqueName(
+            list,
+            body.name,
+            req.params.id,
+            cfg.nameLabel,
+          )
+          if (dup) {
+            res.status(409).json({ error: dup })
+            return
+          }
+        }
+        cfg.applyUpdate(list, idx, body)
+        await save(list)
+        res.json(cfg.respond ? cfg.respond(list[idx]) : list[idx])
+      }),
+    )
+
+    app.delete(
+      `${base}/:id`,
+      asyncHandler(async (req, res) => {
+        const list = await cfg.list()
+        const target = list.find((x) => x.id === req.params.id)
+        if (!target) {
+          res.status(404).json({ error: `${cfg.label}不存在` })
           return
         }
-      }
-      await cfg.save(list.filter((x) => x.id !== req.params.id))
-      res.json({ success: true })
-    })
+        const guarded = cfg.deleteGuard?.(target)
+        if (guarded) {
+          res.status(409).json({ error: guarded })
+          return
+        }
+        if (cfg.refRules?.length) {
+          const refs = await collectRefs(req.params.id, target, cfg.refRules)
+          if (Object.keys(refs).length > 0) {
+            refConflict(
+              res,
+              refs,
+              cfg.refMessage ?? `${cfg.label}正被引用，无法删除`,
+            )
+            return
+          }
+        }
+        await save(list.filter((x) => x.id !== req.params.id))
+        res.json({ success: true })
+      }),
+    )
 
     cfg.extra?.(ctx)
   }

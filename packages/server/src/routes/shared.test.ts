@@ -36,6 +36,7 @@ jest.mock('../store.js', () => ({
 
 import * as paths from '../paths.js'
 import { listDeviceMetas } from '../store.js'
+import { logger } from '../logger.js'
 import {
   pick,
   normProfile,
@@ -156,7 +157,7 @@ describe('loadDeviceConfig', () => {
       path.join(paths.devicesRoot, 'bad', 'migptgui.json'),
       '{ not json',
     )
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const warn = jest.spyOn(logger, 'warn').mockImplementation(() => {})
     expect(await loadDeviceConfig('bad')).toBeUndefined()
     expect(warn).toHaveBeenCalled()
     warn.mockRestore()
