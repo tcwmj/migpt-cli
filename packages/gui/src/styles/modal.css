@@ -5,14 +5,14 @@
   background: rgba(31, 23, 16, 0.46);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.18s;
-  z-index: 50;
+  transition: opacity var(--dur-180);
+  z-index: var(--z-scrim);
 }
 
 .scrim.on {
   opacity: 1;
   pointer-events: auto;
-  animation: scrimIn 0.2s ease both;
+  animation: scrimIn var(--dur-200) ease both;
 }
 
 @keyframes scrimIn {
@@ -35,16 +35,16 @@
   padding: 22px;
   opacity: 0;
   pointer-events: none;
-  transition: 0.18s;
+  transition: var(--dur-180);
   box-shadow: var(--shadow-pop);
-  z-index: 60;
+  z-index: var(--z-modal);
 }
 
 .modal.on {
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, -50%);
-  animation: modalIn 0.22s ease both;
+  animation: modalIn var(--dur-220) ease both;
 }
 
 @keyframes modalIn {
@@ -59,11 +59,11 @@
 }
 
 .modal h3 {
-  font-size: 16px;
-  margin-bottom: 14px;
+  font-size: var(--fs-xl);
+  margin-bottom: var(--sp-7);
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-5);
 }
 
 .modal h3 svg {
@@ -74,21 +74,21 @@
 
 .modal .desc {
   color: var(--ink-3);
-  font-size: 12.5px;
-  line-height: 1.7;
-  margin-bottom: 14px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-loose);
+  margin-bottom: var(--sp-7);
 }
 
 .modal .fld {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 12px;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
 }
 
 .modal .fld label {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--ink-2);
 }
 
@@ -96,7 +96,7 @@
 .modal .fld.row {
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-6);
 }
 .modal .fld.row label {
   width: 110px;
@@ -117,45 +117,45 @@
 .modal .fld select {
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  padding: 8px 12px;
+  padding: var(--sp-4) var(--sp-6);
   font: inherit;
   color: var(--ink-1);
   background: var(--panel-2);
 }
 
 .modal .fld .hint {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
 .modal .fld .hint.warn {
-  color: var(--danger);
+  color: var(--warn-ink);
 }
 
 .modal .acts {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-4);
   justify-content: flex-end;
   margin-top: 18px;
 }
 
 .notice {
   display: flex;
-  gap: 9px;
+  gap: var(--sp-5);
   align-items: flex-start;
   background: var(--warn-soft);
   border-radius: var(--r-m);
-  padding: 10px 12px;
-  font-size: 12.5px;
+  padding: var(--sp-5) var(--sp-6);
+  font-size: var(--fs-xs);
   color: var(--warn-ink);
-  margin-bottom: 14px;
+  margin-bottom: var(--sp-7);
 }
 
 .notice svg {
   width: 15px;
   height: 15px;
   flex: none;
-  margin-top: 2px;
+  margin-top: var(--sp-1);
 }
 
 .notice.ok {

@@ -2,7 +2,7 @@
 .devices {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
+  gap: var(--sp-7);
 }
 
 .device {
@@ -13,8 +13,8 @@
   box-shadow: var(--shadow-card);
   cursor: pointer;
   transition:
-    transform 0.18s,
-    box-shadow 0.18s;
+    transform var(--dur-180),
+    box-shadow var(--dur-180);
 }
 
 .device:hover {
@@ -35,12 +35,12 @@
   top: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-3);
   background: rgba(255, 255, 255, 0.92);
   border-radius: var(--pill);
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: var(--sp-2) var(--sp-5);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--ok-ink);
   box-shadow: 0 1px 4px rgba(31, 23, 16, 0.15);
 }
@@ -55,30 +55,30 @@
 }
 
 .device .meta {
-  padding: 13px 15px 15px;
+  padding: var(--sp-7) var(--sp-8) var(--sp-8);
 }
 
 .device .meta .nm {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 15px;
+  gap: var(--sp-4);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-lg);
 }
 
 .device .meta .nm .m {
   color: var(--ink-3);
-  font-size: 11.5px;
-  font-weight: 500;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
 }
 
 .device .meta .row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-3);
   color: var(--ink-2);
-  font-size: 12.5px;
-  margin-top: 8px;
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-4);
 }
 
 .device .meta .row svg {
@@ -89,18 +89,18 @@
 
 .device .meta .tags {
   display: flex;
-  gap: 6px;
-  margin-top: 11px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
   flex-wrap: wrap;
 }
 
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-5);
   border-radius: var(--pill);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   background: var(--ok-soft);
   color: var(--ok-ink);
 }
@@ -139,7 +139,7 @@
 th,
 td {
   text-align: left;
-  padding: 0 14px;
+  padding: 0 var(--sp-7);
   height: var(--row);
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
@@ -149,8 +149,8 @@ td {
 
 th {
   color: var(--ink-3);
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-xs);
   letter-spacing: 0.02em;
   background: var(--panel-2);
 }
@@ -170,7 +170,7 @@ td.n {
 
 td .ops {
   display: flex;
-  gap: 2px;
+  gap: var(--sp-1);
   justify-content: flex-end;
 }
 
@@ -188,21 +188,21 @@ td .ops .icon-btn svg {
 .accounts {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 14px;
+  gap: var(--sp-7);
 }
 
 .acct {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-l);
-  padding: 16px;
+  padding: var(--sp-8);
   box-shadow: var(--shadow-card);
 }
 
 .acct .hd {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-6);
 }
 
 .acct .ic {
@@ -221,55 +221,55 @@ td .ops .icon-btn svg {
 }
 
 .acct .hd b {
-  font-size: 15px;
+  font-size: var(--fs-lg);
   display: block;
-  line-height: 1.3;
+  line-height: var(--lh-base);
 }
 
 .acct .hd span {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
 .acct .stats {
   display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--sp-5);
+  margin-top: var(--sp-7);
 }
 
 .acct .stats .it {
   flex: 1;
   background: var(--panel-2);
   border-radius: var(--r-m);
-  padding: 9px 11px;
+  padding: var(--sp-5) var(--sp-6);
 }
 
 .acct .stats .it b {
   display: block;
-  font-size: 18px;
-  font-weight: 750;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-heavy);
 }
 
 .acct .stats .it span {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
 .acct .ft {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 12px;
+  gap: var(--sp-4);
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-6);
   border-top: 1px solid var(--line-2);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
 .acct .ft .ops {
   margin-left: auto;
   display: flex;
-  gap: 2px;
+  gap: var(--sp-1);
 }
 
 .acct .ft .ops .icon-btn {

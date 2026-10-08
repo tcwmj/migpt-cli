@@ -5,9 +5,9 @@
 }
 .icon-btn {
   transition:
-    background 0.15s ease,
-    transform 0.15s ease,
-    color 0.15s ease;
+    background var(--dur-150) ease,
+    transform var(--dur-150) ease,
+    color var(--dur-150) ease;
 }
 .icon-btn:active {
   transform: scale(0.9);
@@ -16,9 +16,9 @@
 .side .logout,
 .chip {
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease;
+    background var(--dur-150) ease,
+    color var(--dur-150) ease,
+    transform var(--dur-150) ease;
 }
 .side nav a:active,
 .side .logout:active,
@@ -29,11 +29,11 @@
 /* 2. 列表项：挂载淡入 + 选中态过渡（新建后新项出现 / 搜索过滤变化均有反馈） */
 .slist .li,
 .rlist .r {
-  animation: liIn 0.24s ease both;
+  animation: liIn var(--dur-240) ease both;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.15s ease;
+    background var(--dur-150) ease,
+    border-color var(--dur-150) ease,
+    transform var(--dur-150) ease;
 }
 .slist .li:active,
 .rlist .r:active {
@@ -68,7 +68,7 @@
 
 /* 4. 向导步骤切换 */
 .wiz .step.on {
-  animation: stepIn 0.24s ease both;
+  animation: stepIn var(--dur-240) ease both;
 }
 @keyframes stepIn {
   from {
@@ -83,7 +83,7 @@
 
 /* 5. 弹层退场（二次确认 / 编辑绑定 / 修改密码 / 三步向导 / 设备抽屉）：closing 阶段播放淡出 */
 .wizard {
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-200) ease;
 }
 .wizard.on.closing {
   opacity: 0;

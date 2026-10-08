@@ -1,22 +1,22 @@
 /* ── 基础设置 · 子页 ── */
 .subnav {
   display: flex;
-  gap: 4px;
+  gap: var(--sp-2);
   border-bottom: 1px solid var(--line);
   background: var(--bg);
   border-radius: var(--r-l) var(--r-l) 0 0;
-  padding: 0 14px;
+  padding: 0 var(--sp-7);
 }
 
 .subnav .it {
-  padding: 11px 14px;
-  font-weight: 600;
-  font-size: 13.5px;
+  padding: var(--sp-6) var(--sp-7);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-md);
   color: var(--ink-3);
   border-bottom: 2px solid transparent;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-4);
   cursor: pointer;
 }
 
@@ -33,27 +33,27 @@
 .svc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
+  gap: var(--sp-7);
 }
 
 .svc {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-l);
-  padding: 16px;
+  padding: var(--sp-8);
   box-shadow: var(--shadow-card);
 }
 
 .svc .hd {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--sp-6);
 }
 
 .svc .ic {
   width: 38px;
   height: 38px;
-  border-radius: 11px;
+  border-radius: var(--r-m);
   display: grid;
   place-items: center;
 }
@@ -74,12 +74,12 @@
 }
 
 .svc .hd b {
-  font-size: 14.5px;
+  font-size: var(--fs-md);
   display: block;
 }
 
 .svc .hd span {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
@@ -88,24 +88,24 @@
   background: var(--accent-2);
   color: #fff;
   border-radius: var(--pill);
-  padding: 2px 9px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: var(--sp-1) var(--sp-5);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
 }
 
 .svc .props {
-  margin-top: 13px;
+  margin-top: var(--sp-7);
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  font-size: 12.5px;
+  gap: var(--sp-4);
+  font-size: var(--fs-xs);
   color: var(--ink-2);
 }
 
 .svc .props .pr {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-4);
 }
 
 .svc .props .pr svg {
@@ -115,26 +115,26 @@
 }
 
 .svc .props .pr b {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--ink-1);
 }
 
 .svc .props .pr .mono {
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--accent-2);
   background: var(--panel-2);
-  padding: 1px 6px;
+  padding: var(--sp-1) var(--sp-3);
   border-radius: 4px;
 }
 
 .svc .used {
-  margin-top: 12px;
-  font-size: 12px;
+  margin-top: var(--sp-6);
+  font-size: var(--fs-xs);
   color: var(--ink-3);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-3);
 }
 
 .svc .used b {
@@ -143,19 +143,19 @@
 
 .svc .ft {
   display: flex;
-  gap: 6px;
-  margin-top: 13px;
-  padding-top: 12px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-6);
   border-top: 1px solid var(--line-2);
 }
 
 .svc .ft .def {
   margin-left: auto;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--sp-3);
 }
 
 .svc .ft .def svg {

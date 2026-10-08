@@ -2,20 +2,20 @@
 .profile header {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: var(--sp-5);
+  margin-bottom: var(--sp-7);
 }
 
 .profile header .sub {
-  font-size: 12.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
 .pset {
-  margin-top: 14px;
+  margin-top: var(--sp-7);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-8);
 }
 
 .pcard-set {
@@ -23,25 +23,25 @@
   border: 1px solid var(--line);
   border-radius: var(--r-l);
   overflow: hidden;
-  padding: 2px 0;
+  padding: var(--sp-1) 0;
   transition:
-    box-shadow 0.18s ease,
-    transform 0.18s ease,
-    border-color 0.18s ease;
+    box-shadow var(--dur-180) ease,
+    transform var(--dur-180) ease,
+    border-color var(--dur-180) ease;
 }
 .pcard-set:hover {
-  box-shadow: 0 10px 30px -18px rgba(31, 23, 16, 0.25);
+  box-shadow: var(--shadow-lift);
   transform: translateY(-1px);
   border-color: var(--line-2);
 }
 
 .pcard-block h4 {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   color: var(--ink-2);
   letter-spacing: 0.02em;
-  margin: 0 0 8px;
-  padding: 0 2px;
+  margin: 0 0 var(--sp-4);
+  padding: 0 var(--sp-1);
 }
 
 .pi .val.muted {
@@ -52,8 +52,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 13px 22px;
+  gap: var(--sp-6);
+  padding: var(--sp-7) 22px;
   min-height: 46px;
 }
 
@@ -62,24 +62,24 @@
 }
 
 .pi .lbl {
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   color: var(--ink-1);
 }
 
 .pi .lbl small {
   display: block;
-  font-size: 11.5px;
-  font-weight: 400;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-regular);
   color: var(--ink-3);
-  margin-top: 3px;
+  margin-top: var(--sp-2);
 }
 
 .pi .val {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--ink-3);
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-4);
 }
 
 .pi .val .dot {
@@ -92,12 +92,12 @@
 
 .pi .val .tag {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   color: var(--ink-3);
   background: var(--panel-2);
   border: 1px solid var(--line-2);
   border-radius: var(--pill);
-  padding: 1px 8px;
+  padding: var(--sp-1) var(--sp-4);
 }
 
 .pi .val .sw {
@@ -130,12 +130,12 @@
   background: #fff;
   top: 2px;
   left: 2px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-sm);
 }
 
 .pi.click {
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background var(--dur-150) ease;
 }
 
 .pi.click:hover {
@@ -163,6 +163,6 @@
     padding: 0;
   }
   .login-hero h1 {
-    font-size: 30px;
+    font-size: var(--fs-7xl);
   }
 }

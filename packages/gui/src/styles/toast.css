@@ -6,16 +6,16 @@
   transform: translate(-50%, 16px);
   opacity: 0;
   pointer-events: none;
-  transition: 0.2s;
-  z-index: 80;
+  transition: var(--dur-200);
+  z-index: var(--z-toast);
   background: var(--ink-1);
   color: #fff;
   border-radius: var(--pill);
-  padding: 9px 18px;
-  font-size: 13px;
+  padding: var(--sp-5) 18px;
+  font-size: var(--fs-sm);
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-5);
   box-shadow: var(--shadow-pop);
 }
 
@@ -31,7 +31,7 @@
 }
 
 .toast b {
-  font-weight: 650;
+  font-weight: var(--fw-strong);
 }
 
 @media (max-width: 1180px) {

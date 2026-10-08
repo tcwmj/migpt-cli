@@ -9,9 +9,9 @@
 .syslog .filters .switch-inline {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: var(--sp-4);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--ink-1);
   cursor: pointer;
   user-select: none;
@@ -22,7 +22,7 @@
 }
 
 .syslog .filters {
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-6);
   flex: none;
 }
 
@@ -35,11 +35,11 @@
   background: #1e1b18;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-l);
-  padding: 14px 16px;
+  padding: var(--sp-7) var(--sp-8);
   font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New',
     monospace;
-  font-size: 12.5px;
-  line-height: 1.75;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-loose-2);
 }
 
 .syslog-line {
@@ -47,8 +47,8 @@
   word-break: break-all;
   color: #c9c2b8;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
 }
 
 .syslog-line.warn {

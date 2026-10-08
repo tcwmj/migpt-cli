@@ -4,7 +4,7 @@
   display: grid;
   grid-template-columns: 260px 1fr;
   grid-template-rows: minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--sp-8);
   height: calc(100vh - 160px);
   min-height: 0;
 }
@@ -19,13 +19,13 @@
 .rlist {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--sp-4);
   height: 100%;
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
-  padding-right: 4px;
+  padding-right: var(--sp-2);
 }
 
 .roles .rform {
@@ -35,7 +35,7 @@
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
-  padding-right: 4px;
+  padding-right: var(--sp-2);
 }
 @media (max-width: 1180px) {
   .rlist,
@@ -48,8 +48,8 @@
 .rlist .r {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 12px;
+  gap: var(--sp-6);
+  padding: var(--sp-6) var(--sp-6);
   border-radius: var(--r-m);
   border: 1px solid var(--line);
   background: var(--bg);
@@ -75,13 +75,13 @@
 }
 
 .rlist .r b {
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   display: block;
-  line-height: 1.3;
+  line-height: var(--lh-base);
 }
 
 .rlist .r span {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
@@ -103,13 +103,13 @@
 .rform .fld {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 14px;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-7);
 }
 
 .rform .fld label {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--ink-2);
 }
 
@@ -118,7 +118,7 @@
 .rform .fld select {
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  padding: 8px 12px;
+  padding: var(--sp-4) var(--sp-6);
   font: inherit;
   color: var(--ink-1);
   background: var(--panel-2);
@@ -130,22 +130,22 @@
 }
 
 .rform .fld .hint {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
 .rform .acts {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-4);
   justify-content: flex-end;
-  padding-top: 4px;
+  padding-top: var(--sp-2);
 }
 
 .rform .bind {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-4);
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: var(--sp-8);
 }
 
 /* 分组配置区（表单与详情通用）：基本信息 / 模型服务 / 单次对话 / 连续对话 / 提示语
@@ -155,9 +155,9 @@
   position: relative;
   border: none;
   border-radius: var(--r-m);
-  padding: 16px 14px 0;
+  padding: var(--sp-8) var(--sp-7) 0;
   margin-top: 46px;
-  margin-bottom: 15px;
+  margin-bottom: var(--sp-8);
   background: var(--bg);
 }
 .ro .grp {
@@ -171,10 +171,10 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 10px;
-  font-size: 13px;
-  font-weight: 700;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   letter-spacing: 0.02em;
   color: var(--ink-2);
   background: var(--panel-2);
@@ -195,7 +195,7 @@
   border: none;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
-  padding: 4px 0 6px;
+  padding: var(--sp-2) 0 var(--sp-3);
 }
 .rform .grp h4::before,
 .form-card .grp h4::before {
@@ -222,25 +222,25 @@
   color: var(--ink-3);
   cursor: pointer;
   transition:
-    color 0.18s ease,
-    background 0.18s ease,
-    transform 0.3s ease;
+    color var(--dur-180) ease,
+    background var(--dur-180) ease,
+    transform var(--dur-300) ease;
 }
 .form-card h3 .icbtn:hover {
   color: var(--accent);
-  background: var(--amber-soft);
+  background: var(--warn-soft);
   transform: rotate(30deg);
 }
 /* 账号设备区块：与账号详情同级标题 */
 .form-card h3.acct-dev {
-  margin: 18px 0 10px;
+  margin: 18px 0 var(--sp-5);
 }
 /* 详情页属性对齐统一（角色页与其他配置页同规范）：
    属性名固定 100px 列宽，值左对齐，首文字垂直对齐；单行最多两个属性由 .row 网格承担 */
 .rform.rview .ro .rr,
 .form-card .ro .rr {
   justify-content: flex-start;
-  gap: 12px;
+  gap: var(--sp-6);
 }
 .rform.rview .ro .rr .v,
 .form-card .ro .rr .v {
@@ -259,13 +259,13 @@
 .dev-pull {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--sp-4);
 }
 .dev-pull .pd-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-s);
@@ -279,7 +279,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--amber);
+  color: var(--warn);
   background: #fff;
 }
 .dev-pull .pd-row .ic.t .thumb {
@@ -295,29 +295,29 @@
   flex-direction: column;
 }
 .dev-pull .pd-row .txt b {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--ink-2);
 }
 .dev-pull .pd-row .txt span {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 .dev-pull.loading,
 .dev-pull.err,
 .dev-pull.empty {
-  padding: 14px 12px;
+  padding: var(--sp-7) var(--sp-6);
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: var(--sp-4);
+  font-size: var(--fs-xs);
   color: var(--ink-3);
   background: var(--bg);
   border: 1px dashed var(--line);
   border-radius: var(--r-s);
 }
 .dev-pull.err {
-  color: var(--danger);
+  color: var(--bad-ink);
 }
 .dev-pull .spin {
   width: 14px;
@@ -335,7 +335,7 @@
 .pd-acts {
   display: flex;
   align-items: center;
-  margin-top: 10px;
+  margin-top: var(--sp-5);
 }
 /* 编辑表单：label 与输入框同一行，hint 换行在控件下方
    label 全部固定 100px，输入框起点与长度按布局档位对齐 */
@@ -344,18 +344,18 @@
   flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 4px 10px;
-  margin-bottom: 12px;
+  gap: var(--sp-2) var(--sp-5);
+  margin-bottom: var(--sp-6);
 }
 .grp .fld label {
   width: 100px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-top: 8px;
-  font-size: 12.5px;
-  font-weight: 600;
+  gap: var(--sp-2);
+  padding-top: var(--sp-4);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--ink-2);
 }
 .grp .fld input,
@@ -375,9 +375,9 @@
 .login-page .fld label .req,
 .login-card .fld label .req {
   color: #c0453c;
-  font-weight: 700;
-  margin-left: 2px;
-  line-height: 1;
+  font-weight: var(--fw-bold);
+  margin-left: var(--sp-1);
+  line-height: var(--lh-none);
 }
 /* 提示信息改为 label 右侧的 tooltip 符号，悬浮显示 */
 .grp .fld label .tip {
@@ -389,8 +389,8 @@
   line-height: 15px;
   text-align: center;
   border-radius: 50%;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
   color: var(--ink-3);
   background: var(--panel-2);
   border: 1px solid var(--line);
@@ -409,18 +409,18 @@
   transform: translateX(-50%) translateY(4px);
   background: var(--ink-1);
   color: #fff;
-  padding: 6px 9px;
-  border-radius: 7px;
-  font-size: 11.5px;
-  line-height: 1.55;
-  font-weight: 400;
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--r-s);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-normal);
+  font-weight: var(--fw-regular);
   opacity: 0;
   visibility: hidden;
   transition:
-    opacity 0.15s,
-    visibility 0.15s,
-    transform 0.15s;
-  z-index: 40;
+    opacity var(--dur-150),
+    visibility var(--dur-150),
+    transform var(--dur-150);
+  z-index: var(--z-popover);
   pointer-events: none;
   box-shadow: var(--shadow-pop);
 }
@@ -433,7 +433,7 @@
 .grp .row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 14px;
+  gap: 0 var(--sp-7);
 }
 @media (max-width: 760px) {
   .grp .row {
@@ -443,8 +443,8 @@
 /* 详情页：分组卡片内的行分隔线 */
 .grp .rr {
   border-bottom: 1px dashed var(--line);
-  padding-bottom: 9px;
-  margin-bottom: 9px;
+  padding-bottom: var(--sp-5);
+  margin-bottom: var(--sp-5);
 }
 .grp .rr:last-child {
   border-bottom: none;
@@ -453,9 +453,9 @@
 }
 /* 详情页双列：row 容器带分隔线，列内 rr 不再单独画线 */
 .ro .grp .row {
-  padding-bottom: 9px;
+  padding-bottom: var(--sp-5);
   border-bottom: 1px dashed var(--line);
-  margin-bottom: 9px;
+  margin-bottom: var(--sp-5);
 }
 .ro .grp .row .rr {
   border-bottom: none;
@@ -471,7 +471,7 @@
   flex: 1;
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  padding: 9px 12px;
+  padding: var(--sp-5) var(--sp-6);
   background: var(--panel-2);
   cursor: pointer;
 }

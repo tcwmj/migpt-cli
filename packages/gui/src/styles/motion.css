@@ -20,14 +20,14 @@
 .r,
 .dev {
   transition:
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+    box-shadow var(--dur-180) ease,
+    transform var(--dur-180) ease;
 }
 
 .panel:hover,
 .kpi:hover,
 .acct:hover {
-  box-shadow: 0 10px 30px -18px rgba(31, 23, 16, 0.25);
+  box-shadow: var(--shadow-lift);
   transform: translateY(-1px);
 }
 
@@ -37,9 +37,9 @@
 .modal .fld select,
 .wiz .wf select {
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
+    border-color var(--dur-150) ease,
+    box-shadow var(--dur-150) ease,
+    background var(--dur-150) ease;
   cursor: pointer;
 }
 .form-card .fld select:hover,

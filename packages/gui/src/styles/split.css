@@ -3,7 +3,7 @@
   display: grid;
   grid-template-columns: 300px 1fr;
   grid-template-rows: minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--sp-8);
   height: calc(100vh - 160px);
   min-height: 0;
 }
@@ -19,7 +19,7 @@
 }
 
 .sdetail > .filters {
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-6);
 }
 
 @media (max-width: 1180px) {
@@ -37,15 +37,15 @@
 .slist {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-right: 4px;
+  gap: var(--sp-4);
+  padding-right: var(--sp-2);
 }
 
 .slist .li {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 12px;
+  gap: var(--sp-6);
+  padding: var(--sp-6) var(--sp-6);
   border-radius: var(--r-m);
   border: 1px solid var(--line);
   background: var(--bg);
@@ -78,11 +78,11 @@
 }
 
 .slist .li .ic.t {
-  color: var(--amber);
+  color: var(--warn);
 }
 
 .slist .li .ic.v {
-  color: var(--teal);
+  color: var(--accent-2);
 }
 
 .slist .li.on .ic.t,
@@ -103,7 +103,7 @@
 /* 型号详情大图 */
 .form-card .model-pic {
   position: relative;
-  margin: 14px 0 2px;
+  margin: var(--sp-7) 0 var(--sp-1);
   border-radius: var(--r-l);
   overflow: hidden;
   border: 1px solid var(--line);
@@ -120,7 +120,7 @@
 /* 型号图加载完成前隐藏，避免黑块闪烁；加载后 0.25s 淡入 */
 .form-card .model-pic img.fade {
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity var(--dur-250) ease;
 }
 
 .form-card .model-pic img.fade.loaded {
@@ -130,10 +130,10 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: var(--sp-2) var(--sp-5);
+  border-radius: var(--pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: #fff;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
@@ -145,16 +145,16 @@
 }
 
 .slist .li .txt b {
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   display: block;
-  line-height: 1.3;
+  line-height: var(--lh-base);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .slist .li .txt span {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -166,8 +166,8 @@
   flex: none;
   min-width: 22px;
   text-align: center;
-  font-size: 11.5px;
-  padding: 2px 7px;
+  font-size: var(--fs-xs);
+  padding: var(--sp-1) var(--sp-4);
   border-radius: var(--pill);
   background: var(--panel-2);
   color: var(--ink-2);
@@ -209,29 +209,29 @@
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-l);
-  padding: 20px;
+  padding: var(--sp-9);
   box-shadow: var(--shadow-card);
 }
 
 .form-card h3 {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  margin: 0 0 4px;
+  gap: var(--sp-4);
+  font-size: var(--fs-xl);
+  margin: 0 0 var(--sp-2);
 }
 
 .form-card .desc {
-  font-size: 12.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
-  margin-bottom: 16px;
+  margin-bottom: var(--sp-8);
 }
 
 .form-card .fld {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 14px;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-7);
 }
 
 /* 分组表单字段：label 与输入框同行（与「对话角色」编辑页一致） */
@@ -239,8 +239,8 @@
   flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 4px 10px;
-  margin-bottom: 12px;
+  gap: var(--sp-2) var(--sp-5);
+  margin-bottom: var(--sp-6);
 }
 .form-card .grp .fld > div:not(.fld-tags) {
   flex: 1 1 0;
@@ -252,8 +252,8 @@
 }
 
 .form-card .fld label {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--ink-2);
 }
 
@@ -261,7 +261,7 @@
 .form-card .fld select {
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  padding: 8px 12px;
+  padding: var(--sp-4) var(--sp-6);
   font: inherit;
   color: var(--ink-1);
   background: var(--panel-2);
@@ -269,7 +269,7 @@
 
 .form-card .fld .arr-in {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-4);
   flex-wrap: wrap;
 }
 
@@ -284,7 +284,7 @@
 
 .rr .cmd-row {
   display: inline-flex;
-  gap: 6px;
+  gap: var(--sp-3);
   flex-wrap: wrap;
 }
 
@@ -292,7 +292,7 @@
   width: 60px;
   border: 1px solid var(--line);
   border-radius: var(--r-s);
-  padding: 4px 8px;
+  padding: var(--sp-2) var(--sp-4);
   text-align: center;
   font: inherit;
   font-variant-numeric: tabular-nums;
@@ -315,7 +315,7 @@
 .rr .v .v-model {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-5);
 }
 
 .rr .v .v-model img {
@@ -325,7 +325,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-m);
   background: #fff;
-  padding: 4px;
+  padding: var(--sp-2);
 }
 
 /* 设备编辑页型号搜索下拉 */
@@ -336,7 +336,7 @@
 .form-card .fld .model-pick > input {
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  padding: 8px 12px;
+  padding: var(--sp-4) var(--sp-6);
   font: inherit;
   color: var(--ink-1);
   background: #fff;
@@ -348,16 +348,16 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 40;
+  z-index: var(--z-popover);
   max-height: 280px;
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--r-m);
   background: #fff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  padding: 4px;
+  padding: var(--sp-2);
   transform-origin: top center;
-  animation: pickIn 0.16s ease both;
+  animation: pickIn var(--dur-160) ease both;
 }
 @keyframes pickIn {
   from {
@@ -373,11 +373,11 @@
 .model-pick .pick-li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
+  gap: var(--sp-5);
+  padding: var(--sp-3) var(--sp-5);
   border-radius: var(--r-s);
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   color: var(--ink-1);
 }
 
@@ -403,8 +403,8 @@
 }
 
 .model-pick .pick-empty {
-  padding: 10px 12px;
-  font-size: 13px;
+  padding: var(--sp-5) var(--sp-6);
+  font-size: var(--fs-sm);
   color: var(--ink-3);
   text-align: center;
 }
@@ -413,17 +413,17 @@
 .modal .fld textarea {
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  padding: 8px 12px;
+  padding: var(--sp-4) var(--sp-6);
   font: inherit;
   color: var(--ink-1);
   background: var(--panel-2);
   min-height: 152px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
 }
 
 .form-card .fld .hint {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
@@ -431,21 +431,21 @@
 .form-card .fld-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 .form-card .fld-tags span {
   display: inline-flex;
-  gap: 5px;
+  gap: var(--sp-3);
   align-items: center;
-  padding: 3px 9px;
+  padding: var(--sp-2) var(--sp-5);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: var(--panel-2);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-2);
 }
 .form-card .fld-tags b {
   color: var(--ink-1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }

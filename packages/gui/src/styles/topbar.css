@@ -2,19 +2,19 @@
 .top-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-5);
   justify-self: end;
 }
 
 .srv {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
+  gap: var(--sp-4);
+  font-size: var(--fs-xs);
   color: var(--ink-2);
   border: 1px solid var(--line);
   border-radius: var(--pill);
-  padding: 5px 12px;
+  padding: var(--sp-3) var(--sp-6);
   background: var(--panel-2);
 }
 
@@ -28,22 +28,22 @@
 
 .srv em {
   font-style: normal;
-  font-weight: 650;
+  font-weight: var(--fw-strong);
   color: var(--ink-1);
 }
 
 .user-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 12px 3px 3px;
+  gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-6) var(--sp-2) var(--sp-2);
   border: 1px solid var(--line);
   border-radius: var(--pill);
   background: var(--panel-2);
   color: var(--ink-1);
-  font-size: 12.5px;
+  font-size: var(--fs-xs);
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--dur-150) ease;
 }
 
 .user-chip:hover {
@@ -53,12 +53,12 @@
 .user-chip .avatar {
   width: 26px;
   height: 26px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .avatar.lg {
   width: 54px;
   height: 54px;
-  font-size: 20px;
+  font-size: var(--fs-4xl);
   border-radius: 18px;
 }

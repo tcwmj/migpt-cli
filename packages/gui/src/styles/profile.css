@@ -17,23 +17,23 @@
 .pcard .avatar {
   width: 64px;
   height: 64px;
-  font-size: 22px;
+  font-size: var(--fs-5xl);
 }
 
 .pcard b {
-  font-size: 17px;
+  font-size: var(--fs-2xl);
   display: block;
 }
 
 .pcard span {
   color: var(--ink-3);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .pcard .ops {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: var(--sp-4);
 }
 
 .plist {
@@ -49,8 +49,8 @@
 .plist .pi {
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 14px 18px;
+  gap: var(--sp-7);
+  padding: var(--sp-7) 18px;
   border-bottom: 1px solid var(--line-2);
 }
 
@@ -61,7 +61,7 @@
 .plist .pi .ic {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--r-m);
   background: var(--panel-2);
   color: var(--ink-2);
   display: grid;
@@ -74,12 +74,12 @@
 }
 
 .plist .pi b {
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   display: block;
 }
 
 .plist .pi span {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
@@ -100,20 +100,20 @@
 .error {
   display: grid;
   place-items: center;
-  gap: 10px;
-  padding: 60px 20px;
+  gap: var(--sp-5);
+  padding: 60px var(--sp-9);
   text-align: center;
 }
 
 .empty .art {
   width: 54px;
   height: 54px;
-  border-radius: 16px;
+  border-radius: var(--r-l);
   background: var(--panel-2);
   color: var(--ink-3);
   display: grid;
   place-items: center;
-  margin-bottom: 4px;
+  margin-bottom: var(--sp-2);
 }
 
 .empty .art svg {
@@ -123,13 +123,13 @@
 
 .empty b,
 .error b {
-  font-size: 15px;
+  font-size: var(--fs-lg);
 }
 
 .empty span,
 .error span {
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   max-width: 360px;
 }
 
@@ -139,7 +139,7 @@
   animation: sk 1.2s infinite;
   height: var(--row);
   border-radius: var(--r-m);
-  margin: 8px 16px;
+  margin: var(--sp-4) var(--sp-8);
   opacity: 0.75;
 }
 
