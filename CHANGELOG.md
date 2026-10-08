@@ -80,6 +80,7 @@
 - 后端代码质量门禁与风格（B4）：ESLint 新增 `complexity: ['warn', { max: 20 }]` 规则与 `caughtErrorsIgnorePattern: '^_'`；修复全仓 14 处生产代码 `no-explicit-any` 违规（`accounts.ts` / `misc.ts` / `services.ts` / `child_process.ts` / `apis.ts` / `_utils.ts` / `utils.ts`），消除未使用导入（`RoleList.tsx`）；剩余 7 处 warning 仅在测试文件 `middleware.test.ts`；CI 门禁 `npm run lint` 已覆盖
 - HTTP 压缩与静态缓存头（A18）：引入 `compression` 中间件（阈值 1KB，自动 gzip/deflate）；`express.static` 添加 `maxAge: '1h'` 缓存头（文件名无内容哈希，保守 1 小时；前端构建改用哈希文件名后可提升到 1 年）
 - 环境变量集中校验（A16）：新增 `store/env.ts`，用 zod 校验全部 7 个环境变量（`PORT` / `LOG_LEVEL` / `BACKUP_INTERVAL_MS` / `BACKUP_KEEP` / `AUTH_USER` / `AUTH_PASSWORD` / `MIGPT_DEMO_LOGS`），启动时 fail-fast；`logger.ts` / `auth.ts` / `demo.ts` / `index.ts` 迁移为 `getEnv()` 调用，消除散落的 `process.env` 直接读取
+- 架构决策记录（A1）：新增 `docs/adr/` 目录，记录 3 项核心架构决策 —— ADR-001 同仓分离 + 契约共享（monorepo 结构、tsconfig paths 双重路径策略、固定版本发布）、ADR-002 JSON 文件存储（数据规模评估、原子写/读缓存/zod 校验/迁移框架）、ADR-003 构建工具链选型（Nx + tsc + Webpack + Jest + ESLint）
 
 ### Engineering
 
