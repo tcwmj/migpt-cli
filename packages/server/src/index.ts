@@ -5,6 +5,7 @@ import express from 'express'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import open from 'open'
+import { getAllStatus, stop } from '@migptgui/controller'
 import {
   seedBuiltinVoice,
   seedBuiltinModels,
@@ -96,7 +97,7 @@ export function runServer(options?: ServerOptions) {
   seedBuiltinModels().catch(() => {})
   migrateRooms().catch(() => {})
   seedDemoLogs().catch(() => {})
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log('端口：', port)
     console.log('登录认证：', isAuth ? '已启用' : '未启用')
     console.log('秘密路径：', '已启用')
@@ -111,4 +112,21 @@ export function runServer(options?: ServerOptions) {
       open(`http://localhost:${port}`)
     }
   })
+
+  // 优雅退出：容器编排 / 终端 Ctrl+C 发来停止信号时，先停掉全部设备子进程
+  // 再关闭 HTTP 服务；否则 MiGPT 子进程会成为孤儿进程，继续占用账号与资源。
+  let shuttingDown = false
+  const shutdown = (signal: NodeJS.Signals) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    console.log(`收到 ${signal}，正在停止全部设备并关闭服务…`)
+    const ids = Object.keys(getAllStatus())
+    Promise.all(ids.map((id) => stop(id).catch(() => {}))).finally(() =>
+      server.close(() => process.exit(0)),
+    )
+    // 兜底：连接未及时关闭或子进程不响应时，最多等待 8 秒强制退出
+    setTimeout(() => process.exit(0), 8000).unref()
+  }
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
 }

@@ -46,6 +46,7 @@
 - 前端登录由 Basic Auth（凭据存 `localStorage`）改为服务端 Cookie 会话，刷新页面保持登录态
 - 内置型号 / 语音服务的入口按钮「重置默认」更名为「重置」，与实际行为对齐
 - 二次确认弹窗统一按钮语义：非危险操作使用标准「确认」按钮（`check` 图标），删除类操作沿用「删除」；不再为单个弹窗自定义按钮文案与图标
+- 新增优雅退出：进程收到 `SIGTERM` / `SIGINT` 时先停止全部设备子进程，再关闭 HTTP 服务，避免 MiGPT 子进程成为孤儿进程继续占用账号与资源
 
 ### Refactor
 
@@ -75,3 +76,4 @@
 - 前端版本号改为构建期注入（webpack `DefinePlugin` 读取 `packages/gui/package.json`），消除 `App` / `LoginPage` / `ProfileView` 三处硬编码 `v1.12.0`
 - Docker 镜像标签与 `migpt-server` 安装版本同步至 `2.0.0`
 - 精简 tsconfig：移除未使用的 `experimentalDecorators` / `emitDecoratorMetadata`，`jsx` 由 `react-jsxdev` 改为 `react-jsx`，并删除 `gui` / `options` / `options-with-preview` 三处 `tsconfig.build.json` 中重复的 `jsx` 覆盖
+- 修复 `typecheck` 脚本空转：此前无任何包定义 `typecheck` 目标，nx 以「0 项目」退出码 0 使 `||` 兜底永不触发，CI 类型检查实际从未运行；现为各包补 `typecheck: tsc --noEmit`，`nx.json` 声明 `typecheck.dependsOn: ["^build"]`，根脚本收敛为单一 nx 调用
