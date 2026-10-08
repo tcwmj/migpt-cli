@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 import { authFile } from '../paths.js'
 import { readJsonSync } from './json.js'
 import { writeJsonChecked, authSchema } from './schemas.js'
+import { getEnv } from './env.js'
 
 // 优先级：CLI --user/--pwd > AUTH_USER/AUTH_PASSWORD 环境变量 > auth.json（面板可改）> 默认 admin/123456
 const AUTH_CACHE_TTL = 5000
@@ -23,9 +24,8 @@ export async function saveAuthCredentials(
 }
 
 function _resolveAuthUncached(): Record<string, string> {
-  const envUser = process.env.AUTH_USER || 'admin'
-  const envPwd = process.env.AUTH_PASSWORD
-  if (envPwd) return { [envUser]: envPwd }
+  const env = getEnv()
+  if (env.AUTH_PASSWORD) return { [env.AUTH_USER]: env.AUTH_PASSWORD }
   const file = readJsonSync<{ user?: string; password?: string }>(authFile, {})
   if (file.password) return { [file.user || 'admin']: file.password }
   return { admin: '123456' }
@@ -48,7 +48,7 @@ export function resolveAuth(
  * 仅当既无 AUTH_PASSWORD 环境变量、也无 auth.json 自定义密码时为 true，供启动告警使用。
  */
 export function usingDefaultAuth(): boolean {
-  if (process.env.AUTH_PASSWORD) return false
+  if (getEnv().AUTH_PASSWORD) return false
   const file = readJsonSync<{ user?: string; password?: string }>(authFile, {})
   return !file.password
 }

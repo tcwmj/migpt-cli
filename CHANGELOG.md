@@ -78,6 +78,8 @@
 - 后端复用收敛（B2）：`shared.ts` 新增 `ok(res, data?)` / `fail(res, status, error)` 响应助手；`findIndexOr404` 内部改用 `fail`；全路由（`auth` / `accounts` / `devices` / `legacy` / `logs` / `misc` / `backup` / `device-tts` / `speaker-models` / `voice-services` + `crud` 工厂）共 34 处 `res.status(N).json({ error })` / `res.json({ success: true })` 迁移为 `ok` / `fail` 调用，消除重复样板
 - 后端分层与依赖方向规范（B3）：`entities.ts` 新增 12 个 store 函数封装文件操作 —— `saveAccounts` / `saveRoles` / `saveRooms` / `saveThinkServices`（CRUD 写入）、`saveDeviceMeta` / `saveDeviceConfig` / `saveDeviceCredentials` / `removeDevice`（设备文件操作）、`loadDeviceConfig`（从 `shared.ts` 下沉）、`getSystemLogTail` / `getSystemLogSize` / `getSystemLogFull`（系统日志读取）；`auth.ts` 新增 `saveAuthCredentials` 封装凭据写入与缓存清空。路由层（`accounts` / `roles` / `rooms` / `think-services` / `devices` / `legacy` / `logs` / `auth`）共 20+ 处直接 `fs.readFile` / `writeJson` / `fse.remove` / `paths.ts` 引用迁移为 store 调用，`shared.ts` 移除 `loadDeviceConfig` 实现改为 re-export，路由层不再直接读盘
 - 后端代码质量门禁与风格（B4）：ESLint 新增 `complexity: ['warn', { max: 20 }]` 规则与 `caughtErrorsIgnorePattern: '^_'`；修复全仓 14 处生产代码 `no-explicit-any` 违规（`accounts.ts` / `misc.ts` / `services.ts` / `child_process.ts` / `apis.ts` / `_utils.ts` / `utils.ts`），消除未使用导入（`RoleList.tsx`）；剩余 7 处 warning 仅在测试文件 `middleware.test.ts`；CI 门禁 `npm run lint` 已覆盖
+- HTTP 压缩与静态缓存头（A18）：引入 `compression` 中间件（阈值 1KB，自动 gzip/deflate）；`express.static` 添加 `maxAge: '1h'` 缓存头（文件名无内容哈希，保守 1 小时；前端构建改用哈希文件名后可提升到 1 年）
+- 环境变量集中校验（A16）：新增 `store/env.ts`，用 zod 校验全部 7 个环境变量（`PORT` / `LOG_LEVEL` / `BACKUP_INTERVAL_MS` / `BACKUP_KEEP` / `AUTH_USER` / `AUTH_PASSWORD` / `MIGPT_DEMO_LOGS`），启动时 fail-fast；`logger.ts` / `auth.ts` / `demo.ts` / `index.ts` 迁移为 `getEnv()` 调用，消除散落的 `process.env` 直接读取
 
 ### Engineering
 

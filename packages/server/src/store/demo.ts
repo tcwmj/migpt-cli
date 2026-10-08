@@ -1,6 +1,7 @@
 // ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话记录」页联调 ──
 import { appendLog, clearDeviceLog, demoTs, logger } from '../logger.js'
 import { listDeviceMetas } from './entities.js'
+import { getEnv } from './env.js'
 
 const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
   {
@@ -26,7 +27,7 @@ const DEMO_SCENES: { q: string; a: string; sys: string }[] = [
 ]
 
 export async function seedDemoLogs() {
-  if (!process.env.MIGPT_DEMO_LOGS) return
+  if (!getEnv().MIGPT_DEMO_LOGS) return
   const devices = await listDeviceMetas()
   if (!devices.length) return
   const now = Date.now()

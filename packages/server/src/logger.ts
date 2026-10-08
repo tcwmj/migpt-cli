@@ -5,6 +5,7 @@ import { Writable } from 'node:stream'
 import fse from 'fs-extra'
 import pino from 'pino'
 import { systemLogFile } from './paths.js'
+import { getEnv } from './store/env.js'
 
 // ── 系统日志：内存环形缓冲 + 轮转落盘 system.log ──
 export const sysLogBuf: string[] = []
@@ -144,7 +145,7 @@ const _dest = new Writable({
  */
 export const logger = pino(
   {
-    level: process.env.LOG_LEVEL || 'info',
+    level: getEnv().LOG_LEVEL,
     base: null,
     redact: {
       paths: [

@@ -1,5 +1,6 @@
 // ── 服务入口：HTTP 服务组装（安全中间件 + 路由注册 + 启动）──────────
 import express from 'express'
+import compression from 'compression'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import open from 'open'
@@ -9,6 +10,7 @@ import {
   runMigrations,
   usingDefaultAuth,
   startBackupScheduler,
+  getEnv,
 } from './store.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerDeviceTtsRoutes } from './routes/device-tts.js'
@@ -39,6 +41,9 @@ export function runServer(options?: ServerOptions) {
 
   // 请求 ID：最先挂载，贯穿后续所有中间件与路由（响应头 X-Request-Id + 日志关联）
   app.use(requestId())
+
+  // HTTP 压缩：>1KB 的响应自动 gzip/deflate（跳过已压缩图片和 x-no-compression 请求头）
+  app.use(compression({ threshold: 1024 }))
 
   // 安全响应头（helmet）：禁止 MIME 嗅探、禁止被 iframe 嵌套、不向外部泄露来源地址。
   // CSP 用兼容型白名单；不启用 helmet 默认指令集——默认含 upgrade-insecure-requests，
@@ -79,7 +84,13 @@ export function runServer(options?: ServerOptions) {
 
   // 静态资源匿名加载（前端 SPA 先加载 JS），API 全部要求认证
   if (options?.staticPath) {
-    app.use(express.static(options.staticPath))
+    app.use(
+      express.static(options.staticPath, {
+        // 文件名无内容哈希，保守设 1 小时；前端构建改用哈希文件名后可提升到 1 年
+        maxAge: '1h',
+        etag: true,
+      }),
+    )
   }
 
   // 认证中间件必须先于其他 /api 路由挂载
@@ -106,8 +117,8 @@ export function runServer(options?: ServerOptions) {
   let server: import('node:http').Server | undefined
   // 定时备份：env 控制间隔与保留份数（默认关闭）；unref 的定时器不阻止进程退出
   const stopBackups = startBackupScheduler({
-    intervalMs: Number(process.env.BACKUP_INTERVAL_MS) || 0,
-    keep: Number(process.env.BACKUP_KEEP) || 0,
+    intervalMs: getEnv().BACKUP_INTERVAL_MS,
+    keep: getEnv().BACKUP_KEEP,
   })
   void (async () => {
     try {
