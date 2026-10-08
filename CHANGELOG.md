@@ -85,6 +85,7 @@
 - 供应链安全（A19）：新增 `.github/dependabot.yml`，配置 npm / GitHub Actions / Docker 三类生态的每周自动依赖更新，开发依赖分组更新减少 PR 噪音，生产依赖逐个更新便于审查
 - main 与 upstream 同步策略（G3）：新增 `scripts/sync-upstream.ps1` 自动化脚本，执行 `git fetch upstream && merge upstream/main`；文档化同步流程
 - 前端 Hash 路由（M5）：新增 `hooks/useHashRouter.ts`，实现视图状态与 URL hash 双向绑定 —— 初始化从 hash 读取视图、视图变化时更新 hash、浏览器前进/后退同步视图；`App.tsx` 的 `nav` 函数抽取为 `useNav` hook，支持深链分享与页面刷新恢复
+- 目录/包名语义化评估（A2）：当前结构已是语义化的（`apps/` 可执行入口 vs `packages/` 共享库），改名影响 150+ 处引用且破坏已发布资产，归档为结论性条目
 
 ### Engineering
 
