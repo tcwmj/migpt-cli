@@ -1,6 +1,6 @@
 // ── 日志层：结构化 logger（pino）+ 系统日志落盘 + 设备日志缓冲 ──
 // pino 输出结构化记录，经自定义 destination 转成人可读行写入按天轮转的日志文件
-// （pino-roll：system.<yyyy-MM-dd>.N.log，单文件 5MB 上限、保留 7 份历史），
+// （pino-roll：system.<yyyyMMdd>.N.log，单文件 5MB 上限、保留 30 份历史≈30 天），
 // 并镜像到 stdout（容器日志）；不再劫持全局 console.*。
 import { Writable } from 'node:stream'
 import fse from 'fs-extra'
@@ -14,11 +14,12 @@ import { getEnv } from './store/env.js'
 export const sysLogBuf: string[] = []
 export const sysLogMax = 1000
 
-// 落盘：pino-roll 标准轮转（按天 + 单文件 5MB + 保留 7 份），替代手写缓冲合并/轮转。
+// 落盘：pino-roll 标准轮转（按天 + 单文件 5MB + 保留 30 份），替代手写缓冲合并/轮转。
 // SonicBoom 的 fd 异步打开，ready 前的日志先积压在 _rollBacklog，ready 后补写，
 // 保证启动瞬间的日志不丢失；积压设上限防止极端情况下内存膨胀。
 const ROLL_SIZE = '5m'
-const ROLL_KEEP = 7
+// 按天轮转下每天通常一个文件，份数≈天数：默认保留 30 天历史日志
+const ROLL_KEEP = 30
 const BACKLOG_MAX = 5000
 let _roll: { write(s: string): boolean; flushSync(): void } | undefined
 let _rollBacklog: string[] = []

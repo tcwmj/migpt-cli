@@ -25,7 +25,7 @@ import {
   type DeviceMeta,
   type SpeakerModel,
 } from '../types.js'
-import { logger } from '../logger.js'
+import { logger, sysLogBuf } from '../logger.js'
 import { readJson, writeJson } from './json.js'
 import {
   accountListSchema,
@@ -312,7 +312,8 @@ async function _systemLogFilesFor(date: string): Promise<string[]> {
   const hits: { n: number; file: string }[] = []
   for (const name of names) {
     const m = name.match(/^system\.(\d{8})\.(\d+)\.log$/)
-    if (m && m[1] === date) hits.push({ n: Number(m[2]), file: path.join(root, name) })
+    if (m && m[1] === date)
+      hits.push({ n: Number(m[2]), file: path.join(root, name) })
   }
   if (!hits.length) return [systemLogFile]
   return hits.sort((a, b) => a.n - b.n).map((h) => h.file)
@@ -374,6 +375,84 @@ export async function getSystemLogFull(date?: string): Promise<string> {
     }
   }
   return parts.join('')
+}
+
+/** 日期范围（含端点、升序）各天尾部日志合并：每天至少取 200 行，
+ *  总上限为 dates.length × 200 或 lines 两者取大值（≥800）；
+ *  历史日期行附 `[yyyyMMdd] ` 前缀、当天实时行附 `[实时] ` 前缀，便于区分来源。 */
+export async function getSystemLogTailsBetween(
+  from: string,
+  to: string,
+  lines: number,
+): Promise<string[]> {
+  const dates = (await getSystemLogDates())
+    .reverse()
+    .filter((d) => d >= from && d <= to)
+  // 保证当天一定包含在 dates 中（当天日志文件可能尚未轮转落盘，但内存缓冲中存在）
+  const today = todayLogDate()
+  if (today >= from && today <= to && !dates.includes(today)) {
+    dates.push(today)
+  }
+  if (!dates.length) return []
+  // 每天至少取 200 行，避免多天分摊后单天内容过少
+  const perDay = Math.max(200, Math.ceil(lines / dates.length))
+  // 总上限：各天 perDay 之和，至少 800 行
+  const totalCap = Math.max(800, lines, dates.length * perDay)
+  const out: string[] = []
+  for (const d of dates) {
+    let tail: string[]
+    if (d === today) {
+      tail = sysLogBuf.slice(-perDay)
+      if (!tail.length) tail = await getSystemLogTail(perDay, d)
+      tail = tail.map((l) => `[实时] ${l}`)
+    } else {
+      tail = (await getSystemLogTail(perDay, d)).map((l) => `[${d}] ${l}`)
+    }
+    out.push(...tail)
+  }
+  return out.slice(-totalCap)
+}
+
+/** 日期范围内（升序遍历）跨文件搜索日志行：q 大小写不敏感包含匹配；
+ *  当天优先用内存环形缓冲（实时），历史日期读落盘文件；
+ *  命中行附 `[日期] ` 前缀便于区分来源；总数超 limit 时截断（保尾部最新）。 */
+export async function searchSystemLogs(
+  from: string,
+  to: string,
+  q: string,
+  limit: number,
+): Promise<string[]> {
+  const needle = q.trim().toLowerCase()
+  if (!needle) return []
+  const today = todayLogDate()
+  let dates = (await getSystemLogDates()).reverse() // 升序遍历
+  // 保证当天一定包含（当天日志文件可能尚未轮转落盘，但内存缓冲中存在）
+  if (today >= from && today <= to && !dates.includes(today)) {
+    dates = [...dates, today]
+  }
+  const out: string[] = []
+  for (const d of dates) {
+    if (d < from || d > to) continue
+    let lines: string[]
+    if (d === today) {
+      // 当天：内存缓冲（含未落盘的最新行），不足再回退文件
+      lines = sysLogBuf.filter((l) => l.toLowerCase().includes(needle))
+      if (!lines.length) {
+        lines = (await getSystemLogFull(d))
+          .split('\n')
+          .filter((l) => l.toLowerCase().includes(needle))
+      }
+      lines = lines.map((l) => `[实时] ${l}`)
+    } else {
+      lines = (await getSystemLogFull(d))
+        .split('\n')
+        .filter((l) => l.trim() && l.toLowerCase().includes(needle))
+        .map((l) => `[${d}] ${l}`)
+    }
+    out.push(...lines)
+    if (out.length >= limit) return out.slice(-limit)
+  }
+  return out
 }
 
 // 供应商 → Base URL 映射：单一事实源在 @migptgui/contracts（经 ./types.js 转发）

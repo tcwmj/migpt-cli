@@ -6,7 +6,54 @@
   min-height: 0;
 }
 
-.syslog .filters .switch-inline {
+/* ── 工具栏：日期选择 | 自动刷新 ······ 下载 / 清理 ── */
+.syslog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  flex: none;
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-6);
+  padding: var(--sp-5) var(--sp-6);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-card);
+}
+
+.syslog-toolbar .tb-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+/* 实时状态点：自动刷新且看当天时呼吸高亮 */
+.syslog-toolbar .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line);
+  flex: none;
+  transition: background var(--dur-200) ease;
+}
+
+.syslog-toolbar .live-dot[data-on='1'] {
+  background: var(--ok);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(47, 122, 85, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(47, 122, 85, 0);
+  }
+}
+
+.syslog-toolbar .switch-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-4);
@@ -17,52 +64,281 @@
   user-select: none;
 }
 
-/* 日期选择：默认展示当前查看日期，弹出日历切换 */
-.syslog .filters .syslog-date {
-  width: 150px;
-  margin-right: var(--sp-4);
-}
-
-.syslog .filters .syslog-date .bp5-input {
-  height: 28px;
-}
-
-/* 无日志日期：置灰禁选 + 悬浮提示 */
-.rdp-day_disabled.syslog-no-log-day {
-  position: relative;
-  cursor: not-allowed;
-}
-
-.rdp-day_disabled.syslog-no-log-day::after {
-  content: '未找到当天系统日志';
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--ink-2, #383e47);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-150) ease;
-  z-index: var(--z-popover);
-}
-
-.rdp-day_disabled.syslog-no-log-day:hover::after {
-  opacity: 1;
-}
-
-.syslog .filters .switch-inline .switch {
+.syslog-toolbar .switch-inline .switch {
   margin: 0;
 }
 
-.syslog .filters {
-  margin-bottom: var(--sp-6);
+.syslog-toolbar .switch-inline:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* 历史日志标记 */
+.syslog-toolbar .tb-tag {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  color: var(--warn-ink);
+  background: var(--warn-soft);
+  border-radius: var(--pill);
+  padding: 2px var(--sp-5);
+}
+
+/* ── LogDateFilter: 复合日期范围过滤组件 ── */
+.ldf-wrap {
+  position: relative;
+}
+
+/* 触发按钮 */
+.ldf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: var(--sp-3) var(--sp-6);
+  background: var(--panel-2);
+  color: var(--ink-1);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  transition:
+    border-color var(--dur-150) ease,
+    color var(--dur-150) ease,
+    background var(--dur-150) ease;
+}
+
+.ldf-btn svg {
+  color: var(--ink-3);
+  transition: color var(--dur-150) ease;
+}
+
+.ldf-btn .caret {
+  margin-left: calc(-1 * var(--sp-2));
+  opacity: 0.7;
+}
+
+.ldf-btn:hover,
+.ldf-btn.open {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ldf-btn:hover svg,
+.ldf-btn.open svg {
+  color: var(--accent);
+}
+
+.ldf-btn.historical {
+  border-color: rgba(183, 122, 22, 0.4);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+
+.ldf-btn.historical svg {
+  color: var(--warn-ink);
+}
+
+.ldf-btn.historical:hover,
+.ldf-btn.historical.open {
+  border-color: var(--warn);
+  color: var(--warn-ink);
+}
+
+/* 弹层面板：左快筛 + 右日历 */
+.ldf-pop {
+  position: absolute;
+  top: calc(100% + var(--sp-4));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-pop);
+  animation: fadeUp var(--dur-160) ease;
+}
+
+.ldf-pop-left {
   flex: none;
+  padding: var(--sp-7) var(--sp-5);
+  min-width: 100px;
+}
+
+.ldf-pop-sep {
+  width: 1px;
+  background: var(--line);
+  flex: none;
+}
+
+.ldf-pop-right {
+  padding: var(--sp-6);
+}
+
+/* ── QuickRangeFilter: 快捷时段按钮组 ── */
+.qr-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.qr-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--r-m);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--ink-1);
+  white-space: nowrap;
+  transition:
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
+}
+
+.qr-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.qr-btn.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-semibold);
+}
+
+/* ── DateRangePicker: 日历组件 ── */
+.ui-cal {
+  width: 260px;
+}
+
+.ui-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-5);
+  padding: 0 var(--sp-2);
+}
+
+.ui-cal-title {
+  font-weight: var(--fw-strong);
+  font-size: var(--fs-md);
+}
+
+.ui-cal-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-s);
+  color: var(--ink-2);
+  transition:
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
+}
+
+.ui-cal-nav:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ui-cal-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ui-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--sp-1);
+}
+
+.ui-cal-day {
+  height: 32px;
+  border-radius: var(--r-s);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
+}
+
+/* 范围区间：浅色底 */
+.ui-cal-day.in {
+  background: var(--accent-soft);
+  border-radius: 0;
+  color: var(--accent);
+}
+
+.ui-cal-day.in:hover:not(:disabled):not(.on) {
+  background: rgba(217, 100, 42, 0.2);
+}
+
+.ui-cal-day:hover:not(:disabled):not(.on) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* 今天：描边高亮 */
+.ui-cal-day.today {
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--accent);
+  font-weight: var(--fw-bold);
+}
+
+/* 选中：实心强调（范围端点） */
+.ui-cal-day.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--r-s);
+  box-shadow: none;
+  font-weight: var(--fw-bold);
+}
+
+/* 未来 / 无日志：置灰禁用 */
+.ui-cal-day:disabled {
+  color: var(--ink-3);
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.ui-cal-day.on:disabled {
+  opacity: 1;
+}
+
+.ui-cal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line-2);
+  font-size: var(--fs-2xs);
+  color: var(--ink-3);
+}
+
+.ui-cal-today {
+  min-height: 0;
+  padding: var(--sp-1) var(--sp-4);
+  border-radius: var(--r-s);
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-2xs);
+  transition:
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
+}
+
+.ui-cal-today:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.ui-cal-today:disabled {
+  color: var(--ink-3);
+  opacity: 0.5;
+  cursor: default;
 }
 
 .syslog-box {

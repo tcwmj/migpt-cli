@@ -7,6 +7,8 @@ import {
   getSystemLogFull,
   getSystemLogDates,
   getActiveSystemLogFile,
+  getSystemLogTailsBetween,
+  searchSystemLogs,
   todayLogDate,
   LOG_DATE_RE,
 } from '../store.js'
@@ -45,15 +47,33 @@ export function registerLogRoutes({ app }: RouteContext): void {
     res.json({ total: rows.length, logs: rows.slice(0, limit) })
   })
 
-  // ── 系统日志（实时查看 + 按日期查看/下载 + 有日志日期列表）──────
+  // ── 系统日志（实时查看 + 按日期/范围查看 + 有日志日期列表）──────
   // date=yyyyMMdd，缺省为当天；当天优先用内存环形缓冲（实时），历史日期直读文件。
+  // from/to=yyyyMMdd 为范围模式：合并范围内各天尾部日志（忽略 date 参数）。
   app.get(`${API_PREFIX}/system/logs`, async (req, res) => {
+    const from = parseLogDate(req.query.from)
+    const to = parseLogDate(req.query.to)
+    if (from === null || to === null) {
+      fail(res, 400, '日期参数格式应为 yyyyMMdd')
+      return
+    }
+    const lines = Math.min(Number(req.query.lines) || 300, 2000)
+    // 范围模式
+    if (from && to) {
+      const [lo, hi] = from <= to ? [from, to] : [to, from]
+      res.json({
+        lines: await getSystemLogTailsBetween(lo, hi, lines),
+        file: `${lo}-${hi}`,
+        size: 0,
+        range: true,
+      })
+      return
+    }
     const date = parseLogDate(req.query.date)
     if (date === null) {
       fail(res, 400, '日期参数格式应为 yyyyMMdd')
       return
     }
-    const lines = Math.min(Number(req.query.lines) || 300, 2000)
     let arr: string[] = []
     if (!date || date === todayLogDate()) {
       arr = sysLogBuf.slice(-lines)
@@ -71,15 +91,59 @@ export function registerLogRoutes({ app }: RouteContext): void {
     res.json({ dates: await getSystemLogDates() })
   })
 
+  // 日期范围跨文件搜索：from/to=yyyyMMdd（含端点，缺省为当天），q=关键词（必填）
+  app.get(`${API_PREFIX}/system/logs/search`, async (req, res) => {
+    const from = parseLogDate(req.query.from)
+    const to = parseLogDate(req.query.to)
+    const q = String(req.query.q || '').trim()
+    if (from === null || to === null) {
+      fail(res, 400, '日期参数格式应为 yyyyMMdd')
+      return
+    }
+    if (!q) {
+      fail(res, 400, '缺少搜索关键词 q')
+      return
+    }
+    const start = from || to || todayLogDate()
+    const end = to || from || todayLogDate()
+    // 保证 start <= end（字符串比较对 yyyyMMdd 有效）
+    const [lo, hi] = start <= end ? [start, end] : [end, start]
+    const limit = Math.min(Number(req.query.limit) || 1000, 5000)
+    res.json({ lines: await searchSystemLogs(lo, hi, q, limit) })
+  })
+
   app.get(`${API_PREFIX}/system/logs/download`, async (req, res) => {
-    const date = parseLogDate(req.query.date)
-    if (date === null) {
+    const from = parseLogDate(req.query.from)
+    const to = parseLogDate(req.query.to)
+    if (from === null || to === null) {
       fail(res, 400, '日期参数格式应为 yyyyMMdd')
       return
     }
     try {
-      const text = await getSystemLogFull(date)
-      const suffix = date ? `-${date}` : ''
+      let text: string
+      let suffix: string
+      if (from && to) {
+        // 范围模式：拼接范围内各天全文（升序）
+        const [lo, hi] = from <= to ? [from, to] : [to, from]
+        const dates = (await getSystemLogDates())
+          .reverse()
+          .filter((d) => d >= lo && d <= hi)
+        const parts: string[] = []
+        for (const d of dates) {
+          parts.push(`\n===== ${d} =====\n`)
+          parts.push(await getSystemLogFull(d))
+        }
+        text = parts.join('')
+        suffix = `-${lo}-${hi}`
+      } else {
+        const date = parseLogDate(req.query.date)
+        if (date === null) {
+          fail(res, 400, '日期参数格式应为 yyyyMMdd')
+          return
+        }
+        text = await getSystemLogFull(date)
+        suffix = date ? `-${date}` : ''
+      }
       res.setHeader('Content-Type', 'text/plain; charset=utf-8')
       res.setHeader(
         'Content-Disposition',

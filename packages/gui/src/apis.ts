@@ -366,11 +366,32 @@ export interface SystemLogs {
   size: number
 }
 
-/** 读取系统日志：date 为 yyyyMMdd（缺省当天）；当天实时优先内存缓冲，历史直读文件 */
-export const getSystemLogs = (lines = 300, date?: string) =>
-  fetch(api(`/system/logs?lines=${lines}${date ? `&date=${date}` : ''}`), {
+/** 读取系统日志：date 为 yyyyMMdd（缺省当天）；from/to 同时提供为范围模式（合并各天尾部） */
+export const getSystemLogs = (
+  lines = 300,
+  date?: string,
+  from?: string,
+  to?: string,
+) => {
+  const qs = from && to ? `&from=${from}&to=${to}` : date ? `&date=${date}` : ''
+  return fetch(api(`/system/logs?lines=${lines}${qs}`), {
     headers: headers(false),
   }).then((r) => j<SystemLogs>(r))
+}
+
+/** 日期范围跨文件搜索系统日志（含端点，q 大小写不敏感），命中行附日期前缀 */
+export const searchSystemLogs = (
+  from: string,
+  to: string,
+  q: string,
+  limit = 1000,
+) =>
+  fetch(
+    api(
+      `/system/logs/search?from=${from}&to=${to}&q=${encodeURIComponent(q)}&limit=${limit}`,
+    ),
+    { headers: headers(false) },
+  ).then((r) => j<{ lines: string[] }>(r))
 
 /** 有日志落盘的日期列表（yyyyMMdd，降序），供日历置灰判断 */
 export const getSystemLogDates = () =>
@@ -384,18 +405,21 @@ export const clearSystemLogs = () =>
     headers: headers(false),
   }).then((r) => j<{ success: boolean; error?: string }>(r))
 
-export async function downloadSystemLogs(date?: string): Promise<void> {
-  const r = await fetch(
-    api(`/system/logs/download${date ? `?date=${date}` : ''}`),
-    {
-      headers: headers(false),
-    },
-  )
+/** 下载系统日志：date 为单日；from/to 同时提供为范围（拼接范围内各天全文） */
+export async function downloadSystemLogs(
+  date?: string,
+  from?: string,
+  to?: string,
+): Promise<void> {
+  const qs = from && to ? `?from=${from}&to=${to}` : date ? `?date=${date}` : ''
+  const r = await fetch(api(`/system/logs/download${qs}`), {
+    headers: headers(false),
+  })
   if (!r.ok) throw new Error('HTTP ' + r.status)
   const blob = await r.blob()
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `migpt-system${date ? `-${date}` : ''}.log`
+  a.download = `migpt-system${from && to ? `-${from}-${to}` : date ? `-${date}` : ''}.log`
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -428,4 +452,98 @@ export async function testTts(ttsConfig: TTSConfig) {
     })
     audio.addEventListener('ended', cleanup)
   })
+}
+
+// ── 统计接口 ────────────────────────────────────────────────
+export type StatsRange =
+  | 'today'
+  | 'this_month'
+  | 'this_year'
+  | 'last_1d'
+  | 'last_3d'
+  | 'last_7d'
+  | 'last_30d'
+
+export type StatsDimension = 'role' | 'device' | 'service'
+
+export interface TokenStats {
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  conversations: number
+}
+
+export interface TimeSeriesPoint extends TokenStats {
+  date: string
+}
+
+export interface DimensionStats extends TokenStats {
+  id: string
+  name: string
+}
+
+export interface DimensionEntity {
+  id: string
+  name: string
+}
+
+export interface ServiceHealth {
+  id: string
+  name: string
+  type: 'think' | 'voice'
+  limitReached: boolean
+  tokenUsed: number
+  tokenLimit?: number
+  usagePercent?: number
+}
+
+export interface DeviceHealth {
+  id: string
+  name: string
+  running: boolean
+  conversations: number
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+}
+
+export interface StatsResponse {
+  totals: TokenStats
+  filtered: TokenStats
+  timeline: TimeSeriesPoint[]
+  dimensionData: DimensionStats[]
+  entities: Record<string, DimensionEntity[]>
+  serviceHealth: ServiceHealth[]
+  deviceHealth: DeviceHealth[]
+  range: StatsRange
+  groupPeriod: string
+}
+
+export const RANGE_LABELS: Record<StatsRange, string> = {
+  today: '今天',
+  this_month: '本月',
+  this_year: '今年',
+  last_1d: '最近 1 天',
+  last_3d: '最近 3 天',
+  last_7d: '最近 7 天',
+  last_30d: '最近 30 天',
+}
+
+export const DIMENSION_LABELS: Record<string, string> = {
+  role: '对话角色',
+  device: '设备服务',
+  service: '模型服务',
+}
+
+export const getStats = (
+  range: StatsRange = 'today',
+  dimension?: StatsDimension,
+  ids?: string[],
+) => {
+  const params = new URLSearchParams({ range })
+  if (dimension) params.set('dimension', dimension)
+  if (ids && ids.length > 0) params.set('ids', ids.join(','))
+  return fetch(api(`/stats?${params}`), {
+    headers: headers(false),
+  }).then((r) => j<StatsResponse>(r))
 }
