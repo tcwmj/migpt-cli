@@ -30,8 +30,10 @@ export type {
 } from '@migptgui/contracts'
 
 // ── 登录认证（httpOnly Cookie 会话）─────────────────────────
-// 凭据仅在登录请求中提交一次，服务端签发 httpOnly Cookie；前端不再持有明文凭据。
-// 同源 fetch 默认携带 Cookie（credentials: 'same-origin'），无需手动附加 Authorization。
+// 标准模式（同主流自托管面板）：密码 POST 提交一次，服务端验证后签发 httpOnly
+// Cookie，后续请求凭会话访问、前端不再持有密码。传输安全由 TLS 或本地网络
+// 边界保证（公网部署套 HTTPS 反向代理），不自造私有密码传输协议。
+// 同源 fetch 默认携带 Cookie（credentials: 'same-origin'），无需手动附加。
 export function login(
   user: string,
   password: string,
@@ -366,9 +368,16 @@ export interface SystemLogs {
   size: number
 }
 
-export const getSystemLogs = (lines = 300) =>
-  fetch(api(`/system/logs?lines=${lines}`), { headers: headers(false) }).then(
-    (r) => j<SystemLogs>(r),
+/** 读取系统日志：date 为 yyyyMMdd（缺省当天）；当天实时优先内存缓冲，历史直读文件 */
+export const getSystemLogs = (lines = 300, date?: string) =>
+  fetch(api(`/system/logs?lines=${lines}${date ? `&date=${date}` : ''}`), {
+    headers: headers(false),
+  }).then((r) => j<SystemLogs>(r))
+
+/** 有日志落盘的日期列表（yyyyMMdd，降序），供日历置灰判断 */
+export const getSystemLogDates = () =>
+  fetch(api('/system/logs/dates'), { headers: headers(false) }).then((r) =>
+    j<{ dates: string[] }>(r),
   )
 
 export const clearSystemLogs = () =>
@@ -377,15 +386,15 @@ export const clearSystemLogs = () =>
     headers: headers(false),
   }).then((r) => j<{ success: boolean; error?: string }>(r))
 
-export async function downloadSystemLogs(): Promise<void> {
-  const r = await fetch(api('/system/logs/download'), {
+export async function downloadSystemLogs(date?: string): Promise<void> {
+  const r = await fetch(api(`/system/logs/download${date ? `?date=${date}` : ''}`), {
     headers: headers(false),
   })
   if (!r.ok) throw new Error('HTTP ' + r.status)
   const blob = await r.blob()
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = 'migpt-system.log'
+  a.download = `migpt-system${date ? `-${date}` : ''}.log`
   document.body.appendChild(a)
   a.click()
   a.remove()

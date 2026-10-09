@@ -1,5 +1,9 @@
 // ── 认证：httpOnly Cookie 会话（主）+ Basic Auth（兼容）+ 凭据修改 ────
-import { resolveAuth, saveAuthCredentials, safeEqual } from '../store.js'
+// 登录走标准模式（同 Pi-hole / Portainer 等自托管面板）：密码 POST 提交，
+// 服务端 scrypt 恒定时间验证后签发 httpOnly Cookie；传输安全由 TLS 或
+// 本地网络边界保证（公网部署套 HTTPS 反向代理），不自造私有传输协议。
+import { rateLimit } from 'express-rate-limit'
+import { resolveAuth, saveAuthCredentials, verifyPassword } from '../store.js'
 import {
   SESSION_COOKIE,
   SESSION_TTL_MS,
@@ -9,47 +13,29 @@ import {
 } from '../session.js'
 import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
 
-// 认证失败限流：同一来源在窗口内失败次数超限后直接拒绝，抵御口令爆破。
-// 注意：若部署在反向代理之后，需配置 app.set('trust proxy') 才能拿到真实客户端 IP。
-const AUTH_WINDOW_MS = 10 * 60 * 1000
-const AUTH_MAX_FAILURES = 20
-
 export function registerAuthRoutes({ app, options }: RouteContext): void {
-  const authFailures = new Map<string, { count: number; resetAt: number }>()
-  const authBlocked = (ip: string) => {
-    const e = authFailures.get(ip)
-    if (!e) return false
-    if (Date.now() > e.resetAt) {
-      authFailures.delete(ip)
-      return false
-    }
-    return e.count >= AUTH_MAX_FAILURES
-  }
-  const noteAuthFailure = (ip: string) => {
-    const now = Date.now()
-    const e = authFailures.get(ip)
-    if (!e || now > e.resetAt) {
-      authFailures.set(ip, { count: 1, resetAt: now + AUTH_WINDOW_MS })
-      return
-    }
-    e.count++
-  }
+  // 认证失败限流（express-rate-limit 标准实现）：窗口内失败超限直接拒绝，抵御口令爆破；
+  // skipSuccessfulRequests 使成功请求清零语义（200 不计数、401/429 计数）。
+  // 登录路由与认证中间件共享同一实例与额度，与原手写 Map 语义一致。
+  // 注意：若部署在反向代理之后，需配置 app.set('trust proxy') 才能拿到真实客户端 IP。
+  const authLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    handler: (_req, res) => fail(res, 429, '尝试次数过多，请稍后再试'),
+  })
 
   // ── 登录 / 登出 / 会话探测：须先于认证中间件注册（匿名可访问）─────
-  // 登录成功后签发 httpOnly Cookie，前端不再持有明文凭据。
-  app.post(`${API_PREFIX}/login`, (req, res) => {
-    const ip = req.ip || 'unknown'
-    if (authBlocked(ip)) {
-      fail(res, 429, '尝试次数过多，请稍后再试')
-      return
-    }
+  // 登录成功后签发 httpOnly Cookie，后续请求凭会话访问，不再重复提交密码。
+  app.post(`${API_PREFIX}/login`, authLimiter, (req, res) => {
     const body = req.body as { user?: string; password?: string }
     const user = body.user || ''
     const users = resolveAuth(options?.users)
-    // 恒定时间比较；用户名不存在时也与空串比较，避免用户枚举
-    const expected = users[user] ?? ''
-    if (user && expected && safeEqual(expected, body.password || '')) {
-      authFailures.delete(ip)
+    // 用户不存在时凭据为空，验证一律不通过（避免用户枚举）
+    const expected = users[user]
+    if (expected && body.password && verifyPassword(expected, body.password)) {
       res.cookie(SESSION_COOKIE, createSession(user), {
         httpOnly: true,
         sameSite: 'strict',
@@ -59,7 +45,6 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       ok(res)
       return
     }
-    noteAuthFailure(ip)
     fail(res, 401, 'unauthorized')
   })
 
@@ -80,15 +65,10 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
 
   // ── 认证中间件：优先校验会话 Cookie，其次兼容 Basic Auth ──────────
   // 认证默认启用：凭据按 环境变量/--pwd > auth.json（面板可改）> 默认 admin/123456 解析。
+  // 与登录路由共享 authLimiter 额度：未认证请求同样计入失败计数。
   if (options?.auth !== false) {
-    app.use(API_PREFIX, (req, res, next) => {
-      const ip = req.ip || 'unknown'
-      if (authBlocked(ip)) {
-        fail(res, 429, '尝试次数过多，请稍后再试')
-        return
-      }
+    app.use(API_PREFIX, authLimiter, (req, res, next) => {
       if (getSession(req.cookies?.[SESSION_COOKIE])) {
-        authFailures.delete(ip)
         return next()
       }
       const header = req.headers.authorization || ''
@@ -103,15 +83,13 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
         const idx = decoded.indexOf(':')
         const user = idx >= 0 ? decoded.slice(0, idx) : ''
         const pass = idx >= 0 ? decoded.slice(idx + 1) : ''
-        // 恒定时间比较；用户名不存在时也与空串比较，避免用户枚举
+        // scrypt 恒定时间验证；用户名不存在时不执行验证（避免用户枚举）
         const users = resolveAuth(options?.users)
-        const expected = users[user] ?? ''
-        if (user && expected && safeEqual(expected, pass)) {
-          authFailures.delete(ip)
+        const expected = users[user]
+        if (expected && pass && verifyPassword(expected, pass)) {
           return next()
         }
       }
-      noteAuthFailure(ip)
       fail(res, 401, 'unauthorized')
     })
   }
@@ -129,8 +107,8 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       return
     }
     const users = resolveAuth(options?.users)
-    const current = users[body.oldUser || ''] ?? ''
-    if (!current || !safeEqual(current, body.oldPassword || '')) {
+    const current = users[body.oldUser || '']
+    if (!current || !verifyPassword(current, body.oldPassword || '')) {
       fail(res, 403, '旧密码不正确')
       return
     }

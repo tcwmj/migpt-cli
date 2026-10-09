@@ -22,6 +22,7 @@
     "@babel/preset-react": "^7.24.7",
     "@babel/preset-typescript": "^7.24.7",
     "@blueprintjs/core": "^5.13.0",
+    "@blueprintjs/datetime2": "^3.3.0",
     "@blueprintjs/icons": "^5.13.0",
     "@migptgui/contracts": "*",
     "@migptgui/options": "*",

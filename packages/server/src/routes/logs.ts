@@ -1,13 +1,23 @@
 // ── 对话日志聚合 + 系统日志查看/下载/清空 ────────────────────────
-import { systemLogFile } from '../paths.js'
 import { logRows, sysLogBuf, clearSysLog } from '../logger.js'
 import {
   listDeviceMetas,
   getSystemLogTail,
   getSystemLogSize,
   getSystemLogFull,
+  getSystemLogDates,
+  getActiveSystemLogFile,
+  todayLogDate,
+  LOG_DATE_RE,
 } from '../store.js'
 import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
+
+/** 解析 query 中的日期参数（yyyyMMdd）；未提供返回 undefined，非法返回 null */
+function parseLogDate(v: unknown): string | undefined | null {
+  if (v === undefined) return undefined
+  const s = String(v)
+  return LOG_DATE_RE.test(s) ? s : null
+}
 
 export function registerLogRoutes({ app }: RouteContext): void {
   // ── 全局对话日志（聚合所有设备，供「对话记录」页）────────────────
@@ -35,25 +45,45 @@ export function registerLogRoutes({ app }: RouteContext): void {
     res.json({ total: rows.length, logs: rows.slice(0, limit) })
   })
 
-  // ── 系统日志（实时查看 + 下载历史）───────────────────────────
+  // ── 系统日志（实时查看 + 按日期查看/下载 + 有日志日期列表）──────
+  // date=yyyyMMdd，缺省为当天；当天优先用内存环形缓冲（实时），历史日期直读文件。
   app.get(`${API_PREFIX}/system/logs`, async (req, res) => {
+    const date = parseLogDate(req.query.date)
+    if (date === null) {
+      fail(res, 400, '日期参数格式应为 yyyyMMdd')
+      return
+    }
     const lines = Math.min(Number(req.query.lines) || 300, 2000)
-    let arr = sysLogBuf.slice(-lines)
+    let arr: string[] = []
+    if (!date || date === todayLogDate()) {
+      arr = sysLogBuf.slice(-lines)
+    }
     if (arr.length < lines) {
-      const tail = await getSystemLogTail(lines)
+      const tail = await getSystemLogTail(lines, date)
       if (tail.length) arr = tail
     }
-    const size = await getSystemLogSize()
-    res.json({ lines: arr, file: systemLogFile, size })
+    const size = await getSystemLogSize(date)
+    res.json({ lines: arr, file: await getActiveSystemLogFile(date), size })
   })
 
-  app.get(`${API_PREFIX}/system/logs/download`, async (_req, res) => {
+  // 有日志落盘的日期列表（降序），供面板日历判断哪些日期可选
+  app.get(`${API_PREFIX}/system/logs/dates`, async (_req, res) => {
+    res.json({ dates: await getSystemLogDates() })
+  })
+
+  app.get(`${API_PREFIX}/system/logs/download`, async (req, res) => {
+    const date = parseLogDate(req.query.date)
+    if (date === null) {
+      fail(res, 400, '日期参数格式应为 yyyyMMdd')
+      return
+    }
     try {
-      const text = await getSystemLogFull()
+      const text = await getSystemLogFull(date)
+      const suffix = date ? `-${date}` : ''
       res.setHeader('Content-Type', 'text/plain; charset=utf-8')
       res.setHeader(
         'Content-Disposition',
-        'attachment; filename="migpt-system.log"',
+        `attachment; filename="migpt-system${suffix}.log"`,
       )
       res.send(text)
     } catch {

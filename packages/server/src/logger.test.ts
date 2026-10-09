@@ -1,5 +1,6 @@
 import { jest, describe, test, expect } from '@jest/globals'
 import fs from 'node:fs/promises'
+import p from 'node:path'
 
 // paths.ts 模块加载即锁定真实 ~/.migptgui，这里替换为临时目录，避免污染用户数据
 jest.mock('./paths.js', () => {
@@ -7,7 +8,11 @@ jest.mock('./paths.js', () => {
   const p = jest.requireActual<typeof import('node:path')>('node:path')
   const f = jest.requireActual<typeof import('node:fs')>('node:fs')
   const root = f.mkdtempSync(p.join(os.tmpdir(), 'migpt-logger-'))
-  return { systemLogFile: p.join(root, 'system.log') }
+  return {
+    root,
+    systemLogFile: p.join(root, 'system.log'),
+    systemLogPrefix: p.join(root, 'system'),
+  }
 })
 
 import * as paths from './paths.js'
@@ -43,22 +48,38 @@ describe('logger 结构化输出', () => {
   })
 })
 
-describe('系统日志落盘', () => {
-  test('累积达到阈值后写入 system.log', async () => {
-    for (let i = 0; i < 210; i++) logger.info(`line-${i}`)
-    // 200 行触发阈值立即落盘，尾部 10 行由 500ms 定时器兜底
+describe('系统日志落盘（pino-roll 按天轮转）', () => {
+  const root = p.dirname(paths.systemLogFile)
+  const listLogs = async () =>
+    (await fs.readdir(root)).filter((n) =>
+      /^system(\.\d{4}-\d{2}-\d{2}\.\d+)?\.log(\.\d+)?$/.test(n),
+    )
+
+  test('日志写入当天轮转文件（system.<日期>.N.log）', async () => {
+    for (let i = 0; i < 5; i++) logger.info(`line-${i}`)
+    // SonicBoom fd 异步打开 + 异步 flush，等待落盘完成
     await wait(700)
-    const content = await fs.readFile(paths.systemLogFile, 'utf-8')
+    const files = await listLogs()
+    expect(files.some((n) => /^system\.\d{4}-\d{2}-\d{2}\.\d+\.log$/.test(n))).toBe(
+      true,
+    )
+    const content = (
+      await Promise.all(files.map((n) => fs.readFile(p.join(root, n), 'utf-8')))
+    ).join('')
     expect(content).toContain('line-0')
-    expect(content).toContain('line-209')
+    expect(content).toContain('line-4')
   })
 
-  test('clearSysLog 清空内存缓冲与落盘文件', async () => {
+  test('clearSysLog 清空内存缓冲与全部日志文件', async () => {
     logger.info('before-clear')
+    await wait(300)
     await clearSysLog()
     expect(sysLogBuf).toHaveLength(0)
-    const content = await fs.readFile(paths.systemLogFile, 'utf-8')
-    expect(content).toBe('')
+    // 活动文件被截断为空；不再有历史轮转/旧版残留文件
+    const files = await listLogs()
+    for (const n of files) {
+      expect(await fs.readFile(p.join(root, n), 'utf-8')).toBe('')
+    }
   })
 })
 

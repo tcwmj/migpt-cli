@@ -5,7 +5,11 @@ jest.mock('./paths.js', () => {
   const p = jest.requireActual<typeof import('node:path')>('node:path')
   const f = jest.requireActual<typeof import('node:fs')>('node:fs')
   const root = f.mkdtempSync(p.join(os.tmpdir(), 'migpt-mw-'))
-  return { systemLogFile: p.join(root, 'system.log') }
+  return {
+    root,
+    systemLogFile: p.join(root, 'system.log'),
+    systemLogPrefix: p.join(root, 'system'),
+  }
 })
 
 import { requestId, errorHandler, reqIdOf } from './middleware.js'

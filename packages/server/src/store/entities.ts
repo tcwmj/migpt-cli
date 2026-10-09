@@ -4,6 +4,7 @@ import fs from 'node:fs/promises'
 import fse from 'fs-extra'
 import { nanoid } from 'nanoid'
 import {
+  root,
   devicesRoot,
   settingsFile,
   accountsFile,
@@ -292,11 +293,55 @@ export async function loadDeviceConfig(
 }
 
 // ── 系统日志读取 ──────────────────────────────────────────────
+// 落盘按天轮转（system.<yyyyMMdd>.N.log），读取端按日期解析文件；
+// 未指定日期时默认当天，无对应日期文件时回退旧版固定名 system.log（迁移期兼容）。
 
-/** 读取系统日志文件尾部 N 行 */
-export async function getSystemLogTail(lines: number): Promise<string[]> {
+export const LOG_DATE_RE = /^\d{8}$/
+
+const _pad2 = (n: number) => String(n).padStart(2, '0')
+
+/** 日期键（yyyyMMdd，服务器本地日）：今天 */
+export function todayLogDate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}${_pad2(d.getMonth() + 1)}${_pad2(d.getDate())}`
+}
+
+/** 指定日期全部轮转文件的绝对路径（N 升序）；当天无文件时回退旧版 system.log */
+async function _systemLogFilesFor(date: string): Promise<string[]> {
+  const names = await fs.readdir(root).catch(() => [] as string[])
+  const hits: { n: number; file: string }[] = []
+  for (const name of names) {
+    const m = name.match(/^system\.(\d{8})\.(\d+)\.log$/)
+    if (m && m[1] === date) hits.push({ n: Number(m[2]), file: path.join(root, name) })
+  }
+  if (!hits.length) return [systemLogFile]
+  return hits.sort((a, b) => a.n - b.n).map((h) => h.file)
+}
+
+/** 有日志落盘的全部日期（yyyyMMdd，降序），供面板日历置灰判断 */
+export async function getSystemLogDates(): Promise<string[]> {
+  const names = await fs.readdir(root).catch(() => [] as string[])
+  const dates = new Set<string>()
+  for (const name of names) {
+    const m = name.match(/^system\.(\d{8})\.\d+\.log$/)
+    if (m) dates.add(m[1])
+  }
+  return [...dates].sort().reverse()
+}
+
+/** 指定日期的日志文件（最大序号者）；未指定则取当天 */
+export async function getActiveSystemLogFile(date?: string): Promise<string> {
+  const files = await _systemLogFilesFor(date || todayLogDate())
+  return files[files.length - 1]
+}
+
+/** 读取系统日志尾部 N 行（指定日期的活动文件，默认当天） */
+export async function getSystemLogTail(
+  lines: number,
+  date?: string,
+): Promise<string[]> {
   try {
-    const all = (await fs.readFile(systemLogFile, 'utf8'))
+    const all = (await fs.readFile(await getActiveSystemLogFile(date), 'utf8'))
       .split('\n')
       .filter(Boolean)
     return all.slice(-lines)
@@ -305,18 +350,30 @@ export async function getSystemLogTail(lines: number): Promise<string[]> {
   }
 }
 
-/** 获取系统日志文件大小（字节） */
-export async function getSystemLogSize(): Promise<number> {
-  try {
-    return (await fs.stat(systemLogFile)).size
-  } catch {
-    return 0
+/** 指定日期的日志总大小（字节，跨同日轮转文件累加） */
+export async function getSystemLogSize(date?: string): Promise<number> {
+  let total = 0
+  for (const file of await _systemLogFilesFor(date || todayLogDate())) {
+    try {
+      total += (await fs.stat(file)).size
+    } catch {
+      /* 文件不存在时跳过 */
+    }
   }
+  return total
 }
 
-/** 读取系统日志文件全文 */
-export async function getSystemLogFull(): Promise<string> {
-  return fs.readFile(systemLogFile, 'utf8')
+/** 指定日期的日志全文（同日多文件按序号升序拼接；历史按天文件在数据目录） */
+export async function getSystemLogFull(date?: string): Promise<string> {
+  const parts: string[] = []
+  for (const file of await _systemLogFilesFor(date || todayLogDate())) {
+    try {
+      parts.push(await fs.readFile(file, 'utf8'))
+    } catch {
+      /* 文件不存在时跳过 */
+    }
+  }
+  return parts.join('')
 }
 
 // 供应商 → Base URL 映射：单一事实源在 @migptgui/contracts（经 ./types.js 转发）

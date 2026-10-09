@@ -136,9 +136,12 @@ export const overridesSchema = z.object({
   voices: z.record(z.any()).optional(),
 })
 
+// 登录凭据：passwordHash 为 scrypt 哈希（PHC 格式）；
+// password 为旧版明文字段，仅迁移期可读、不再写入
 export const authSchema = z.object({
   user: optStr,
   password: optStr,
+  passwordHash: optStr,
 })
 
 export const versionFileSchema = z.object({
