@@ -29,6 +29,7 @@ jest.mock('../paths.js', () => {
     roomsFile: p.join(root, 'rooms.json'),
     authFile: p.join(root, 'auth.json'),
     systemLogFile: p.join(root, 'system.log'),
+    systemLogPrefix: p.join(root, 'system'),
     overridesFile: p.join(root, 'overrides.json'),
     dataVersionFile: p.join(root, 'version.json'),
     backupsRoot: p.join(root, 'backups'),

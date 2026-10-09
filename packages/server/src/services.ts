@@ -1,5 +1,4 @@
 // ── 业务服务层：云端设备拉取协议、配置编译投影、绑定链解析 ──
-import https from 'node:https'
 import { createHash } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import {
@@ -26,36 +25,25 @@ import { type GuiConfig } from '@migptgui/options'
 //   ① serviceLogin?sid=micoapi&_json=true 携带 cookie{userId, passToken} 免密建立登录态
 //   ② clientSign=SHA1(nonce+ssecurity) 换取 serviceToken
 //   ③ api2.mina.mi.com/admin/v2/device_list 返回账号下小爱音箱列表
-function _httpsReq(
-  method: string,
+// GET 请求文本响应（全局 fetch）；redirect 手动处理——换取 serviceToken 的
+// 跳转必须停在 302 上读 set-cookie，默认跟随会丢失目标 Cookie。
+async function _fetchText(
   url: string,
   headers: Record<string, string>,
   cookieStr?: string,
 ): Promise<{ status: number; body: string; setCookies: string[] }> {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url)
-    const opts: Record<string, unknown> = {
-      method,
-      hostname: u.hostname,
-      port: 443,
-      path: u.pathname + u.search,
-      headers: { ...headers },
-    }
-    if (cookieStr) opts.headers['Cookie'] = cookieStr
-    const r = https.request(opts, (res) => {
-      const chunks: Buffer[] = []
-      res.on('data', (c) => chunks.push(c))
-      res.on('end', () =>
-        resolve({
-          status: res.statusCode || 0,
-          body: Buffer.concat(chunks).toString('utf8'),
-          setCookies: (res.headers['set-cookie'] || []) as string[],
-        }),
-      )
-    })
-    r.on('error', reject)
-    r.end()
+  const h = { ...headers }
+  if (cookieStr) h.Cookie = cookieStr
+  const res = await fetch(url, {
+    headers: h,
+    redirect: 'manual',
+    signal: AbortSignal.timeout(15_000),
   })
+  return {
+    status: res.status,
+    body: await res.text(),
+    setCookies: res.headers.getSetCookie(),
+  }
 }
 function _stripJson(body: string): string {
   return body.startsWith('&&&START&&&')
@@ -82,8 +70,7 @@ export async function pullMicoDevices(
 
   // ① 免密登录态
   const loginCookie = `sdkVersion=3.9; deviceId=${deviceId}; userId=${miUserId}; passToken=${passToken}`
-  let r = await _httpsReq(
-    'GET',
+  let r = await _fetchText(
     'https://account.xiaomi.com/pass/serviceLogin?sid=micoapi&_json=true',
     { 'User-Agent': ua },
     loginCookie,
@@ -103,8 +90,7 @@ export async function pullMicoDevices(
   const clientSign = createHash('sha1')
     .update(`nonce=${nonce}&${resp.ssecurity}`)
     .digest('base64')
-  r = await _httpsReq(
-    'GET',
+  r = await _fetchText(
     `${resp.location}&clientSign=${encodeURIComponent(clientSign)}`,
     { 'User-Agent': ua },
   )
@@ -125,8 +111,7 @@ export async function pullMicoDevices(
     'MiHome/6.0.103 (com.xiaomi.mihome; build:6.0.103.1; iOS 14.4.0) Alamofire/6.0.103 MICO/iOSApp/appStore/6.0.103'
   const requestId = 'app_ios_' + nanoid(16)
   const apiCookie = `userId=${miUserId}; serviceToken=${serviceToken}; PassportDeviceId=${deviceId}; countryCode=CN; locale=zh_CN; timezone=GMT+08:00`
-  r = await _httpsReq(
-    'GET',
+  r = await _fetchText(
     `https://api2.mina.mi.com/admin/v2/device_list?master=0&requestId=${requestId}`,
     {
       'User-Agent': ua2,

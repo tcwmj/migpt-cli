@@ -139,10 +139,7 @@ export function runServer(options?: ServerOptions) {
       logger.info('秘密路径：已启用')
       // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
       if (isAuth && !options?.users && usingDefaultAuth()) {
-        logger.warn(
-          '\n⚠️  安全警告：正在使用默认登录凭据 admin/123456，任何人都可登录。\n' +
-            '    请尽快在面板「我的」中修改密码，或设置 AUTH_PASSWORD 环境变量 / 使用 --pwd 启动参数。\n',
-        )
+        logger.warn('正在使用默认登录凭据，请尽快修改密码，或使用 --pwd 启动参数设置 AUTH_PASSWORD 环境变量。')
       }
       if (options?.open) {
         open(`http://localhost:${port}`)

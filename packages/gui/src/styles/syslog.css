@@ -17,6 +17,45 @@
   user-select: none;
 }
 
+/* 日期选择：默认展示当前查看日期，弹出日历切换 */
+.syslog .filters .syslog-date {
+  width: 150px;
+  margin-right: var(--sp-4);
+}
+
+.syslog .filters .syslog-date .bp5-input {
+  height: 28px;
+}
+
+/* 无日志日期：置灰禁选 + 悬浮提示 */
+.rdp-day_disabled.syslog-no-log-day {
+  position: relative;
+  cursor: not-allowed;
+}
+
+.rdp-day_disabled.syslog-no-log-day::after {
+  content: '未找到当天系统日志';
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink-2, #383e47);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.rdp-day_disabled.syslog-no-log-day:hover::after {
+  opacity: 1;
+}
+
 .syslog .filters .switch-inline .switch {
   margin: 0;
 }

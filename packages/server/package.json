@@ -21,12 +21,15 @@
     "cookie-parser": "^1.4.7",
     "debug": "^4.3.7",
     "express": "^4.21.0",
+    "express-rate-limit": "^8.7.1",
     "fs-extra": "^11.2.0",
     "helmet": "^8.3.0",
     "mi-gpt-tts": "^2.0.0",
     "nanoid": "^5.0.7",
     "open": "^8.4.2",
     "pino": "^9.14.0",
+    "pino-roll": "^4.0.0",
+    "write-file-atomic": "^8.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -37,6 +40,7 @@
     "@types/express": "^4.17.21",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.7.3",
+    "@types/write-file-atomic": "^4.0.3",
     "typescript": "^5.6.2"
   }
 }

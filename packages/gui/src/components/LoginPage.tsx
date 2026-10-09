@@ -1,5 +1,6 @@
 /* ══ LoginPage ══ */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import type { FormEvent } from 'react'
 import { I, MiLogo } from '../icons.tsx'
 import { Button, Field } from './atoms/index.ts'
 import heroImg from '../assets/speaker-hero-multi.jpg'
@@ -11,10 +12,19 @@ export function LoginPage({
   onLogin: (u: string, p: string) => Promise<void>
   error: string
 }) {
-  const [u, setU] = useState('admin')
-  const [p, setP] = useState('')
+  // 非受控输入：浏览器自动填充只改 DOM 值、不触发 React onChange，
+  // 提交时直接读 DOM 值；空值由原生 required 校验拦截，按钮无需依赖输入状态禁用
+  const uRef = useRef<HTMLInputElement>(null)
+  const pRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
-  const submit = () => {
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    const u = uRef.current?.value ?? ''
+    const p = pRef.current?.value ?? ''
+    // 提交时立即清空密码框：浏览器密码管理器在 submit 后异步读取表单值用于
+    // 「保存密码」，读到空值即不会保存/弹出提示。失败时需重新输入（安全取舍）。
+    if (pRef.current) pRef.current.value = ''
+    if (!u || !p) return
     setBusy(true)
     Promise.resolve(onLogin(u, p)).finally(() => setBusy(false))
   }
@@ -35,7 +45,7 @@ export function LoginPage({
 
       {/* 右侧：登录表单 */}
       <div className="login-panel">
-        <div className="login-card">
+        <form className="login-card" onSubmit={submit}>
           <h2>MiGPT 控制面板</h2>
           {error && (
             <div className="notice bad">
@@ -44,35 +54,35 @@ export function LoginPage({
           )}
           <Field label="用户名" required icon="user">
             <input
-              value={u}
-              onChange={(e) => setU(e.target.value)}
+              ref={uRef}
+              name="username"
+              defaultValue="admin"
+              required
               autoFocus
               placeholder="请输入用户名"
+              autoComplete="username"
             />
           </Field>
           <Field label="密码" required icon="lock">
             <input
+              ref={pRef}
+              name="password"
               type="password"
-              value={p}
-              onChange={(e) => setP(e.target.value)}
+              required
               placeholder="请输入密码"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  submit()
-                }
-              }}
+              autoComplete="current-password"
             />
           </Field>
           <Button
+            type="submit"
             variant="primary"
             className="login-btn"
             icon="lock"
-            disabled={busy || !u || !p}
-            onClick={submit}
+            disabled={busy}
           >
             {busy ? '登录中…' : '登录'}
           </Button>
-        </div>
+        </form>
         <div className="login-foot">v{__APP_VERSION__} · migpt-server</div>
       </div>
     </div>

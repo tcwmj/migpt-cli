@@ -1,89 +1,96 @@
 // ── 日志层：结构化 logger（pino）+ 系统日志落盘 + 设备日志缓冲 ──
-// pino 输出结构化记录，经自定义 destination 转成人可读行写入 system.log（GUI「系统日志」页直接展示）
+// pino 输出结构化记录，经自定义 destination 转成人可读行写入按天轮转的日志文件
+// （pino-roll：system.<yyyy-MM-dd>.N.log，单文件 5MB 上限、保留 7 份历史），
 // 并镜像到 stdout（容器日志）；不再劫持全局 console.*。
 import { Writable } from 'node:stream'
 import fse from 'fs-extra'
+import path from 'node:path'
 import pino from 'pino'
-import { systemLogFile } from './paths.js'
+import pinoRoll from 'pino-roll'
+import { systemLogFile, systemLogPrefix, root } from './paths.js'
 import { getEnv } from './store/env.js'
 
-// ── 系统日志：内存环形缓冲 + 轮转落盘 system.log ──
+// ── 系统日志：内存环形缓冲（GUI「系统日志」页实时展示） + pino-roll 落盘 ──
 export const sysLogBuf: string[] = []
 export const sysLogMax = 1000
 
-// 落盘策略：合并缓冲 + 阈值/定时触发，避免每行一次 append 系统调用；
-// 超过上限时轮转为 system.log.1，防止文件无限增长。
-const SYS_LOG_MAX_BYTES = 5 * 1024 * 1024
-const FLUSH_INTERVAL_MS = 500
-const FLUSH_LINES = 200
-const FLUSH_BYTES = 64 * 1024
-let _pendingChunk = ''
-let _pendingLines = 0
-let _flushTimer: NodeJS.Timeout | undefined
-let _writeChain: Promise<void> = Promise.resolve()
+// 落盘：pino-roll 标准轮转（按天 + 单文件 5MB + 保留 7 份），替代手写缓冲合并/轮转。
+// SonicBoom 的 fd 异步打开，ready 前的日志先积压在 _rollBacklog，ready 后补写，
+// 保证启动瞬间的日志不丢失；积压设上限防止极端情况下内存膨胀。
+const ROLL_SIZE = '5m'
+const ROLL_KEEP = 7
+const BACKLOG_MAX = 5000
+let _roll: { write(s: string): boolean; flushSync(): void } | undefined
+let _rollBacklog: string[] = []
+void pinoRoll({
+  file: systemLogPrefix,
+  frequency: 'daily',
+  dateFormat: 'yyyyMMdd',
+  size: ROLL_SIZE,
+  limit: { count: ROLL_KEEP },
+  extension: 'log',
+})
+  .then((s) => {
+    _roll = s
+    const pending = _rollBacklog
+    _rollBacklog = []
+    for (const line of pending) s.write(line)
+  })
+  .catch((e: unknown) => {
+    // 落盘不可用（目录权限等）时不影响内存缓冲与 stdout 输出
+    process.stderr.write(`[logger] 系统日志落盘初始化失败：${String(e)}\n`)
+  })
 
-async function _appendChunk(chunk: string) {
-  try {
-    const st = await fse.stat(systemLogFile)
-    if (st.size + Buffer.byteLength(chunk) > SYS_LOG_MAX_BYTES) {
-      await fse.remove(`${systemLogFile}.1`).catch(() => {})
-      await fse.rename(systemLogFile, `${systemLogFile}.1`).catch(() => {})
-    }
-  } catch {
-    /* 文件尚未生成：首次写入 */
-  }
-  await fse.appendFile(systemLogFile, chunk)
-}
-
-function _flushSysLog() {
-  if (_flushTimer) {
-    clearTimeout(_flushTimer)
-    _flushTimer = undefined
-  }
-  if (!_pendingChunk) return
-  const chunk = _pendingChunk
-  _pendingChunk = ''
-  _pendingLines = 0
-  // 串行化落盘，避免轮转与追加交叉执行
-  _writeChain = _writeChain.then(() => _appendChunk(chunk)).catch(() => {})
-}
-
-/** 清空系统日志（内存缓冲 + 待写队列 + 落盘文件），供「清空日志」接口调用 */
+/** 清空系统日志：内存缓冲 + 当天及历史轮转文件；活动文件因 SonicBoom 持有句柄而截断为空 */
 export async function clearSysLog() {
   sysLogBuf.length = 0
-  _pendingChunk = ''
-  _pendingLines = 0
-  if (_flushTimer) {
-    clearTimeout(_flushTimer)
-    _flushTimer = undefined
+  _rollBacklog.length = 0
+  const names = await fse.readdir(root).catch(() => [] as string[])
+  const logs = names.filter((n) => n.startsWith('system') && n.endsWith('.log'))
+  const today = _logDateStr(new Date())
+  let active = ''
+  let activeN = 0
+  for (const n of logs) {
+    const m = n.match(/^system\.(\d{8})\.(\d+)\.log$/)
+    if (m && m[1] === today && Number(m[2]) > activeN) {
+      activeN = Number(m[2])
+      active = n
+    }
   }
-  await _writeChain
-  await fse.writeFile(systemLogFile, '', 'utf8')
+  await Promise.all(
+    logs
+      .filter((n) => n !== active)
+      .map((n) => fse.remove(path.join(root, n)).catch(() => {})),
+  )
+  await fse.writeFile(path.join(root, active || 'system.log'), '', 'utf8')
 }
 
-/** 追加一行已格式化的系统日志：环形缓冲 + 合并落盘 */
+const _pad2 = (n: number) => String(n).padStart(2, '0')
+const _logDateStr = (d: Date) =>
+  `${d.getFullYear()}${_pad2(d.getMonth() + 1)}${_pad2(d.getDate())}`
+
+/** 追加一行已格式化的系统日志：环形缓冲 + stdout 镜像 + 落盘 */
 function _pushLine(line: string) {
   sysLogBuf.push(line)
   if (sysLogBuf.length > sysLogMax)
     sysLogBuf.splice(0, sysLogBuf.length - sysLogMax)
-  _pendingChunk += line + '\n'
-  _pendingLines++
-  if (_pendingLines >= FLUSH_LINES || _pendingChunk.length >= FLUSH_BYTES) {
-    _flushSysLog()
-  } else if (!_flushTimer) {
-    _flushTimer = setTimeout(_flushSysLog, FLUSH_INTERVAL_MS)
-    _flushTimer.unref()
+  const out = line + '\n'
+  process.stdout.write(out)
+  if (_roll) _roll.write(out)
+  else {
+    _rollBacklog.push(out)
+    if (_rollBacklog.length > BACKLOG_MAX) _rollBacklog.shift()
   }
 }
 
 // 进程退出前同步落盘，避免缓冲中的日志丢失
 process.on('exit', () => {
-  if (!_pendingChunk) return
   try {
-    fse.appendFileSync(systemLogFile, _pendingChunk)
-    _pendingChunk = ''
+    for (const line of _rollBacklog) fse.appendFileSync(systemLogFile, line)
+    _rollBacklog = []
+    _roll?.flushSync()
   } catch {
-    /* 退出阶段忽略落盘异常 */
+    /* 退出阶段忽略落盘异常（flushSync 在 fd 未就绪时会抛错） */
   }
 })
 
@@ -132,7 +139,6 @@ const _dest = new Writable({
       }
       const formatted = _formatRecord(rec)
       _pushLine(formatted)
-      process.stdout.write(formatted + '\n')
     }
     cb()
   },

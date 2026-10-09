@@ -14,10 +14,12 @@ interface Session {
 // 内存会话表：进程重启即失效（本地面板可接受，重启后重新登录）
 const sessions = new Map<string, Session>()
 
-/** 签发新会话，返回 Cookie 令牌 */
+/** 签发新会话，返回 Cookie 令牌；顺手清理已过期项，避免长期运行内存无限增长 */
 export function createSession(user: string): string {
+  const now = Date.now()
+  for (const [t, s] of sessions) if (s.expiresAt <= now) sessions.delete(t)
   const token = nanoid(32)
-  sessions.set(token, { user, expiresAt: Date.now() + SESSION_TTL_MS })
+  sessions.set(token, { user, expiresAt: now + SESSION_TTL_MS })
   return token
 }
 

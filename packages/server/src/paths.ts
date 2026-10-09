@@ -12,6 +12,9 @@ export const voiceServicesFile = path.join(root, 'voiceServices.json')
 export const speakerModelsFile = path.join(root, 'speakerModels.json')
 export const roomsFile = path.join(root, 'rooms.json')
 export const authFile = path.join(root, 'auth.json')
+// 系统日志由 pino-roll 按天轮转：活动文件形如 system.<yyyy-MM-dd>.N.log（N 同天内递增）。
+// systemLogPrefix 是轮转文件前缀；systemLogFile 为旧版固定名，仅作迁移期读取回退。
+export const systemLogPrefix = path.join(root, 'system')
 export const systemLogFile = path.join(root, 'system.log')
 // 数据结构版本（迁移框架据此判断需要执行哪些升级步骤）
 export const dataVersionFile = path.join(root, 'version.json')

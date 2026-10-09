@@ -3,7 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
 import fse from 'fs-extra'
-import { nanoid } from 'nanoid'
+import writeFileAtomic from 'write-file-atomic'
 
 // ── JSON 读缓存：按文件 mtime/size 校验，命中即免去重复读盘与解析 ──
 // 写入统一走 writeJson 的原子替换（临时文件 + rename），mtime 必变，故无需显式失效；
@@ -39,10 +39,9 @@ const _writeQueues = new Map<string, Promise<unknown>>()
 
 async function _writeJsonAtomic(file: string, data: unknown) {
   await fse.ensureDir(path.dirname(file))
-  // 原子写：随机临时文件名 + rename，防止中途断电/崩溃损坏 JSON 或并发写互相覆盖
-  const tmp = `${file}.${nanoid(8)}.tmp`
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2))
-  await fs.rename(tmp, file)
+  // 原子写交给 write-file-atomic（临时文件 + fsync + rename），
+  // 修复断电/崩溃在 rename 前留下脏文件的边角，并免去手写临时文件管理
+  await writeFileAtomic(file, JSON.stringify(data, null, 2))
 }
 
 export function writeJson(file: string, data: unknown): Promise<void> {
