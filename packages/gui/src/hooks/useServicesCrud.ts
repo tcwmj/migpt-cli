@@ -101,7 +101,11 @@ export function useServicesCrud(opts: {
   }
 
   const delThink = async (id: string) => {
-    const roleRefs = roles.filter((r) => r.thinkServiceId === id)
+    const roleRefs = roles.filter((r) =>
+      (
+        r.thinkServiceIds ?? (r.thinkServiceId ? [r.thinkServiceId] : [])
+      ).includes(id),
+    )
     if (roleRefs.length) {
       showToast(
         `该思考服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`,
@@ -249,11 +253,15 @@ export function useServicesCrud(opts: {
   const usageThink = useCallback(
     (id: string) => {
       const roleIds = new Set(
-        roles.filter((r) => r.thinkServiceId === id).map((r) => r.id),
+        roles
+          .filter((r) =>
+            (
+              r.thinkServiceIds ?? (r.thinkServiceId ? [r.thinkServiceId] : [])
+            ).includes(id),
+          )
+          .map((r) => r.id),
       )
-      return devices.filter(
-        (d) => d.thinkServiceId === id || (d.roleId && roleIds.has(d.roleId)),
-      ).length
+      return devices.filter((d) => d.roleId && roleIds.has(d.roleId)).length
     },
     [devices, roles],
   )
@@ -262,9 +270,7 @@ export function useServicesCrud(opts: {
       const roleIds = new Set(
         roles.filter((r) => r.voiceId === id).map((r) => r.id),
       )
-      return devices.filter(
-        (d) => d.voiceOverrideId === id || (d.roleId && roleIds.has(d.roleId)),
-      ).length
+      return devices.filter((d) => d.roleId && roleIds.has(d.roleId)).length
     },
     [devices, roles],
   )

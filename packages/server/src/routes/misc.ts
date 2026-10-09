@@ -34,7 +34,11 @@ export function registerTestRoutes({ app }: RouteContext): void {
     }
     const testTTS = createTTS(options)
     streamTTSResponse(res, (stream) =>
-      testTTS({ text: '配置成功！', stream, speaker: options.defaultSpeaker }),
+      testTTS({
+        text: '配置成功！',
+        stream,
+        speaker: options.defaultSpeaker as string | undefined,
+      }),
     )
   })
 }

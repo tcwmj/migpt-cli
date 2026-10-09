@@ -41,8 +41,14 @@ export function Field({
           )}
         </label>
       )}
-      {icon && <I n={icon} size={15} />}
-      {children}
+      {icon ? (
+        <div className="input-wrap">
+          <I n={icon} size={15} />
+          {children}
+        </div>
+      ) : (
+        children
+      )}
       {hint !== undefined && (
         <span className={'hint' + (hintTone ? ' ' + hintTone : '')}>
           {hint}

@@ -311,8 +311,6 @@ export const createDevice = (d: {
   speakerModel?: string
   roleId?: string
   accountId?: string
-  thinkServiceId?: string
-  voiceOverrideId?: string
 }) => post<{ id: string }>(api('/devices'), d)
 
 export const getDevice = (id: string) =>
@@ -387,9 +385,12 @@ export const clearSystemLogs = () =>
   }).then((r) => j<{ success: boolean; error?: string }>(r))
 
 export async function downloadSystemLogs(date?: string): Promise<void> {
-  const r = await fetch(api(`/system/logs/download${date ? `?date=${date}` : ''}`), {
-    headers: headers(false),
-  })
+  const r = await fetch(
+    api(`/system/logs/download${date ? `?date=${date}` : ''}`),
+    {
+      headers: headers(false),
+    },
+  )
   if (!r.ok) throw new Error('HTTP ' + r.status)
   const blob = await r.blob()
   const a = document.createElement('a')

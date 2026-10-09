@@ -46,8 +46,6 @@ export type DevDraft = {
   speakerModel: string
   accountId: string
   roleId: string
-  thinkServiceId: string
-  voiceOverrideId: string
   ttsSecret: string
   exitKeepAliveAfter: string
   roomRef: string

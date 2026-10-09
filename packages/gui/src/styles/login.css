@@ -3,7 +3,8 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1.12fr 1fr;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       1200px 500px at 12% -8%,
       rgba(217, 100, 42, 0.09),
       transparent 60%
@@ -218,63 +219,69 @@
   margin-top: var(--sp-8);
 }
 
-/* 登录表单输入框：label 与输入框同行，图标垂直居中于输入框左侧，视觉更舒展 */
-.login-card .fld.ic {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-6);
-  position: relative;
-  margin-bottom: var(--sp-7);
+/* 登录表单输入框：垂直布局，图标嵌入输入框左侧 */
+.login-card .fld {
+  margin-bottom: var(--sp-8);
 }
 
-.login-card .fld.ic label {
-  width: 64px;
-  flex-shrink: 0;
-  text-align: right;
+.login-card .fld label {
+  display: block;
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   color: var(--ink-2);
-  margin-bottom: 0;
+  margin-bottom: var(--sp-3);
+  letter-spacing: 0.01em;
 }
 
-.login-card .fld.ic > svg {
+.login-card .fld label .req {
+  color: var(--bad);
+  margin-left: var(--sp-1);
+}
+
+.login-card .input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-card .input-wrap > svg {
   position: absolute;
-  left: 78px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 14px;
   color: var(--ink-3);
   pointer-events: none;
   transition: color var(--dur-150) ease;
+  z-index: 1;
 }
 
-.login-card .fld.ic:focus-within > svg {
+.login-card .input-wrap:focus-within > svg {
   color: var(--accent);
 }
 
-.login-card .fld.ic input {
-  flex: 1;
-  width: auto;
+.login-card .input-wrap input {
+  width: 100%;
   height: 48px;
-  padding: 0 var(--sp-7) 0 var(--sp-12);
-  border: 1px solid var(--line);
+  padding: 0 var(--sp-7) 0 42px;
+  border: 1.5px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--panel-2);
   font-size: var(--fs-md);
   color: var(--ink-1);
   outline: none;
   transition:
     border-color var(--dur-150) ease,
-    box-shadow var(--dur-150) ease;
+    box-shadow var(--dur-150) ease,
+    background var(--dur-150) ease;
 }
 
-.login-card .fld.ic input::placeholder {
+.login-card .input-wrap input::placeholder {
   color: var(--ink-3);
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
-.login-card .fld.ic input:focus {
+.login-card .input-wrap input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(217, 100, 42, 0.14);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(217, 100, 42, 0.1);
 }
 
 .login-safe {

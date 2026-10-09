@@ -92,7 +92,7 @@ function clean(obj: Record<string, unknown>) {
         //   console.log('删除 ' + key + ' 数组中的空字符串')
         // }
       } else {
-        clean(obj[key])
+        clean(obj[key] as Record<string, unknown>)
       }
       if (_isEmpty(obj[key]) && !Array.isArray(obj[key])) {
         // console.log('删除空对象', key)

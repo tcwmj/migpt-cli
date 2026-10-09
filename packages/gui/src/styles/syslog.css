@@ -48,8 +48,8 @@
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s;
-  z-index: 10;
+  transition: opacity var(--dur-150) ease;
+  z-index: var(--z-popover);
 }
 
 .rdp-day_disabled.syslog-no-log-day:hover::after {
@@ -75,8 +75,8 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-l);
   padding: var(--sp-7) var(--sp-8);
-  font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New',
-    monospace;
+  font-family:
+    'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
   font-size: var(--fs-xs);
   line-height: var(--lh-loose-2);
 }

@@ -35,7 +35,7 @@ import { useHashRouter, useNav } from './hooks/useHashRouter.ts'
 import type { ModalState } from './ui-types.ts'
 
 export function App() {
-  const { toast, showToast } = useToast()
+  const { toast, leaving, showToast } = useToast()
   const {
     authed,
     loginErr,
@@ -421,7 +421,7 @@ export function App() {
         />
       )}
 
-      <Toast msg={toast} />
+      <Toast msg={toast} leaving={leaving} />
     </div>
   )
 }
