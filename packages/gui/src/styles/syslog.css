@@ -341,6 +341,71 @@
   cursor: default;
 }
 
+/* ── 月份选择网格 ── */
+.ui-cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+}
+
+.ui-cal-month-cell {
+  height: 36px;
+  border-radius: var(--r-s);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--ink-1);
+  transition:
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
+}
+
+.ui-cal-month-cell:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ui-cal-month-cell.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold);
+}
+
+.ui-cal-month-cell:disabled {
+  color: var(--ink-3);
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ── 年份选择网格 ── */
+.ui-cal-year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+}
+
+.ui-cal-year-cell {
+  height: 36px;
+  border-radius: var(--r-s);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background var(--dur-150) ease,
+    color var(--dur-150) ease;
+}
+
+.ui-cal-year-cell:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ui-cal-year-cell.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold);
+}
+
 .syslog-box {
   flex: 1;
   min-height: 0;

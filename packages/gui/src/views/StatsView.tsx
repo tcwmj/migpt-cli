@@ -1,10 +1,6 @@
 /* ══ 使用统计视图（单页布局）══ */
 import { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  AreaChart,
-  Area,
-  LineChart as RLineChart,
-  Line,
   BarChart as RBarChart,
   Bar,
   Cell,
@@ -16,7 +12,6 @@ import {
   Legend,
 } from 'recharts'
 import type {
-  StatsRange,
   StatsDimension,
   DimensionEntity,
   ServiceHealth,
@@ -210,13 +205,6 @@ const STATS_QUICK_ITEMS: QuickRangeItem[] = [
 // ── 自动统计粒度 ───────────────────────────────────────────
 type AutoGroupBy = 'hour' | 'day' | 'month' | 'year'
 
-const GROUP_LABELS: Record<AutoGroupBy, string> = {
-  hour: '按小时',
-  day: '按日',
-  month: '按月',
-  year: '按年',
-}
-
 /** 根据日期范围天数自动选择粒度 */
 function autoGroupBy(fromKey: string, toKey: string): AutoGroupBy {
   const from = dateOfKey(fromKey)
@@ -315,8 +303,8 @@ function genTimeline(
     })
   }
 
-  const count = Math.min(days, 30)
-  const dailyData = Array.from({ length: count }).map((_, i) => {
+  // 生成完整范围内的每日数据（按种子循环填充）
+  const dailyData = Array.from({ length: days }).map((_, i) => {
     const d = new Date(from.getTime() + i * 86400000)
     const y = d.getFullYear()
     const m = pad2(d.getMonth() + 1)
@@ -337,6 +325,7 @@ function genTimeline(
     }
   })
 
+  // 按粒度分组聚合
   const groups = new Map<string, TimeSeriesPoint>()
   for (const d of dailyData) {
     const existing = groups.get(d.dateKey)
@@ -389,14 +378,14 @@ function genEntityTimeline(
   })
 }
 
-// ── Recharts 主题色 ────────────────────────────────────────
+// ── Recharts 主题色（与全局设计令牌对齐） ─────────────────
 const CHART_COLORS = [
-  '#d9642a',
-  '#2e6b63',
-  '#7c3aed',
-  '#0891b2',
-  '#c0453c',
-  '#b77a16',
+  '#d9642a', // --accent
+  '#2e6b63', // --accent-2
+  '#82715f', // --ink-3（中性棕）
+  '#2f7a55', // --ok（绿）
+  '#c0453c', // --bad（红）
+  '#b77a16', // --warn（琥珀）
 ]
 
 const tooltipStyle = {
@@ -405,186 +394,6 @@ const tooltipStyle = {
   borderRadius: 'var(--r-m)',
   fontSize: '12px',
   boxShadow: 'var(--shadow-pop)',
-}
-
-// ── 面积图 / 折线图（已废弃） ──────────────────────────────
-// 以下组件已替换为 HorizontalStackedBarChart，保留以备回退
-
-function TokenAreaChart({
-  data,
-  series,
-  emptyHint,
-}: {
-  data: Record<string, number | string>[]
-  series: { key: string; name: string; color: string }[]
-  emptyHint?: string
-}) {
-  if (data.length === 0)
-    return (
-      <div className="chart-empty-hint" style={{ padding: '60px 0' }}>
-        {emptyHint ?? '暂无数据'}
-      </div>
-    )
-  return (
-    <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="var(--line-2)"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
-          tickLine={false}
-          axisLine={{ stroke: 'var(--line)' }}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={fmtNum}
-          width={48}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(v) => fmtNum(Number(v))}
-        />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
-        {series.map((s, i) => (
-          <Area
-            key={s.key}
-            type="monotone"
-            dataKey={s.key}
-            name={s.name}
-            stroke={s.color}
-            fill={s.color}
-            fillOpacity={0.15}
-            strokeWidth={2}
-            animationDuration={300}
-            animationBegin={i * 100}
-          />
-        ))}
-      </AreaChart>
-    </ResponsiveContainer>
-  )
-}
-
-// ── 折线图 ──────────────────────────────────────────────────
-function ConvLineChart({
-  data,
-  series,
-  emptyHint,
-}: {
-  data: Record<string, number | string>[]
-  series: { key: string; name: string; color: string }[]
-  emptyHint?: string
-}) {
-  if (data.length === 0)
-    return (
-      <div className="chart-empty-hint" style={{ padding: '60px 0' }}>
-        {emptyHint ?? '暂无数据'}
-      </div>
-    )
-  return (
-    <ResponsiveContainer width="100%" height={220}>
-      <RLineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="var(--line-2)"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
-          tickLine={false}
-          axisLine={{ stroke: 'var(--line)' }}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={fmtNum}
-          width={48}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(v) => fmtNum(Number(v))}
-        />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
-        {series.map((s) => (
-          <Line
-            key={s.key}
-            type="monotone"
-            dataKey={s.key}
-            name={s.name}
-            stroke={s.color}
-            strokeWidth={2}
-            dot={{ r: 3 }}
-            activeDot={{ r: 5 }}
-            animationDuration={300}
-          />
-        ))}
-      </RLineChart>
-    </ResponsiveContainer>
-  )
-}
-
-// ── 垂直柱状图 ──────────────────────────────────────────────
-function VBarChart({
-  data,
-  unit,
-  emptyHint,
-}: {
-  data: { name: string; value: number; color: string }[]
-  unit: string
-  emptyHint?: string
-}) {
-  if (data.length === 0)
-    return (
-      <div className="chart-empty-hint" style={{ padding: '40px 0' }}>
-        {emptyHint ?? '暂无数据'}
-      </div>
-    )
-  return (
-    <ResponsiveContainer width="100%" height={200}>
-      <RBarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="var(--line-2)"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="name"
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
-          tickLine={false}
-          axisLine={{ stroke: 'var(--line)' }}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={fmtNum}
-          width={48}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(v) => fmtNum(Number(v))}
-          cursor={{ fill: 'var(--line-2)' }}
-        />
-        <Bar
-          dataKey="value"
-          name={unit}
-          radius={[4, 4, 0, 0]}
-          animationDuration={300}
-        >
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color} />
-          ))}
-        </Bar>
-      </RBarChart>
-    </ResponsiveContainer>
-  )
 }
 
 // ── 横向堆积柱状图（Token / 对话次数趋势） ────────────────
@@ -611,10 +420,13 @@ function StackedBarChart({
       </div>
     )
 
-  const maxVal = Math.max(...data.map((d) => d.inputTokens + d.outputTokens), 1)
-  // Y轴：按小时显示时只显示 HH:mm；其他日期格式 YYYY-MM-DD
+  // Y轴日期格式化：按小时→HH:mm，年→完整年份，月→YM，日→MM-DD
   const isHourly = data[0]?.date.includes(':')
-  const formatTick = (v: string) => (isHourly ? v.split(' ')[1] : v.slice(5))
+  const formatTick = (v: string) => {
+    if (isHourly) return v.split(' ')[1]
+    if (v.length <= 7) return v // 年 "2026" 或月 "2026-10" 完整显示
+    return v.slice(5) // 日 "YYYY-MM-DD" → "MM-DD"
+  }
 
   return (
     <ResponsiveContainer
@@ -673,43 +485,43 @@ function StackedBarChart({
   )
 }
 
-// ── 横向堆积柱状图（维度对比：按实体分列，堆叠 Input/Output Token） ──
+// ── 横向堆积柱状图（按时间维度展示，每个实体作为独立堆积段） ──
 function EntityStackedBarChart({
   entityData,
-  labels,
+  seriesKeys,
+  seriesNames,
+  colors,
   emptyHint,
 }: {
-  entityData: { input: number; output: number }[]
-  labels: Record<string, string>
+  entityData: Record<string, number | string>[]
+  seriesKeys: string[] // 实体 ID 数组
+  seriesNames: Record<string, string> // id -> 名称映射
+  colors: string[]
   emptyHint?: string
 }) {
   if (!entityData || entityData.length === 0)
     return (
-      <div className="chart-empty-hint" style={{ padding: '40px 0' }}>
+      <div className="chart-empty-hint" style={{ padding: '60px 0' }}>
         {emptyHint ?? '暂无数据'}
       </div>
     )
 
-  // 合并所有实体的数据为按标签分组的堆积条
-  const groupedData = Object.entries(labels).map(([label], i) => {
-    const entry = entityData[i]
-    return {
-      label,
-      input: entry?.input ?? 0,
-      output: entry?.output ?? 0,
-    }
-  })
-
-  const barColors = ['#d9642a', '#2e6b63']
+  const isHourly = String(entityData[0]?.date ?? '').includes(':')
+  const formatTick = (v: string) => {
+    if (isHourly) return v.split(' ')[1]
+    if (v.length <= 7) return v // 年 "2026" 或月 "2026-10" 完整显示
+    return v.slice(5) // 日 "YYYY-MM-DD" → "MM-DD"
+  }
 
   return (
     <ResponsiveContainer
       width="100%"
-      height={Math.max(120, groupedData.length * 36)}
+      height={Math.max(260, entityData.length * 24)}
     >
       <RBarChart
-        data={groupedData}
+        data={entityData}
         margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+        layout="vertical"
       >
         <XAxis
           type="number"
@@ -717,38 +529,35 @@ function EntityStackedBarChart({
           tickLine={false}
           axisLine={false}
           tickFormatter={fmtNum}
+          width={52}
         />
         <YAxis
           type="category"
-          dataKey="label"
-          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
+          dataKey="date"
+          tick={{ fontSize: 10, fill: 'var(--ink-3)' }}
           tickLine={false}
           axisLine={false}
-          width={80}
+          width={56}
+          tickFormatter={formatTick}
         />
         <Tooltip
           contentStyle={tooltipStyle}
           formatter={(v) => fmtNum(Number(v))}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Bar
-          name="输入 Token"
-          dataKey="input"
-          stackId="s1"
-          fill={barColors[0]}
-          radius={[0, 4, 4, 0]}
-          animationDuration={300}
-          barSize={18}
-        />
-        <Bar
-          name="输出 Token"
-          dataKey="output"
-          stackId="s1"
-          fill={barColors[1]}
-          radius={[4, 0, 0, 4]}
-          animationDuration={300}
-          barSize={18}
-        />
+        {seriesKeys.map((key, i) => (
+          <Bar
+            key={key}
+            name={seriesNames[key] ?? key}
+            dataKey={key}
+            stackId="entity-stack"
+            fill={colors[i % colors.length]}
+            radius={[0, 4, 4, 0]}
+            animationDuration={300}
+            minPointSize={3}
+            barSize={16}
+          />
+        ))}
       </RBarChart>
     </ResponsiveContainer>
   )
@@ -926,32 +735,9 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
     [fromKey, toKey, groupBy],
   )
 
-  const tokenChartData = useMemo(
-    () =>
-      timeline.map((t) => ({
-        date: t.date,
-        input: t.inputTokens,
-        output: t.outputTokens,
-      })),
-    [timeline],
-  )
-
-  const convChartData = useMemo(
-    () => timeline.map((t) => ({ date: t.date, conv: t.conversations })),
-    [timeline],
-  )
-
-  const tokenSeries = [
-    { key: 'input', name: '输入 Token', color: CHART_COLORS[0] },
-    { key: 'output', name: '输出 Token', color: CHART_COLORS[1] },
-  ]
-
-  const convSeries = [{ key: 'conv', name: '对话次数', color: CHART_COLORS[0] }]
-
-  // 有维度时：构建多实体图表数据（保留以备回退）
+  // 有维度时：构建多实体图表数据
   const entityChartData = useMemo(() => {
     if (!dimension || selectedIds.length === 0) return null
-    const entities = MOCK_ENTITIES[dimension] ?? []
     const entityTimeline = genEntityTimeline(
       fromKey,
       toKey,
@@ -961,17 +747,15 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
     return timeline.map((t, i) => {
       const row: Record<string, number | string> = { date: t.date }
       for (const { entityId, data } of entityTimeline) {
-        const ent = entities.find((e) => e.id === entityId)
-        row[ent?.name ?? entityId] = data[i]?.totalTokens ?? 0
+        row[entityId] = data[i]?.totalTokens ?? 0
       }
       return row
     })
   }, [dimension, selectedIds, fromKey, toKey, groupBy, timeline])
 
-  // 对话次数实体数据（保留以备回退）
+  // 对话次数实体数据
   const entityConvChartData = useMemo(() => {
     if (!dimension || selectedIds.length === 0) return null
-    const entities = MOCK_ENTITIES[dimension] ?? []
     const entityTimeline = genEntityTimeline(
       fromKey,
       toKey,
@@ -981,8 +765,7 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
     return timeline.map((t, i) => {
       const row: Record<string, number | string> = { date: t.date }
       for (const { entityId, data } of entityTimeline) {
-        const ent = entities.find((e) => e.id === entityId)
-        row[ent?.name ?? entityId] = data[i]?.conversations ?? 0
+        row[entityId] = data[i]?.conversations ?? 0
       }
       return row
     })
@@ -995,20 +778,6 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
     setDimension(d)
     setSelectedIds(autoSelectAll)
   }
-
-  // 维度实体的 series 配置（保留以备回退）
-  const entitySeriesConfig = useMemo(() => {
-    if (!dimension || selectedIds.length === 0) return []
-    const entities = MOCK_ENTITIES[dimension] ?? []
-    return selectedIds.map((id, i) => {
-      const ent = entities.find((e) => e.id === id)
-      return {
-        key: ent?.name ?? id,
-        name: ent?.name ?? id,
-        color: CHART_COLORS[i % CHART_COLORS.length],
-      }
-    })
-  }, [dimension, selectedIds])
 
   const animKey = `${fromKey}-${toKey}-${groupBy}-${dimension}-${selectedIds.join(',')}`
 
@@ -1122,7 +891,6 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
                 fromKey={fromKey}
                 toKey={toKey}
                 quickItems={STATS_QUICK_ITEMS}
-                hideHint
                 onRangeChange={(f, t) => {
                   setFromKey(f)
                   setToKey(t)
@@ -1160,44 +928,55 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
               <>
                 <div className="stats-chart-card">
                   <h3>Token 使用量（按{DIMENSION_LABELS[dimension]}）</h3>
-                  <StackedBarChart
-                    data={entityChartData!.map((t) => ({
-                      date: t.date as string,
-                      inputTokens: Number(
-                        Object.values(t)
-                          .filter(
-                            (v) => typeof v === 'number' && Number.isFinite(v),
+                  {entityChartData && entityChartData.length > 0 ? (
+                    <EntityStackedBarChart
+                      entityData={entityChartData}
+                      seriesKeys={selectedIds}
+                      seriesNames={Object.fromEntries(
+                        selectedIds.map((id) => {
+                          const ent = MOCK_ENTITIES[dimension]?.find(
+                            (e) => e.id === id,
                           )
-                          .reduce((a, b) => Number(a) + Number(b), 0),
-                      ),
-                      outputTokens: 0,
-                      conversations: 0,
-                    }))}
-                    colors={['#d9642a', '#2e6b63']}
-                    emptyHint="当前时段暂无 Token 使用记录"
-                  />
+                          return [id, ent?.name ?? id]
+                        }),
+                      )}
+                      colors={CHART_COLORS}
+                      emptyHint="当前时段暂无 Token 使用记录"
+                    />
+                  ) : (
+                    <div
+                      className="chart-empty-hint"
+                      style={{ padding: '60px 0' }}
+                    >
+                      当前时段暂无 Token 使用记录
+                    </div>
+                  )}
                 </div>
                 <div className="stats-chart-card">
                   <h3>对话次数（按{DIMENSION_LABELS[dimension]}）</h3>
-                  <StackedBarChart
-                    data={entityConvChartData!.map((t) => ({
-                      date: t.date as string,
-                      inputTokens: Math.floor(
-                        Number(
-                          Object.values(t)
-                            .filter(
-                              (v) =>
-                                typeof v === 'number' && Number.isFinite(v),
-                            )
-                            .reduce((a, b) => Number(a) + Number(b), 0),
-                        ) * 0.6,
-                      ),
-                      outputTokens: 0,
-                      conversations: 0,
-                    }))}
-                    colors={['#d9642a', '#2e6b63']}
-                    emptyHint="当前时段暂无对话记录"
-                  />
+                  {entityConvChartData && entityConvChartData.length > 0 ? (
+                    <EntityStackedBarChart
+                      entityData={entityConvChartData}
+                      seriesKeys={selectedIds}
+                      seriesNames={Object.fromEntries(
+                        selectedIds.map((id) => {
+                          const ent = MOCK_ENTITIES[dimension]?.find(
+                            (e) => e.id === id,
+                          )
+                          return [id, ent?.name ?? id]
+                        }),
+                      )}
+                      colors={CHART_COLORS}
+                      emptyHint="当前时段暂无对话记录"
+                    />
+                  ) : (
+                    <div
+                      className="chart-empty-hint"
+                      style={{ padding: '60px 0' }}
+                    >
+                      当前时段暂无对话记录
+                    </div>
+                  )}
                 </div>
               </>
             ) : (

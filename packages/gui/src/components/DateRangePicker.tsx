@@ -25,11 +25,28 @@ const monthGrid = (y: number, m: number): (Date | null)[] => {
   return cells
 }
 
-/** 中文化日期文案：2026年10月9日 */
-const cnDate = (k: string) => {
-  const d = dateOfKey(k)
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
-}
+/** 可选年份范围：从 2020 到当前年份 */
+const YEAR_OPTIONS = Array.from(
+  { length: new Date().getFullYear() - 2020 + 1 },
+  (_, i) => 2020 + i,
+)
+
+const MONTH_LABELS = [
+  '1月',
+  '2月',
+  '3月',
+  '4月',
+  '5月',
+  '6月',
+  '7月',
+  '8月',
+  '9月',
+  '10月',
+  '11月',
+  '12月',
+]
+
+type PickerMode = 'date' | 'month' | 'year'
 
 export interface DateRangePickerProps {
   fromKey: string
@@ -46,7 +63,7 @@ export interface DateRangePickerProps {
 
 /**
  * 中文月历：支持日期范围选择；未来日期默认禁用；
- * 通过 logDates 控制无日志日期的禁用；通过 canSelect 扩展额外判断。
+ * 点击标题可切换年/月快速选择视图。
  */
 export function DateRangePicker({
   fromKey,
@@ -59,10 +76,14 @@ export function DateRangePicker({
   const [month, setMonth] = useState(() => dateOfKey(fromKey))
   // 范围选择锚点：null=等待选起始日期；非 null=已选起始、等待选结束日期
   const [anchor, setAnchor] = useState<string | null>(null)
+  // 视图模式：date=日历，month=选月，year=选年
+  const [mode, setMode] = useState<PickerMode>('date')
+
   const y = month.getFullYear()
   const m = month.getMonth()
   const now = new Date()
   const atLatest = y === now.getFullYear() && m === now.getMonth()
+
   const go = (delta: number) => setMonth(new Date(y, m + delta, 1))
   const pick = (k: string) => {
     if (anchor === null) {
@@ -70,104 +91,174 @@ export function DateRangePicker({
       return
     }
     if (k < anchor) {
-      // 早于起始日期：重置为新的起始
       setAnchor(k)
       return
     }
     onSelect(anchor, k)
     setAnchor(null)
   }
+
+  // 切换到选年视图
+  const pickYear = (year: number) => {
+    setMonth(new Date(year, m, 1))
+    setMode('month')
+  }
+
+  // 切换到选月视图
+  const pickMonth = (mi: number) => {
+    setMonth(new Date(y, mi, 1))
+    setMode('date')
+  }
+
   return (
     <div className="ui-cal">
-      <div className="ui-cal-head">
-        <button
-          type="button"
-          className="ui-cal-nav"
-          onClick={() => go(-1)}
-          aria-label="上个月"
-        >
-          <I n="chevronLeft" size={14} />
-        </button>
-        <span className="ui-cal-title">
-          {y}年{m + 1}月
-        </span>
-        <button
-          type="button"
-          className="ui-cal-nav"
-          onClick={() => go(1)}
-          disabled={atLatest}
-          aria-label="下个月"
-        >
-          <I n="chevronRight" size={14} />
-        </button>
-      </div>
-      <div className="ui-cal-grid">
-        {monthGrid(y, m).map((day, i) => {
-          if (!day) return <span key={'e' + i} />
-          const k = keyOf(day)
-          const isToday = k === TODAY_KEY
-          const future = k > TODAY_KEY
-          const noLog = !logDates || (isToday && !logDates.has(k))
-          const disabled =
-            future || noLog || (canSelect ? !canSelect(k) : false)
-          // 已选范围高亮（含锚点到悬停前的预选区间）
-          const inRange =
-            !disabled &&
-            ((anchor !== null && k >= anchor) ||
-              (anchor === null && k >= fromKey && k <= toKey))
-          return (
+      {mode === 'date' && (
+        <>
+          <div className="ui-cal-head">
             <button
               type="button"
-              key={k}
-              className={
-                'ui-cal-day' +
-                (inRange ? ' in' : '') +
-                (anchor !== null
-                  ? k === anchor
-                    ? ' on'
-                    : ''
-                  : k === fromKey || k === toKey
-                    ? ' on'
-                    : '') +
-                (isToday ? ' today' : '')
-              }
-              disabled={disabled}
-              title={
-                future
-                  ? '未来日期暂无日志'
-                  : noLog
-                    ? '当天没有日志记录'
-                    : undefined
-              }
-              onClick={() => pick(k)}
+              className="ui-cal-nav"
+              onClick={() => go(-1)}
+              aria-label="上个月"
             >
-              {day.getDate()}
+              <I n="chevronLeft" size={14} />
             </button>
-          )
-        })}
-      </div>
-      <div className="ui-cal-foot">
-        <span>
-          {anchor === null
-            ? showHint
-              ? '点击选择起始日期'
-              : ''
-            : `起始 ${cnDate(anchor)} · 点击选择结束日期`}
-        </span>
-        <button
-          type="button"
-          className="ui-cal-today"
-          disabled={
-            anchor === null && fromKey === TODAY_KEY && toKey === TODAY_KEY
-          }
-          onClick={() => {
-            setAnchor(null)
-            onSelect(TODAY_KEY, TODAY_KEY)
-          }}
-        >
-          回到今天
-        </button>
-      </div>
+            <span
+              className="ui-cal-title"
+              onClick={() => setMode('month')}
+              style={{ cursor: 'pointer' }}
+            >
+              {y}年{m + 1}月
+            </span>
+            <button
+              type="button"
+              className="ui-cal-nav"
+              onClick={() => go(1)}
+              disabled={atLatest}
+              aria-label="下个月"
+            >
+              <I n="chevronRight" size={14} />
+            </button>
+          </div>
+          <div className="ui-cal-grid">
+            {monthGrid(y, m).map((day, i) => {
+              if (!day) return <span key={'e' + i} />
+              const k = keyOf(day)
+              const isToday = k === TODAY_KEY
+              const future = k > TODAY_KEY
+              const hasNoLogToday =
+                logDates != null && !logDates.has(k) && isToday
+              const disabled: boolean = future || (hasNoLogToday ? true : false)
+              const inRange =
+                !disabled &&
+                ((anchor !== null && k >= anchor) ||
+                  (anchor === null && k >= fromKey && k <= toKey))
+              return (
+                <button
+                  type="button"
+                  key={k}
+                  className={
+                    'ui-cal-day' +
+                    (inRange ? ' in' : '') +
+                    (anchor !== null
+                      ? k === anchor
+                        ? ' on'
+                        : ''
+                      : k === fromKey || k === toKey
+                        ? ' on'
+                        : '') +
+                    (isToday ? ' today' : '')
+                  }
+                  disabled={disabled}
+                  title={
+                    future
+                      ? '未来日期暂无日志'
+                      : hasNoLogToday
+                        ? '当天没有日志记录'
+                        : undefined
+                  }
+                  onClick={() => pick(k)}
+                >
+                  {day.getDate()}
+                </button>
+              )
+            })}
+          </div>
+          <div className="ui-cal-foot">
+            <span>{anchor === null && showHint ? '点击选择起始日期' : ''}</span>
+          </div>
+        </>
+      )}
+
+      {mode === 'month' && (
+        <>
+          <div className="ui-cal-head">
+            <button
+              type="button"
+              className="ui-cal-nav"
+              onClick={() => setMode('year')}
+              aria-label="选择年份"
+            >
+              <I n="chevronLeft" size={14} />
+            </button>
+            <span
+              className="ui-cal-title"
+              onClick={() => setMode('year')}
+              style={{ cursor: 'pointer' }}
+            >
+              {y}年
+            </span>
+            <span className="ui-cal-nav" style={{ visibility: 'hidden' }}>
+              <I n="chevronRight" size={14} />
+            </span>
+          </div>
+          <div className="ui-cal-month-grid">
+            {MONTH_LABELS.map((label, mi) => {
+              const isCurrent = mi === m && y === now.getFullYear()
+              const isFuture =
+                y > now.getFullYear() ||
+                (y === now.getFullYear() && mi > now.getMonth())
+              return (
+                <button
+                  type="button"
+                  key={mi}
+                  className={'ui-cal-month-cell' + (isCurrent ? ' on' : '')}
+                  disabled={isFuture}
+                  onClick={() => pickMonth(mi)}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {mode === 'year' && (
+        <>
+          <div className="ui-cal-head">
+            <span className="ui-cal-title">选择年份</span>
+            <span className="ui-cal-nav" style={{ visibility: 'hidden' }}>
+              <I n="chevronRight" size={14} />
+            </span>
+          </div>
+          <div className="ui-cal-year-grid">
+            {YEAR_OPTIONS.map((year) => {
+              const isCurrent = year === now.getFullYear()
+              return (
+                <button
+                  type="button"
+                  key={year}
+                  className={'ui-cal-year-cell' + (isCurrent ? ' on' : '')}
+                  onClick={() => pickYear(year)}
+                >
+                  {year}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }
