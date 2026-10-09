@@ -1,6 +1,14 @@
 /* ══ DevicesView ══ */
 import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
-import type { Account, DeviceRow, Role, Room, SpeakerModel } from '../apis.ts'
+import type {
+  Account,
+  DeviceRow,
+  Role,
+  Room,
+  SpeakerModel,
+  ThinkService,
+  VoiceService,
+} from '../apis.ts'
 import type { DevDraft, DevPullState } from './drafts.ts'
 import { DeviceDetail } from './devices/DeviceDetail.tsx'
 import { DeviceForm } from './devices/DeviceForm.tsx'
@@ -21,6 +29,8 @@ export function DevicesView(props: {
   roles: Role[]
   accounts: Account[]
   rooms: Room[]
+  thinkSvcs: ThinkService[]
+  voiceSvcs: VoiceService[]
   onSelect: (id: string | null) => void
   onDraft: (d: DevDraft | null) => void
   onEdit: (e: boolean) => void
@@ -99,16 +109,7 @@ export function DevicesView(props: {
             <EmptyState
               icon="speaker"
               title="还没有绑定设备"
-              desc="先在「云端账号」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。"
-              action={
-                <Button
-                  variant="primary"
-                  icon="plus"
-                  onClick={() => onSelect(null)}
-                >
-                  新建
-                </Button>
-              }
+              desc="请前往「云端账号」页面，通过「去接入」按钮添加设备。"
             />
           ) : selDev && !devEdit ? (
             <DeviceDetail
@@ -118,6 +119,8 @@ export function DevicesView(props: {
               accounts={accounts}
               roles={roles}
               rooms={rooms}
+              thinkSvcs={props.thinkSvcs}
+              voiceSvcs={props.voiceSvcs}
               onRestart={onRestart}
               onDelete={onDelete}
               onEdit={() => onEdit(true)}
@@ -131,6 +134,8 @@ export function DevicesView(props: {
               accounts={accounts}
               roles={roles}
               rooms={rooms}
+              thinkSvcs={props.thinkSvcs}
+              voiceSvcs={props.voiceSvcs}
               modelPickOpen={props.modelPickOpen}
               modelPickQ={props.modelPickQ}
               devPull={props.devPull}

@@ -1,12 +1,10 @@
-import type { Role, ThinkService, VoiceService } from '../../apis.ts'
+import type { Role } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button } from '../../components/atoms/index.ts'
 
 export function RoleDetail(props: {
   role: Role
   usage: string[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -18,41 +16,30 @@ export function RoleDetail(props: {
         <span className="refs">
           本角色被 {props.usage.length} 台设备引用
           {props.usage.length ? '（' + props.usage.join(' · ') + '）' : ''}
-          。人设与模型热生效；修改唤醒词需重启设备。
+          。角色性格热生效；修改唤醒词需重启设备。
         </span>
       </h3>
       <div className="ro">
         <div className="grp">
-          <h4>基本信息</h4>
+          <h4>身份与关系</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">角色名称</span>
+              <span className="k">角色称呼</span>
               <span className="v">{role.name || '—'}</span>
             </div>
+            <div className="rr">
+              <span className="k">称呼我为</span>
+              <span className="v">{role.masterName || '—'}</span>
+            </div>
           </div>
           <div className="row">
             <div className="rr">
-              <span className="k">人设描述</span>
+              <span className="k">角色性格</span>
               <span className="v">{role.profile || '未填写'}</span>
             </div>
-          </div>
-        </div>
-        <div className="grp">
-          <h4>模型服务</h4>
-          <div className="row">
             <div className="rr">
-              <span className="k">思考服务</span>
-              <span className="v">
-                {props.thinkSvcs.find((s) => s.id === role.thinkServiceId)
-                  ?.name || '跟随全局默认'}
-              </span>
-            </div>
-            <div className="rr">
-              <span className="k">语音服务</span>
-              <span className="v">
-                {props.voiceSvcs.find((s) => s.id === role.voiceId)?.name ||
-                  '跟随全局默认'}
-              </span>
+              <span className="k">我的信息</span>
+              <span className="v">{role.masterProfile || '未填写'}</span>
             </div>
           </div>
         </div>

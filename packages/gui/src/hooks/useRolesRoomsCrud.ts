@@ -44,7 +44,7 @@ export function useRolesRoomsCrud(opts: {
   const saveRole = async (r: Role) => {
     try {
       await api.updateRole(r.id, r)
-      showToast('角色已保存，人设与模型热生效')
+      showToast('角色已保存，角色性格与模型热生效')
       refreshAll()
     } catch (e) {
       showToast(errText(e))

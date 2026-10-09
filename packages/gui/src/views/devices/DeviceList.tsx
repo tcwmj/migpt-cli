@@ -1,5 +1,5 @@
 import type { DeviceRow, Role, SpeakerModel } from '../../apis.ts'
-import { Button, Tag } from '../../components/atoms/index.ts'
+import { Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 
 export function DeviceList(props: {
@@ -41,13 +41,6 @@ export function DeviceList(props: {
           </div>
         )
       })}
-      <Button
-        icon="plus"
-        style={{ justifyContent: 'center', marginTop: 4 }}
-        onClick={() => props.onSelect(null)}
-      >
-        新建
-      </Button>
     </aside>
   )
 }

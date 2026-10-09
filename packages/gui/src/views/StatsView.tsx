@@ -107,11 +107,6 @@ const MOCK_DEVICE_HEALTH: DeviceHealth[] = [
 ]
 
 const MOCK_ENTITIES: Record<string, DimensionEntity[]> = {
-  role: [
-    { id: 'r1', name: '贴心管家' },
-    { id: 'r2', name: '英语外教' },
-    { id: 'r3', name: '故事大王' },
-  ],
   device: MOCK_DEVICE_HEALTH.map((d) => ({ id: d.id, name: d.name })),
   service: MOCK_SERVICE_HEALTH.map((s) => ({
     id: s.id,
@@ -120,9 +115,6 @@ const MOCK_ENTITIES: Record<string, DimensionEntity[]> = {
 }
 
 const ENTITY_WEIGHTS: Record<string, number> = {
-  r1: 0.5,
-  r2: 0.3,
-  r3: 0.2,
   d1: 0.55,
   d2: 0.3,
   d3: 0.15,
@@ -615,7 +607,6 @@ function DimensionFilter({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
   const dims: { key: StatsDimension; label: string }[] = [
-    { key: 'role', label: '对话角色' },
     { key: 'device', label: '设备服务' },
     { key: 'service', label: '模型服务' },
   ]

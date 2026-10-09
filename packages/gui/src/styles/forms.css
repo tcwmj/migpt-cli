@@ -154,3 +154,187 @@
   color: var(--accent);
   margin-top: var(--sp-1);
 }
+
+/* ── 供应商品牌 Logo 徽标（品牌色圆角块 + 标识字符） ── */
+.pv-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+/* 带 Logo 的供应商徽标（列表 / 详情行内展示） */
+.pv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  color: var(--ink-1);
+  font-weight: var(--fw-semibold);
+}
+
+/* 列表行内图标位（.slist .li .ic）：品牌 Logo 占位时去掉外层色块底 */
+.slist .li .ic.pv {
+  background: transparent;
+}
+
+/* ── 供应商下拉选择器：触发按钮（Logo + 名称 + 说明） + 展开列表 ── */
+.pv-sel {
+  position: relative;
+  width: 100%;
+}
+
+.pv-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  font: inherit;
+  color: var(--ink-1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pv-trigger:hover {
+  border-color: var(--accent);
+}
+
+.pv-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pv-trigger b {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
+.pv-trigger i {
+  font-style: normal;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* 右侧下拉箭头 */
+.pv-caret {
+  margin-left: auto;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--ink-3);
+  border-bottom: 1.5px solid var(--ink-3);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.15s;
+}
+
+.pv-sel.open .pv-caret {
+  transform: rotate(225deg) translateY(-2px);
+}
+
+/* 展开列表：浮层，含 Logo / 名称 / 备注 / 选中勾 */
+.pv-menu {
+  position: absolute;
+  /* 需高于弹窗（--z-modal: 60），否则菜单会被弹窗背景盖住 */
+  z-index: 70;
+  top: calc(100% + var(--sp-3));
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  box-shadow: var(--shadow-pop);
+}
+
+.pv-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: none;
+  border-radius: var(--r-s);
+  background: transparent;
+  font: inherit;
+  color: var(--ink-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pv-opt:hover {
+  background: var(--accent-soft);
+  color: var(--ink-1);
+}
+
+.pv-opt.on {
+  background: var(--accent-soft);
+  color: var(--ink-1);
+}
+
+.pv-opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.pv-opt .pv-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.pv-opt .pv-txt b {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+.pv-opt .pv-txt i {
+  font-style: normal;
+  font-size: var(--fs-2xs);
+  color: var(--ink-3);
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 兼容性提示角标（如「需兼容网关」） */
+.pv-flag {
+  flex: none;
+  padding: 1px var(--sp-4);
+  border-radius: var(--pill);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  font-size: var(--fs-2xs);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* 选中项右侧勾选标记 */
+.pv-check {
+  flex: none;
+  width: 14px;
+  height: 8px;
+  margin-left: auto;
+  border-left: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(-45deg) translateY(-2px);
+}

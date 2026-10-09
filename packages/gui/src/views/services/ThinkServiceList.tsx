@@ -1,7 +1,7 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { Button, Tag } from '../../components/atoms/index.ts'
-import { PROVIDERS } from '../../constants.ts'
+import { Button, ProviderLogo, Tag } from '../../components/atoms/index.ts'
+import { THINK_PROVIDERS } from '../../constants.ts'
 
 export function ThinkServiceList(props: {
   services: ThinkService[]
@@ -10,24 +10,31 @@ export function ThinkServiceList(props: {
 }) {
   return (
     <aside className="slist">
-      {props.services.map((s) => (
-        <div
-          key={s.id}
-          className={'li' + (s.id === props.selThink ? ' on' : '')}
-          onClick={() => props.onSelect(s.id)}
-        >
-          <span className="ic t">
-            <I n="bolt" />
-          </span>
-          <span className="txt">
-            <b>{s.name}</b>
-            <span>
-              {PROVIDERS[s.provider] || s.provider} · {s.model}
+      {props.services.map((s) => {
+        const p = THINK_PROVIDERS[s.provider]
+        return (
+          <div
+            key={s.id}
+            className={'li' + (s.id === props.selThink ? ' on' : '')}
+            onClick={() => props.onSelect(s.id)}
+          >
+            {p ? (
+              <span className="ic t pv">
+                <ProviderLogo p={p} size={20} />
+              </span>
+            ) : (
+              <span className="ic t">
+                <I n="bolt" />
+              </span>
+            )}
+            <span className="txt">
+              <b>{s.name}</b>
+              <span>{(p?.name || s.provider) + ' · ' + s.model}</span>
             </span>
-          </span>
-          {s.isDefault && <Tag>默认</Tag>}
-        </div>
-      ))}
+            {s.isDefault && <Tag>默认</Tag>}
+          </div>
+        )
+      })}
       <Button
         style={{ justifyContent: 'center', marginTop: 4 }}
         icon="plus"

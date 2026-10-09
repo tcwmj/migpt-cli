@@ -37,9 +37,29 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
   },
   applyUpdate: (list, idx, body) => {
     const wasDefault = list[idx].isDefault
+    const patch = pick<VoiceService>(body, VOICE_FIELDS)
+    // tts 密钥（trustedToken / accessToken / apiKey）读接口脱敏后不回传：
+    // 前端提交的空值视为「未修改」，与存储值合并，避免误清空已存密钥
+    if (patch.tts && list[idx].tts) {
+      const prev = list[idx].tts as unknown as Record<
+        string,
+        Record<string, string | undefined> | undefined
+      >
+      const next = { ...prev, ...(patch.tts as unknown as typeof prev) }
+      for (const k of ['edge', 'volcano', 'openai']) {
+        const sec = next[k]
+        const old = prev[k]
+        if (sec && old) {
+          for (const sk of ['trustedToken', 'accessToken', 'apiKey']) {
+            if (!sec[sk] && old[sk]) sec[sk] = old[sk]
+          }
+        }
+      }
+      patch.tts = next as never
+    }
     list[idx] = {
       ...list[idx],
-      ...pick<VoiceService>(body, VOICE_FIELDS),
+      ...patch,
       id: list[idx].id,
       builtin: list[idx].builtin,
     }

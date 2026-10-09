@@ -26,6 +26,10 @@ export interface Role {
   id: string
   name: string
   profile: string
+  /** 主人的称呼（如"主人"、"老大"、"朋友"等） */
+  masterName?: string
+  /** 主人的人设描述（如"性别：男 性格：善良正直 其他：总是舍己为人"） */
+  masterProfile?: string
   callAIKeywords: string[]
   wakeUpKeywords: string[]
   exitKeywords: string[]
@@ -127,6 +131,12 @@ export interface DeviceMeta {
   speakerModel?: string
   roleId?: string
   accountId?: string
+  /** 有序思考服务列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
+  thinkServiceIds?: string[]
+  /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
+  thinkServiceId?: string
+  /** 该设备默认引用的语音服务（未指定时回退到角色或全局默认） */
+  voiceId?: string
   /** 连续对话超时（秒）：无响应多久自动退出唤醒模式，默认 30 */
   exitKeepAliveAfter?: number
   /** 会话群引用（Room 实体 id）；多设备可共用同一会话群 */
@@ -217,6 +227,8 @@ export const ROLE_DEFAULTS = {
  * 供应商 → 推理服务 Base URL 映射（前后端共享的单一事实源）。
  * server 编译设备配置与 gui 表单预设均引用此处，避免两端硬编码漂移。
  * 未覆盖的供应商允许用户自定义 baseUrl；留空则由 mi-gpt 默认处理。
+ * anthropic / gemini 原生协议并非 OpenAI 兼容，地址为官方兼容层入口，
+ * 需配合网关使用（gui 选择卡片会显示角标提示）。
  */
 export const PROVIDER_BASE_URLS: Record<string, string> = {
   doubao: 'https://ark.cn-beijing.volces.com/api/v3',
@@ -227,6 +239,13 @@ export const PROVIDER_BASE_URLS: Record<string, string> = {
   zhipu: 'https://open.bigmodel.cn/api/paas/v4',
   yi: 'https://api.lingyiwanwu.com/v1',
   baichuan: 'https://api.baichuan-ai.com/v1',
+  minimax: 'https://api.minimax.chat/v1',
+  siliconflow: 'https://api.siliconflow.cn/v1',
+  groq: 'https://api.groq.com/openai/v1',
+  cerebras: 'https://api.cerebras.ai/v1',
+  mistral: 'https://api.mistral.ai/v1',
+  anthropic: 'https://api.anthropic.com/v1',
+  gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
 }
 
 // ── 契约字段清单（运行期事实源）────────────────────────────────
@@ -249,6 +268,8 @@ export const ENTITY_FIELDS = {
     'id',
     'name',
     'profile',
+    'masterName',
+    'masterProfile',
     'callAIKeywords',
     'wakeUpKeywords',
     'exitKeywords',
@@ -318,6 +339,9 @@ export const ENTITY_FIELDS = {
     'speakerModel',
     'roleId',
     'accountId',
+    'thinkServiceIds',
+    'thinkServiceId',
+    'voiceId',
     'exitKeepAliveAfter',
     'roomRef',
     'roomName',

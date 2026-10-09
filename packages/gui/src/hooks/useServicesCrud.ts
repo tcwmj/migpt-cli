@@ -2,10 +2,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../apis.ts'
 import type { DeviceRow, Role, ThinkService, VoiceService } from '../apis.ts'
-import { PROVIDER_PRESETS } from '../constants.ts'
+import {
+  PROVIDER_PRESETS,
+  buildVoiceTts,
+  voiceFormFromTts,
+} from '../constants.ts'
 import type { ThinkDraft, VoiceDraft } from '../views/drafts.ts'
 import type { ConfirmState } from '../ui-types.ts'
 import { errText } from '../components/app/errText.ts'
+
+/** 草稿 Token 字段 → 提交值：清空 / 未填一律按 0 提交（用量清零、上限视为未设置） */
+function tokenNum(s: string | undefined): number {
+  if (s == null || s === '') return 0
+  return parseInt(s, 10) || 0
+}
 
 export function useServicesCrud(opts: {
   devices: DeviceRow[]
@@ -37,11 +47,16 @@ export function useServicesCrud(opts: {
     const s = id ? thinkSvcs.find((x) => x.id === id) : null
     setThinkDraft({
       name: s?.name || '',
-      provider: s?.provider || 'doubao',
-      model: s?.model || PROVIDER_PRESETS[s?.provider || 'doubao']?.model || '',
+      provider: s?.provider || 'custom',
+      model: s?.model || PROVIDER_PRESETS[s?.provider || 'custom']?.model || '',
       apiKey: '',
       temperature: String(s?.temperature ?? 0.7),
       baseUrl: s?.baseUrl || PROVIDER_PRESETS[s?.provider || '']?.baseUrl || '',
+      tokenInputUsed: s?.tokenInputUsed != null ? String(s.tokenInputUsed) : '',
+      tokenOutputUsed:
+        s?.tokenOutputUsed != null ? String(s.tokenOutputUsed) : '',
+      tokenUsed: s?.tokenUsed != null ? String(s.tokenUsed) : '',
+      tokenLimit: s?.tokenLimit != null ? String(s.tokenLimit) : '',
     })
     setThinkEdit(id === null)
   }
@@ -49,26 +64,40 @@ export function useServicesCrud(opts: {
   const selectVoice = (id: string | null) => {
     setSelVoice(id)
     const s = id ? voiceSvcs.find((x) => x.id === id) : null
-    const tts = s?.tts || {}
     setVoiceDraft({
+      ...voiceFormFromTts(s),
       name: s?.name || '',
-      provider: s?.provider || 'edge',
       voiceId: s?.voiceId || '',
-      edgeToken: tts.edge?.trustedToken || '',
-      volcanoAppId: tts.volcano?.appId || '',
-      volcanoToken: tts.volcano?.accessToken || '',
-      openaiKey: tts.openai?.apiKey || '',
-      openaiModel: tts.openai?.model || '',
-      openaiBaseUrl: tts.openai?.baseUrl || '',
-      customJson: s?.tts ? JSON.stringify(s.tts, null, 2) : '',
+      ...(id
+        ? {}
+        : {
+            tokenInputUsed: '',
+            tokenOutputUsed: '',
+            tokenUsed: '',
+            tokenLimit: '',
+          }),
     })
     setVoiceEdit(id === null)
   }
 
   const saveThink = async () => {
     if (!thinkDraft) return
-    if (!thinkDraft.name || !thinkDraft.model) {
-      showToast('服务名称与模型端点必填')
+    const baseUrl =
+      thinkDraft.baseUrl || PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl || ''
+    // 模型配置全必填；编辑时 API Key 留空表示沿用已存密钥
+    if (
+      !thinkDraft.name ||
+      !thinkDraft.provider ||
+      !baseUrl ||
+      !thinkDraft.model ||
+      !thinkDraft.temperature ||
+      (!selThink && !thinkDraft.apiKey)
+    ) {
+      showToast(
+        selThink
+          ? '服务名称、接口地址、模型端点与温度必填'
+          : '服务名称、接口地址、模型端点、API Key 与温度必填',
+      )
       return
     }
     try {
@@ -78,11 +107,13 @@ export function useServicesCrud(opts: {
         model: thinkDraft.model,
         temperature: parseFloat(thinkDraft.temperature) || 0.7,
       }
-      out.baseUrl =
-        thinkDraft.baseUrl ||
-        PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl ||
-        ''
+      out.baseUrl = baseUrl
       if (thinkDraft.apiKey) out.apiKey = thinkDraft.apiKey
+      // Token 用量：清空即归零（上限 0 由详情页呈现为「未设置」）
+      out.tokenInputUsed = tokenNum(thinkDraft.tokenInputUsed)
+      out.tokenOutputUsed = tokenNum(thinkDraft.tokenOutputUsed)
+      out.tokenUsed = tokenNum(thinkDraft.tokenUsed)
+      out.tokenLimit = tokenNum(thinkDraft.tokenLimit)
       if (selThink) {
         await api.updateThinkService(selThink, out)
         showToast('思考服务已保存，绑定设备热生效')
@@ -139,42 +170,17 @@ export function useServicesCrud(opts: {
         provider: voiceDraft.provider,
       }
       if (voiceDraft.voiceId) out.voiceId = voiceDraft.voiceId
-      const tts: Record<string, unknown> = {}
-      if (voiceDraft.provider === 'edge') {
-        tts.edge = voiceDraft.edgeToken
-          ? { trustedToken: voiceDraft.edgeToken }
-          : {}
-      } else if (voiceDraft.provider === 'volcano') {
-        if (!voiceDraft.volcanoAppId || !voiceDraft.volcanoToken) {
-          showToast('火山引擎需填写 App ID 与访问令牌')
-          return
-        }
-        tts.volcano = {
-          appId: voiceDraft.volcanoAppId,
-          accessToken: voiceDraft.volcanoToken,
-        }
-      } else if (voiceDraft.provider === 'openai') {
-        if (!voiceDraft.openaiKey) {
-          showToast('OpenAI TTS 需填写 API Key')
-          return
-        }
-        tts.openai = {
-          apiKey: voiceDraft.openaiKey,
-          ...(voiceDraft.openaiModel ? { model: voiceDraft.openaiModel } : {}),
-          ...(voiceDraft.openaiBaseUrl
-            ? { baseUrl: voiceDraft.openaiBaseUrl }
-            : {}),
-        }
-      } else if (voiceDraft.provider === 'custom') {
-        try {
-          const j = JSON.parse(voiceDraft.customJson || '{}')
-          Object.assign(tts, j)
-        } catch {
-          showToast('自定义 TTS 配置不是合法 JSON')
-          return
-        }
+      const { tts, err } = buildVoiceTts(voiceDraft)
+      if (err) {
+        showToast(err)
+        return
       }
       if (Object.keys(tts).length) out.tts = tts as never
+      // Token 用量：清空即归零（上限 0 由详情页呈现为「未设置」）
+      out.tokenInputUsed = tokenNum(voiceDraft.tokenInputUsed)
+      out.tokenOutputUsed = tokenNum(voiceDraft.tokenOutputUsed)
+      out.tokenUsed = tokenNum(voiceDraft.tokenUsed)
+      out.tokenLimit = tokenNum(voiceDraft.tokenLimit)
       if (selVoice) {
         await api.updateVoiceService(selVoice, out)
         showToast('语音服务已保存，绑定设备支持热切')
@@ -298,16 +304,9 @@ export function useServicesCrud(opts: {
       const s = voiceSvcs[0]
       setVoiceEdit(false)
       setVoiceDraft({
+        ...voiceFormFromTts(s),
         name: s.name,
-        provider: s.provider,
         voiceId: s.voiceId || '',
-        edgeToken: s.tts?.edge?.trustedToken || '',
-        volcanoAppId: s.tts?.volcano?.appId || '',
-        volcanoToken: s.tts?.volcano?.accessToken || '',
-        openaiKey: s.tts?.openai?.apiKey || '',
-        openaiModel: s.tts?.openai?.model || '',
-        openaiBaseUrl: s.tts?.openai?.baseUrl || '',
-        customJson: s.tts ? JSON.stringify(s.tts, null, 2) : '',
       })
     }
   }, [voiceSvcs]) // eslint-disable-line react-hooks/exhaustive-deps

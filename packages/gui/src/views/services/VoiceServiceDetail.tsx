@@ -1,7 +1,7 @@
 import type { VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { Button, Tag } from '../../components/atoms/index.ts'
-import { TTS_ENGINES } from '../../constants.ts'
+import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
+import { VOICE_PROVIDERS } from '../../constants.ts'
 
 export function VoiceServiceDetail(props: {
   selVoice: string
@@ -36,9 +36,13 @@ export function VoiceServiceDetail(props: {
             <div className="rr">
               <span className="k">供应商</span>
               <span className="v">
-                {svc?.builtin
-                  ? '默认语音'
-                  : TTS_ENGINES[svc?.provider || ''] || svc?.provider || '—'}
+                {svc?.builtin ? (
+                  '默认语音'
+                ) : svc && VOICE_PROVIDERS[svc.provider] ? (
+                  <ProviderBadge p={VOICE_PROVIDERS[svc.provider]} />
+                ) : (
+                  (svc?.provider ?? '—')
+                )}
               </span>
             </div>
           </div>
@@ -56,45 +60,41 @@ export function VoiceServiceDetail(props: {
           <h4>Token 用量</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">输入</span>
+              <span className="k">输入 Token</span>
               <span className="v">
                 {(svc?.tokenInputUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
-              <span className="k">输出</span>
+              <span className="k">输出 Token</span>
               <span className="v">
                 {(svc?.tokenOutputUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
-              <span className="k">合计</span>
+              <span className="k">合计 Token</span>
               <span className="v">
                 {(svc?.tokenUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
-              <span className="k">上限</span>
+              <span className="k">Token 上限</span>
               <span className="v">
-                {svc?.tokenLimit != null
-                  ? svc.tokenLimit.toLocaleString()
-                  : '未设置'}
+                {svc?.tokenLimit ? svc.tokenLimit.toLocaleString() : '未设置'}
               </span>
             </div>
           </div>
-          {svc?.tokenLimit != null && svc?.tokenUsed != null && (
+          {svc?.tokenLimit ? (
             <div className="row">
               <div className="rr">
                 <span className="k">用量进度</span>
                 <span className="v">
                   <progress
-                    value={svc.tokenUsed}
+                    value={svc.tokenUsed ?? 0}
                     max={svc.tokenLimit}
                     style={{ width: 120 }}
                   />{' '}
-                  {svc.tokenLimit > 0
-                    ? `${((svc.tokenUsed / svc.tokenLimit) * 100).toFixed(1)}%`
-                    : '—'}
+                  {`${(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%`}
                 </span>
               </div>
               {svc.limitReached && (
@@ -103,6 +103,14 @@ export function VoiceServiceDetail(props: {
                 </div>
               )}
             </div>
+          ) : (
+            svc?.limitReached && (
+              <div className="row">
+                <div className="rr">
+                  <Tag tone="bad">限额已达</Tag>
+                </div>
+              </div>
+            )
           )}
         </div>
       </div>

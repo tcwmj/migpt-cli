@@ -50,6 +50,7 @@
     "webpack-dev-server": "^5.1.0"
   },
   "dependencies": {
+    "react-select": "^5.10.2",
     "recharts": "^3.10.1"
   }
 }

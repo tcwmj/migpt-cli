@@ -59,6 +59,8 @@ export function pick<T extends object>(
 export const ROLE_FIELDS = [
   'name',
   'profile',
+  'masterName',
+  'masterProfile',
   'callAIKeywords',
   'wakeUpKeywords',
   'exitKeywords',
@@ -118,6 +120,9 @@ export const DEVICE_META_FIELDS = [
   'speakerModel',
   'roleId',
   'accountId',
+  'thinkServiceIds',
+  'thinkServiceId',
+  'voiceId',
   'exitKeepAliveAfter',
   'roomRef',
   'roomName',

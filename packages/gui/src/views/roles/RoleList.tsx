@@ -19,7 +19,7 @@ export function RoleList(props: {
           <img src={avatarOf(r.name)} alt={r.name} />
           <span>
             <b>{r.name}</b>
-            <span>{r.profile?.slice(0, 18) || '未填写人设'}</span>
+            <span>{r.profile?.slice(0, 18) || '未填写角色性格'}</span>
           </span>
         </div>
       ))}

@@ -25,6 +25,12 @@ export function AccountsView(props: {
   onDelete: (id: string) => void
   onSave: () => void
   onRefreshDevs: (id: string) => void
+  onGoToDevice: (d: {
+    accountId: string
+    did: string
+    alias: string
+    hardware: string
+  }) => void
   usage: (id: string) => string[]
 }) {
   const {
@@ -155,7 +161,7 @@ export function AccountsView(props: {
                 </div>
               </div>
               <h3 className="acct-dev">
-                <I n="speaker" size={17} /> 云端账号
+                <I n="speaker" size={17} /> 账号设备
                 <span className="sp" />
                 <button
                   className="icbtn"
@@ -220,9 +226,24 @@ export function AccountsView(props: {
                           >
                             {d.presence === 'online' ? '在线' : '离线'}
                           </Tag>
-                          <Tag tone={bound ? 'accent' : 'neu'}>
-                            {bound ? '已接入' : '未接入'}
-                          </Tag>
+                          {bound ? (
+                            <Tag tone="accent">已接入</Tag>
+                          ) : (
+                            <Tag
+                              tone="neu"
+                              className="go-integrate"
+                              onClick={() =>
+                                props.onGoToDevice({
+                                  accountId: selAcct!,
+                                  did: d.miotDID,
+                                  alias: d.alias || d.name,
+                                  hardware: d.hardware,
+                                })
+                              }
+                            >
+                              去接入
+                            </Tag>
+                          )}
                         </div>
                       )
                     })}

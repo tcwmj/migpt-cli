@@ -35,6 +35,8 @@ export function useDevicesCrud(opts: {
     speakerModel: d.speakerModel || '',
     accountId: d.accountId || '',
     roleId: d.roleId || '',
+    thinkServiceIds: d.thinkServiceIds || [],
+    voiceId: d.voiceId || '',
     ttsSecret: d.ttsSecret || '',
     exitKeepAliveAfter: String(d.exitKeepAliveAfter ?? 30),
     roomRef: d.roomRef || '',
@@ -45,6 +47,8 @@ export function useDevicesCrud(opts: {
     speakerModel: '',
     accountId: '',
     roleId: '',
+    thinkServiceIds: [],
+    voiceId: '',
     ttsSecret: '',
     exitKeepAliveAfter: '30',
     roomRef: '',
@@ -73,6 +77,10 @@ export function useDevicesCrud(opts: {
             speakerModel: devDraft.speakerModel || undefined,
             accountId: devDraft.accountId || undefined,
             roleId: devDraft.roleId || undefined,
+            thinkServiceIds: devDraft.thinkServiceIds.length
+              ? devDraft.thinkServiceIds
+              : undefined,
+            voiceId: devDraft.voiceId || undefined,
             exitKeepAliveAfter:
               parseInt(devDraft.exitKeepAliveAfter || '30', 10) || 30,
             roomRef: devDraft.roomRef || undefined,
@@ -88,6 +96,10 @@ export function useDevicesCrud(opts: {
           speakerModel: devDraft.speakerModel || undefined,
           accountId: devDraft.accountId || undefined,
           roleId: devDraft.roleId || undefined,
+          thinkServiceIds: devDraft.thinkServiceIds.length
+            ? devDraft.thinkServiceIds
+            : undefined,
+          voiceId: devDraft.voiceId || undefined,
         })
         showToast('设备已添加，点击「重启设备」使其生效')
         await refreshAll()

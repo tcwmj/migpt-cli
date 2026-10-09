@@ -311,6 +311,8 @@ export const createDevice = (d: {
   speakerModel?: string
   roleId?: string
   accountId?: string
+  thinkServiceIds?: string[]
+  voiceId?: string
 }) => post<{ id: string }>(api('/devices'), d)
 
 export const getDevice = (id: string) =>
@@ -455,7 +457,7 @@ export async function testTts(ttsConfig: TTSConfig) {
 }
 
 // ── 统计接口 ────────────────────────────────────────────────
-export type StatsDimension = 'role' | 'device' | 'service'
+export type StatsDimension = 'device' | 'service'
 
 export interface TokenStats {
   inputTokens: number
@@ -494,7 +496,6 @@ export interface DeviceHealth {
 }
 
 export const DIMENSION_LABELS: Record<string, string> = {
-  role: '对话角色',
   device: '设备服务',
   service: '模型服务',
 }

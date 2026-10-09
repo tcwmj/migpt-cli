@@ -1,6 +1,11 @@
 /* ══ ServicesView ══ */
 import { useMemo, useState } from 'react'
-import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
+import {
+  Button,
+  Chip,
+  EmptyState,
+  ProviderLogo,
+} from '../components/atoms/index.ts'
 import type { ThinkService, VoiceService } from '../apis.ts'
 import type { ThinkDraft, VoiceDraft } from './drafts.ts'
 import { ThinkServiceList } from './services/ThinkServiceList.tsx'
@@ -9,7 +14,7 @@ import { ThinkServiceForm } from './services/ThinkServiceForm.tsx'
 import { VoiceServiceList } from './services/VoiceServiceList.tsx'
 import { VoiceServiceDetail } from './services/VoiceServiceDetail.tsx'
 import { VoiceServiceForm } from './services/VoiceServiceForm.tsx'
-import { PROVIDERS, TTS_ENGINES } from '../constants.ts'
+import { THINK_PROVIDERS, TTS_ENGINES, VOICE_PROVIDERS } from '../constants.ts'
 
 export function ServicesView(props: {
   tab: 'think' | 'voice'
@@ -111,15 +116,19 @@ export function ServicesView(props: {
             >
               全部服务 {thinkSvcs.length}
             </Chip>
-            {Object.entries(thinkProviderCounts).map(([prov, count]) => (
-              <Chip
-                key={prov}
-                on={thinkProvider === prov}
-                onClick={() => setThinkProvider(prov)}
-              >
-                {PROVIDERS[prov] || prov} {count}
-              </Chip>
-            ))}
+            {Object.entries(thinkProviderCounts).map(([prov, count]) => {
+              const p = THINK_PROVIDERS[prov]
+              return (
+                <Chip
+                  key={prov}
+                  on={thinkProvider === prov}
+                  onClick={() => setThinkProvider(prov)}
+                >
+                  {p && <ProviderLogo p={p} size={15} />} {p?.name || prov}{' '}
+                  {count}
+                </Chip>
+              )
+            })}
             <span className="sp" />
           </div>
           <div className="split">
@@ -181,15 +190,19 @@ export function ServicesView(props: {
             >
               全部服务 {voiceSvcs.length}
             </Chip>
-            {Object.entries(voiceProviderCounts).map(([prov, count]) => (
-              <Chip
-                key={prov}
-                on={voiceProvider === prov}
-                onClick={() => setVoiceProvider(prov)}
-              >
-                {TTS_ENGINES[prov] || prov} {count}
-              </Chip>
-            ))}
+            {Object.entries(voiceProviderCounts).map(([prov, count]) => {
+              const p = prov === 'builtin' ? undefined : VOICE_PROVIDERS[prov]
+              return (
+                <Chip
+                  key={prov}
+                  on={voiceProvider === prov}
+                  onClick={() => setVoiceProvider(prov)}
+                >
+                  {p && <ProviderLogo p={p} size={15} />}{' '}
+                  {TTS_ENGINES[prov] || prov} {count}
+                </Chip>
+              )
+            })}
             <span className="sp" />
           </div>
           <div className="split">

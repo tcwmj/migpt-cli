@@ -10,6 +10,7 @@ import {
   createSession,
   getSession,
   destroySession,
+  bumpSessionEpoch,
 } from '../session.js'
 import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
 
@@ -113,6 +114,8 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       return
     }
     await saveAuthCredentials(body.newUser, body.newPassword)
+    // 凭据已变更：令牌纪元 +1，全部已登录会话立即失效（用户需重新登录）
+    bumpSessionEpoch()
     ok(res)
   })
 }

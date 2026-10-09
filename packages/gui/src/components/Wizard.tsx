@@ -1,12 +1,6 @@
 /* ══ Wizard ══ */
 import { useState } from 'react'
-import {
-  type Account,
-  type Role,
-  type SpeakerModel,
-  type ThinkService,
-  type VoiceService,
-} from '../apis.ts'
+import { type Account, type Role, type SpeakerModel } from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
 import { WizardAccountStep } from './wizard/WizardAccountStep.tsx'
@@ -19,8 +13,6 @@ export function Wizard(props: {
   accounts: Account[]
   roles: Role[]
   models: SpeakerModel[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
   devices: { id: string; alias: string; did: string; accountId?: string }[]
   draft: WizardDraft
   setDraft: WizardSetDraft
@@ -119,8 +111,6 @@ export function Wizard(props: {
             active={step === 2}
             roles={props.roles}
             roleId={draft.roleId}
-            thinkSvcs={props.thinkSvcs}
-            voiceSvcs={props.voiceSvcs}
             setDraft={setDraft}
             onNewRole={props.onNewRole}
             onUpdateRole={props.onUpdateRole}

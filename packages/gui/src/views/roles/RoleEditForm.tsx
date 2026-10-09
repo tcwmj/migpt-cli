@@ -1,4 +1,4 @@
-import type { Role, ThinkService, VoiceService } from '../../apis.ts'
+import type { Role } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
 
@@ -25,15 +25,11 @@ export function RoleEditForm(props: {
   draft: Role
   creating: boolean
   usage: string[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
   setF: (k: keyof Role, v: unknown) => void
   onCancel: () => void
   onSave: () => void
 }) {
   const { draft, setF } = props
-  const thinkDefault = props.thinkSvcs.find((s) => s.isDefault)
-  const voiceDefault = props.voiceSvcs.find((s) => s.isDefault)
   return (
     <div className="rform redit">
       <h3>
@@ -41,64 +37,39 @@ export function RoleEditForm(props: {
         <span className="refs">
           本角色被 {props.usage.length} 台设备引用
           {props.usage.length ? '（' + props.usage.join(' · ') + '）' : ''}
-          。人设与模型热生效；修改唤醒词需重启设备。
+          。角色性格热生效；修改唤醒词需重启设备。
         </span>
       </h3>
       <div className="grp">
-        <h4>基本信息</h4>
+        <h4>身份与关系</h4>
         <div className="row">
-          <Field label="角色名称" required>
+          <Field label="角色称呼" required>
             <input
               value={draft.name}
               onChange={(e) => setF('name', e.target.value)}
             />
           </Field>
+          <Field label="称呼我为" tip="如：主人、老大、朋友等">
+            <input
+              value={draft.masterName || ''}
+              placeholder="例如：主人"
+              onChange={(e) => setF('masterName', e.target.value)}
+            />
+          </Field>
         </div>
         <div className="row">
-          <Field label="人设描述" tip="供思考服务理解人格 · 热生效">
+          <Field label="角色性格" tip="供思考服务理解人格 · 热生效">
             <textarea
               value={draft.profile}
               onChange={(e) => setF('profile', e.target.value)}
             />
           </Field>
-        </div>
-      </div>
-      <div className="grp">
-        <h4>模型服务</h4>
-        <div className="row">
-          <Field label="思考服务">
-            <select
-              value={draft.thinkServiceId || ''}
-              onChange={(e) =>
-                setF('thinkServiceId', e.target.value || undefined)
-              }
-            >
-              <option value="">
-                （跟随全局默认：{thinkDefault?.name || '未设置'}）
-              </option>
-              {props.thinkSvcs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                  {o.isDefault ? ' · 默认' : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="语音服务">
-            <select
-              value={draft.voiceId || ''}
-              onChange={(e) => setF('voiceId', e.target.value || undefined)}
-            >
-              <option value="">
-                （跟随全局默认：{voiceDefault?.name || '未设置'}）
-              </option>
-              {props.voiceSvcs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                  {o.isDefault ? ' · 默认' : ''}
-                </option>
-              ))}
-            </select>
+          <Field label="我的信息" tip="供角色了解你的背景信息">
+            <textarea
+              value={draft.masterProfile || ''}
+              placeholder="例如：性别：男 性格：善良正直 其他：总是舍己为人"
+              onChange={(e) => setF('masterProfile', e.target.value)}
+            />
           </Field>
         </div>
       </div>

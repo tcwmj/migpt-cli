@@ -4,3 +4,8 @@ export { EmptyState } from './EmptyState.tsx'
 export { Tag } from './Tag.tsx'
 export { Chip } from './Chip.tsx'
 export { Switch } from './Switch.tsx'
+export {
+  ProviderPicker,
+  ProviderLogo,
+  ProviderBadge,
+} from './ProviderPicker.tsx'

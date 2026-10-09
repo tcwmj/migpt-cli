@@ -1,7 +1,12 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { PROVIDERS, PROVIDER_PRESETS } from '../../constants.ts'
-import { Button, Field, Tag } from '../../components/atoms/index.ts'
+import { THINK_PROVIDERS, PROVIDER_PRESETS } from '../../constants.ts'
+import {
+  Button,
+  Field,
+  ProviderPicker,
+  Tag,
+} from '../../components/atoms/index.ts'
 import type { ThinkDraft } from '../drafts.ts'
 
 export function ThinkServiceForm(props: {
@@ -25,6 +30,8 @@ export function ThinkServiceForm(props: {
     onSelect,
   } = props
   const currentSvc = selThink ? thinkSvcs.find((s) => s.id === selThink) : null
+  const preset = THINK_PROVIDERS[thinkDraft.provider]
+  const dlId = `think-models-${thinkDraft.provider || 'custom'}`
   return (
     <div className="form-card">
       <h3>
@@ -50,86 +57,101 @@ export function ThinkServiceForm(props: {
               onChange={(e) => onDraft({ ...thinkDraft, name: e.target.value })}
             />
           </Field>
-          <Field label="供应商" required>
-            <select
-              value={thinkDraft.provider}
-              onChange={(e) => {
-                const p = e.target.value
-                const preset = PROVIDER_PRESETS[p]
-                const prev = PROVIDER_PRESETS[thinkDraft.provider]
-                onDraft({
-                  ...thinkDraft,
-                  provider: p,
-                  baseUrl: preset?.baseUrl || '',
-                  model:
-                    thinkDraft.model && thinkDraft.model !== prev?.model
-                      ? thinkDraft.model
-                      : preset?.model || '',
-                })
-              }}
-            >
-              {Object.entries(PROVIDERS).map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </Field>
         </div>
       </div>
       <div className="grp">
         <h4>模型配置</h4>
         <div className="row">
           <Field
-            label="接口地址"
-            tip="选「自定义」时可手动填写；其他供应商自动填充官方地址，可随供应商自动带出"
+            label="供应商"
+            required
+            tip={
+              (preset?.badge ? `${preset.badge}；` : '') +
+              '选择供应商自动带出官方接口地址与示例模型，后续均可修改'
+            }
           >
-            {thinkDraft.provider === 'custom' ? (
-              <input
-                value={thinkDraft.baseUrl}
-                placeholder="https://api.example.com/v1"
-                onChange={(e) =>
-                  onDraft({ ...thinkDraft, baseUrl: e.target.value })
-                }
-              />
-            ) : (
-              <input
-                value={
-                  thinkDraft.baseUrl ||
-                  PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl ||
-                  ''
-                }
-                readOnly
-                disabled
-                placeholder="选择供应商后自动填充"
-              />
-            )}
+            <ProviderPicker
+              providers={THINK_PROVIDERS}
+              value={thinkDraft.provider}
+              onPick={(p) => {
+                const pp = PROVIDER_PRESETS[p]
+                const pre = PROVIDER_PRESETS[thinkDraft.provider]
+                onDraft({
+                  ...thinkDraft,
+                  provider: p,
+                  baseUrl: pp?.baseUrl || '',
+                  model:
+                    thinkDraft.model && thinkDraft.model !== pre?.model
+                      ? thinkDraft.model
+                      : pp?.model || '',
+                })
+              }}
+            />
           </Field>
           <Field
-            label="模型端点"
+            label="接口地址"
             required
-            tip="切换供应商自动带出示例模型，可修改"
+            tip="已按供应商自动填充官方地址，如有代理 / 网关可自行修改"
           >
             <input
-              value={thinkDraft.model}
-              placeholder="ep-xxxxxxxx 或模型名"
+              value={
+                thinkDraft.baseUrl ||
+                PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl ||
+                ''
+              }
+              placeholder={
+                thinkDraft.provider === 'custom'
+                  ? 'https://api.example.com/v1'
+                  : '选择供应商后自动填充'
+              }
               onChange={(e) =>
-                onDraft({ ...thinkDraft, model: e.target.value })
+                onDraft({ ...thinkDraft, baseUrl: e.target.value })
               }
             />
           </Field>
         </div>
         <div className="row">
-          <Field label="API Key">
+          <Field
+            label="模型端点"
+            required
+            tip="切换供应商自动带出示例模型，可输入任意模型名"
+          >
+            <>
+              <input
+                value={thinkDraft.model}
+                list={dlId}
+                placeholder={
+                  thinkDraft.provider === 'custom'
+                    ? '模型名或 ep-xxxxxxxx'
+                    : preset?.model || ''
+                }
+                onChange={(e) =>
+                  onDraft({ ...thinkDraft, model: e.target.value })
+                }
+              />
+              {!!preset?.models?.length && (
+                <datalist id={dlId}>
+                  {preset.models.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
+              )}
+            </>
+          </Field>
+          <Field label="API Key" required>
             <input
               value={thinkDraft.apiKey}
-              placeholder={selThink ? '留空则保留原 Key' : 'ark- 开头的密钥'}
+              placeholder={
+                selThink ? '留空则保留原 Key' : '以 sk- / ark- 等开头的密钥'
+              }
               onChange={(e) =>
                 onDraft({ ...thinkDraft, apiKey: e.target.value })
               }
             />
           </Field>
-          <Field label="温度" tip="取值范围 0–1，越高回答越发散">
+        </div>
+        <div className="row">
+          <Field label="温度" required tip="取值范围 0–1，越高回答越发散">
             <input
               value={thinkDraft.temperature}
               onChange={(e) =>
@@ -181,7 +203,7 @@ export function ThinkServiceForm(props: {
             <input
               type="number"
               min="0"
-              value={thinkDraft.tokenLimit ?? ''}
+              value={thinkDraft.tokenLimit || ''}
               placeholder="不限"
               onChange={(e) =>
                 onDraft({ ...thinkDraft, tokenLimit: e.target.value })
@@ -220,7 +242,17 @@ export function ThinkServiceForm(props: {
           variant="primary"
           icon="check"
           onClick={props.onSave}
-          disabled={!thinkDraft.name || !thinkDraft.model}
+          disabled={
+            !thinkDraft.name ||
+            !thinkDraft.provider ||
+            !(
+              thinkDraft.baseUrl ||
+              PROVIDER_PRESETS[thinkDraft.provider]?.baseUrl
+            ) ||
+            !thinkDraft.model ||
+            !thinkDraft.temperature ||
+            (!selThink && !thinkDraft.apiKey)
+          }
         >
           保存
         </Button>

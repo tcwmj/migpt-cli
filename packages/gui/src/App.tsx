@@ -206,6 +206,28 @@ export function App() {
               onDelete={acct.delAcct}
               onSave={acct.saveAcct}
               onRefreshDevs={acct.loadAcctDevs}
+              onGoToDevice={(d) => {
+                const mm = models.find(
+                  (m) =>
+                    m.id === d.hardware ||
+                    m.name === d.hardware ||
+                    (m.did && d.hardware && d.hardware.startsWith(m.did)),
+                )
+                dev.selectDev(null)
+                dev.setDevDraft({
+                  alias: d.alias,
+                  did: d.did,
+                  speakerModel: mm?.id || '',
+                  accountId: d.accountId,
+                  roleId: '',
+                  thinkServiceIds: [],
+                  voiceId: '',
+                  ttsSecret: '',
+                  exitKeepAliveAfter: '30',
+                  roomRef: '',
+                })
+                setView('devices')
+              }}
               usage={acct.usage}
             />
           )}
@@ -245,6 +267,8 @@ export function App() {
               roles={roles}
               accounts={accounts}
               rooms={rooms}
+              thinkSvcs={thinkSvcs}
+              voiceSvcs={voiceSvcs}
               onSelect={dev.selectDev}
               onDraft={dev.setDevDraft}
               onEdit={dev.setDevEdit}
@@ -277,8 +301,6 @@ export function App() {
             <RolesView
               roles={rr.filterRoles}
               allRoles={roles}
-              thinkSvcs={thinkSvcs}
-              voiceSvcs={voiceSvcs}
               roleUsage={rr.roleUsage}
               onSave={rr.saveRole}
               onCreate={rr.createRole}
@@ -402,8 +424,6 @@ export function App() {
           accounts={accounts}
           roles={roles}
           models={models}
-          thinkSvcs={thinkSvcs}
-          voiceSvcs={voiceSvcs}
           draft={wizard}
           setDraft={wz.setDraft}
           onClose={wz.closeWizard}

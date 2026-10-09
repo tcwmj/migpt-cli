@@ -7,12 +7,14 @@ export function Tag({
   icon,
   className,
   style,
+  onClick,
   children,
 }: {
   tone?: string
   icon?: string
   className?: string
   style?: CSSProperties
+  onClick?: () => void
   children: ReactNode
 }) {
   return (
@@ -21,6 +23,7 @@ export function Tag({
         'tag' + (tone ? ' ' + tone : '') + (className ? ' ' + className : '')
       }
       style={style}
+      onClick={onClick}
     >
       {icon ? <I n={icon} /> : null}
       {icon && children ? ' ' : null}

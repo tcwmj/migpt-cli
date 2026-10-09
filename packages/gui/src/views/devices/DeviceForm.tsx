@@ -1,15 +1,16 @@
+import Select from 'react-select'
 import type {
   Account,
   DeviceRow,
   Role,
   Room,
   SpeakerModel,
+  ThinkService,
+  VoiceService,
 } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
 import type { DevDraft, DevPullState } from '../drafts.ts'
-import { ModelPicker } from './ModelPicker.tsx'
-import { PullDeviceList } from './PullDeviceList.tsx'
 
 export function DeviceForm(props: {
   devDraft: DevDraft
@@ -19,6 +20,8 @@ export function DeviceForm(props: {
   accounts: Account[]
   roles: Role[]
   rooms: Room[]
+  thinkSvcs: ThinkService[]
+  voiceSvcs: VoiceService[]
   modelPickOpen: boolean
   modelPickQ: string
   devPull: DevPullState
@@ -34,6 +37,16 @@ export function DeviceForm(props: {
   const { devDraft, selDev } = props
   const running = props.devices.find((x) => x.id === selDev)?.running
   const model = props.models.find((x) => x.id === devDraft.speakerModel) || null
+  const account = props.accounts.find((a) => a.id === devDraft.accountId)
+
+  const thinkOptions = props.thinkSvcs.map((s) => ({
+    value: s.id,
+    label: s.name + (s.limitReached ? '（限额）' : ''),
+  }))
+  const thinkValue = thinkOptions.filter((o) =>
+    (devDraft.thinkServiceIds || []).includes(o.value),
+  )
+
   return (
     <div className="form-card">
       <h3>
@@ -43,105 +56,129 @@ export function DeviceForm(props: {
             ? running
               ? '服务运行中 · 修改绑定后需重启'
               : '服务未启动 · 修改绑定后需重启'
-            : '新建设备：从云端账号拉取选择，保存后立即选中'}
+            : '确认设备信息后保存即可接入'}
         </span>
       </h3>
       <div className="desc">
         {selDev
-          ? '修改设备绑定；已变更的绑定需重启设备生效。'
-          : '填入音箱 did 与绑定关系；创建后可重启设备生效。'}
+          ? '修改设备配置；已变更的配置需重启设备生效。'
+          : '确认从云端带入的设备信息，配置服务后保存。'}
       </div>
+
+      {/* 关联账号 */}
       <div className="grp">
-        <h4>基本信息</h4>
-        <div className="row">
-          <Field label="设备名称" required>
-            <input
-              value={devDraft.alias}
-              placeholder="例如：客餐厅音箱"
-              onChange={(e) =>
-                props.onDraft({ ...devDraft, alias: e.target.value })
-              }
-            />
-          </Field>
-          <Field
-            label="设备 ID"
-            required
-            tip="小爱音箱 ID 或名称。新建时由「云端账号拉取」自动带入；编辑模式可手动修改。"
-          >
-            {selDev ? (
-              <input
-                value={devDraft.did}
-                placeholder="例如：小爱音箱Pro"
-                onChange={(e) =>
-                  props.onDraft({ ...devDraft, did: e.target.value })
-                }
-              />
-            ) : (
-              <div
-                className="ro"
-                style={{ minHeight: 40, alignItems: 'center' }}
-              >
-                <span
-                  className="v"
-                  style={{
-                    fontSize: 13.5,
-                    color: devDraft.did ? 'var(--ink-1)' : 'var(--ink-3)',
-                  }}
-                >
-                  {devDraft.did || '请先从下方云端账号拉取选择'}
-                </span>
-              </div>
-            )}
-          </Field>
-        </div>
-      </div>
-      <div className="grp">
-        <h4>设备型号</h4>
-        <div className="row">
-          <Field
-            label="设备型号"
-            tip="输入关键字可搜索型号；选择后自动带入该型号的指令与播放配置（可在「设备型号」维护）。"
-          >
-            <ModelPicker
-              models={props.models}
-              value={devDraft.speakerModel}
-              open={props.modelPickOpen}
-              q={props.modelPickQ}
-              onOpen={props.onPickOpen}
-              onQ={props.onPickQ}
-              onPick={(id) => props.onDraft({ ...devDraft, speakerModel: id })}
-            />
-          </Field>
-        </div>
-      </div>
-      <div className="grp">
-        <h4>绑定</h4>
+        <h4>关联账号</h4>
         <div className="row">
           <Field label="云端账号">
-            <select
-              value={devDraft.accountId}
-              onChange={(e) => {
-                props.onDraft({
-                  ...devDraft,
-                  accountId: e.target.value,
-                  did: '',
-                  speakerModel: '',
-                })
-                props.onResetPull()
-              }}
-            >
-              <option value="">未指定（使用默认账号）</option>
-              {props.accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}（{a.miUserId}）
-                </option>
-              ))}
-            </select>
+            <input
+              value={
+                account ? `${account.name}（${account.miUserId}）` : '未指定'
+              }
+              disabled
+            />
           </Field>
-          <Field
-            label="对话角色"
-            tip="选择对话角色后，思考服务与语音服务由角色统一提供，无需在此重复配置。"
-          >
+        </div>
+      </div>
+
+      {/* 关联设备 */}
+      <div className="grp">
+        <h4>关联设备</h4>
+        <div className="row">
+          <Field label="设备名称">
+            <input value={devDraft.alias} disabled />
+          </Field>
+          <Field label="设备 ID">
+            <input value={devDraft.did} disabled />
+          </Field>
+        </div>
+        <div className="row">
+          <Field label="设备型号">
+            <input
+              value={
+                model
+                  ? `${model.name}（${model.did}）`
+                  : devDraft.speakerModel || '—'
+              }
+              disabled
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* 关联服务 */}
+      <div className="grp">
+        <h4>关联服务</h4>
+        <div className="row">
+          <div style={{ flex: 1 }}>
+            <Field
+              label="思考服务"
+              tip="按优先级排列，限额已达时自动切换下一个"
+            >
+              <Select
+                isMulti
+                options={thinkOptions}
+                value={thinkValue}
+                placeholder="选择思考服务…"
+                noOptionsMessage={() => '无可用服务'}
+                onChange={(vals) =>
+                  props.onDraft({
+                    ...devDraft,
+                    thinkServiceIds: vals.map((v) => v.value),
+                  })
+                }
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: 36,
+                    borderColor: 'var(--line)',
+                    boxShadow: 'none',
+                    '&:hover': { borderColor: 'var(--accent)' },
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: '#e5e7eb',
+                    borderRadius: 10,
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    fontSize: 13,
+                    padding: '2px 6px',
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    borderRadius: 10,
+                    ':hover': { backgroundColor: '#d1d5db' },
+                  }),
+                }}
+              />
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="语音服务">
+              <select
+                value={devDraft.voiceId || ''}
+                onChange={(e) =>
+                  props.onDraft({ ...devDraft, voiceId: e.target.value })
+                }
+              >
+                <option value="">（跟随角色或全局默认）</option>
+                {props.voiceSvcs.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                    {s.isDefault ? ' · 默认' : ''}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {/* 其他信息 */}
+      <div className="grp">
+        <h4>其他信息</h4>
+        <div className="row">
+          <Field label="对话角色">
             <select
               value={devDraft.roleId}
               onChange={(e) =>
@@ -156,44 +193,7 @@ export function DeviceForm(props: {
               ))}
             </select>
           </Field>
-        </div>
-        {!selDev && (
-          <div className="row">
-            <Field
-              label="从账号拉取"
-              tip="从该云端账号自动拉取小爱音箱（凭小米 ID + passToken，无需密码）；点击选择后自动带入名称、设备 ID 与型号。"
-            >
-              <PullDeviceList
-                devDraft={devDraft}
-                devPull={props.devPull}
-                models={props.models}
-                devices={props.devices}
-                onDraft={props.onDraft}
-                onPull={props.onPull}
-              />
-            </Field>
-          </div>
-        )}
-        <div className="row">
-          <Field
-            label="连续对话超时（秒）"
-            tip="连续对话中无响应多久自动退出唤醒模式，默认 30 秒"
-          >
-            <input
-              value={devDraft.exitKeepAliveAfter || '30'}
-              placeholder="默认 30"
-              onChange={(e) =>
-                props.onDraft({
-                  ...devDraft,
-                  exitKeepAliveAfter: e.target.value,
-                })
-              }
-            />
-          </Field>
-          <Field
-            label="会话群"
-            tip="对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建"
-          >
+          <Field label="会话群" tip="对话记忆的上下文归属，多台设备可共用">
             <select
               value={devDraft.roomRef}
               onChange={(e) =>
@@ -209,7 +209,25 @@ export function DeviceForm(props: {
             </select>
           </Field>
         </div>
+        <div className="row">
+          <Field
+            label="连续对话超时（秒）"
+            tip="无响应多久自动退出唤醒模式，默认 30 秒"
+          >
+            <input
+              value={devDraft.exitKeepAliveAfter || '30'}
+              placeholder="默认 30"
+              onChange={(e) =>
+                props.onDraft({
+                  ...devDraft,
+                  exitKeepAliveAfter: e.target.value,
+                })
+              }
+            />
+          </Field>
+        </div>
       </div>
+
       {model && !model.consecutive && (
         <div className="notice err">
           <I n="warning" size={15} /> 此型号不支持连续对话（streamResponse

@@ -60,7 +60,7 @@ export async function submitModal(opts: {
       const payload = (modal.payload || {}) as Role
       if (payload.id) {
         await api.updateRole(payload.id, values as Partial<Role>)
-        showToast('角色已保存，人设热生效')
+        showToast('角色已保存，角色性格热生效')
       } else {
         await api.createRole(values as Partial<Role>)
         showToast('角色已创建')

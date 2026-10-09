@@ -1,7 +1,12 @@
 import type { VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { TTS_ENGINES } from '../../constants.ts'
-import { Button, Field, Tag } from '../../components/atoms/index.ts'
+import { VOICE_PROVIDERS } from '../../constants.ts'
+import {
+  Button,
+  Field,
+  ProviderPicker,
+  Tag,
+} from '../../components/atoms/index.ts'
 import type { VoiceDraft } from '../drafts.ts'
 
 export function VoiceServiceForm(props: {
@@ -25,6 +30,10 @@ export function VoiceServiceForm(props: {
     onSelect,
   } = props
   const currentSvc = selVoice ? voiceSvcs.find((s) => s.id === selVoice) : null
+  const p = VOICE_PROVIDERS[voiceDraft.provider]
+  const engine = p?.engine || 'edge'
+  const compat = engine === 'openai-compat'
+  const dlId = `voice-models-${voiceDraft.provider || 'edge'}`
   return (
     <div className="form-card">
       <h3>
@@ -50,106 +59,131 @@ export function VoiceServiceForm(props: {
               onChange={(e) => onDraft({ ...voiceDraft, name: e.target.value })}
             />
           </Field>
-          <Field label="供应商" required>
-            <select
-              value={voiceDraft.provider}
-              onChange={(e) =>
-                onDraft({ ...voiceDraft, provider: e.target.value })
-              }
-            >
-              {Object.entries(TTS_ENGINES)
-                .filter(([k]) => k !== 'builtin')
-                .map(([k, label]) => (
-                  <option key={k} value={k}>
-                    {label}
-                  </option>
-                ))}
-            </select>
-          </Field>
         </div>
+        <Field
+          label="供应商"
+          required
+          tip="仅列出可驱动的语音引擎；OpenAI 兼容供应商改「接口地址」即可接入"
+        >
+          <ProviderPicker
+            providers={VOICE_PROVIDERS}
+            value={voiceDraft.provider}
+            onPick={(k) => onDraft({ ...voiceDraft, provider: k })}
+          />
+        </Field>
       </div>
-      <div className="grp">
-        <h4>音色配置</h4>
-        <div className="row">
-          <Field label="音色 ID" tip="留空使用该引擎的默认音色">
-            <input
-              value={voiceDraft.voiceId}
-              placeholder="例如：zh-CN-XiaoxiaoNeural"
-              onChange={(e) =>
-                onDraft({ ...voiceDraft, voiceId: e.target.value })
-              }
-            />
-          </Field>
-          {voiceDraft.provider === 'edge' && (
-            <Field label="访问令牌" tip="Edge 大声朗读为免费服务，一般无需填写">
+      {voiceDraft.provider !== 'custom' && (
+        <div className="grp">
+          <h4>音色配置</h4>
+          <div className="row">
+            {(engine === 'openai' || compat) && (
+              <Field
+                label="接口地址"
+                tip={
+                  compat
+                    ? '已自动带出官方 OpenAI 兼容地址，可改网关'
+                    : '支持任意 OpenAI 兼容 TTS 端点'
+                }
+              >
+                <input
+                  value={voiceDraft.baseUrl}
+                  placeholder={p?.baseUrl || 'https://api.openai.com/v1'}
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, baseUrl: e.target.value })
+                  }
+                />
+              </Field>
+            )}
+            {(engine === 'openai' || compat) && (
+              <Field
+                label={compat ? '语音模型' : '模型'}
+                tip={
+                  compat
+                    ? '留空使用供应商默认语音模型'
+                    : '留空使用 tts-1，可改任意 OpenAI 兼容模型'
+                }
+              >
+                <>
+                  <input
+                    value={voiceDraft.model}
+                    list={dlId}
+                    placeholder={p?.model || 'tts-1'}
+                    onChange={(e) =>
+                      onDraft({ ...voiceDraft, model: e.target.value })
+                    }
+                  />
+                  {!!p?.models?.length && (
+                    <datalist id={dlId}>
+                      {p.models.map((m) => (
+                        <option key={m} value={m} />
+                      ))}
+                    </datalist>
+                  )}
+                </>
+              </Field>
+            )}
+            {(engine === 'openai' || compat) && (
+              <Field label="API Key" required>
+                <input
+                  value={voiceDraft.token}
+                  placeholder="以 sk- 等开头的密钥"
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, token: e.target.value })
+                  }
+                />
+              </Field>
+            )}
+            <Field label="音色 ID" tip="留空使用该引擎的默认音色">
               <input
-                value={voiceDraft.edgeToken}
-                placeholder="留空由 Edge 自动获取"
+                value={voiceDraft.voiceId}
+                placeholder="例如：zh-CN-XiaoxiaoNeural"
                 onChange={(e) =>
-                  onDraft({ ...voiceDraft, edgeToken: e.target.value })
+                  onDraft({ ...voiceDraft, voiceId: e.target.value })
                 }
               />
             </Field>
-          )}
-          {voiceDraft.provider === 'volcano' && (
-            <Field label="App ID" required>
-              <input
-                value={voiceDraft.volcanoAppId}
-                placeholder="火山引擎语音合成 App ID"
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, volcanoAppId: e.target.value })
-                }
-              />
-            </Field>
-          )}
-          {voiceDraft.provider === 'openai' && (
-            <Field label="API Key" required>
-              <input
-                value={voiceDraft.openaiKey}
-                placeholder="OpenAI API Key"
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, openaiKey: e.target.value })
-                }
-              />
-            </Field>
-          )}
+            {engine === 'edge' && (
+              <Field
+                label="访问令牌"
+                tip="Edge 大声朗读为免费服务，一般无需填写"
+              >
+                <input
+                  value={voiceDraft.token}
+                  placeholder="留空由 Edge 自动获取"
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, token: e.target.value })
+                  }
+                />
+              </Field>
+            )}
+            {engine === 'volcano' && (
+              <Field label="App ID" required>
+                <input
+                  value={voiceDraft.appId}
+                  placeholder="火山引擎语音合成 App ID"
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, appId: e.target.value })
+                  }
+                />
+              </Field>
+            )}
+            {engine === 'volcano' && (
+              <Field label="访问令牌" required>
+                <input
+                  value={voiceDraft.token}
+                  placeholder="火山引擎 Access Token"
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, token: e.target.value })
+                  }
+                />
+              </Field>
+            )}
+          </div>
         </div>
-        {voiceDraft.provider === 'volcano' && (
-          <div className="row">
-            <Field label="访问令牌" required>
-              <input
-                value={voiceDraft.volcanoToken}
-                placeholder="火山引擎 Access Token"
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, volcanoToken: e.target.value })
-                }
-              />
-            </Field>
-          </div>
-        )}
-        {voiceDraft.provider === 'openai' && (
-          <div className="row">
-            <Field label="模型" tip="留空使用 tts-1">
-              <input
-                value={voiceDraft.openaiModel}
-                placeholder="tts-1"
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, openaiModel: e.target.value })
-                }
-              />
-            </Field>
-            <Field label="接口地址" tip="支持任意 OpenAI 兼容 TTS 端点">
-              <input
-                value={voiceDraft.openaiBaseUrl}
-                placeholder="https://api.openai.com/v1"
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, openaiBaseUrl: e.target.value })
-                }
-              />
-            </Field>
-          </div>
-        )}
-        {voiceDraft.provider === 'custom' && (
+      )}
+      {voiceDraft.provider === 'custom' && (
+        <div className="grp">
+          <h4>音色配置</h4>
           <div className="row">
             <Field
               label="TTS 配置（JSON）"
@@ -165,8 +199,8 @@ export function VoiceServiceForm(props: {
               />
             </Field>
           </div>
-        )}
-      </div>
+        </div>
+      )}
       <div className="grp">
         <h4>Token 管理</h4>
         <div className="row">
@@ -209,7 +243,7 @@ export function VoiceServiceForm(props: {
             <input
               type="number"
               min="0"
-              value={voiceDraft.tokenLimit ?? ''}
+              value={voiceDraft.tokenLimit || ''}
               placeholder="不限"
               onChange={(e) =>
                 onDraft({ ...voiceDraft, tokenLimit: e.target.value })
@@ -250,9 +284,9 @@ export function VoiceServiceForm(props: {
           onClick={props.onSave}
           disabled={
             !voiceDraft.name ||
-            (voiceDraft.provider === 'volcano' &&
-              (!voiceDraft.volcanoAppId || !voiceDraft.volcanoToken)) ||
-            (voiceDraft.provider === 'openai' && !voiceDraft.openaiKey)
+            (engine === 'volcano' &&
+              (!voiceDraft.appId || !voiceDraft.token)) ||
+            ((engine === 'openai' || compat) && !voiceDraft.token)
           }
         >
           保存

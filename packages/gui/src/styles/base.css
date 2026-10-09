@@ -37,6 +37,24 @@
   background: var(--panel-2);
 }
 
+/* 禁用输入框：置灰 + 不可交互 */
+.form-card .fld input:disabled,
+.form-card .fld select:disabled,
+.form-card .fld textarea:disabled,
+.rform .fld input:disabled,
+.rform .fld textarea:disabled,
+.rform .fld select:disabled,
+.modal .fld input:disabled,
+.modal .fld select:disabled,
+.modal .fld textarea:disabled {
+  background: var(--panel, #f3f4f6);
+  border-color: var(--line-2, #e5e7eb);
+  color: var(--ink-3, #9ca3af);
+  opacity: 0.75;
+  cursor: not-allowed;
+  -webkit-text-fill-color: var(--ink-3, #9ca3af);
+}
+
 .form-card .fld textarea,
 .modal .fld textarea {
   min-height: 152px;
@@ -117,6 +135,9 @@
 
 /* ── 筛选芯片（chip） ── */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--pill);
   padding: var(--sp-3) var(--sp-7);

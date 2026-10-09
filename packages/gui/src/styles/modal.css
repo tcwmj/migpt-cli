@@ -81,6 +81,11 @@
   flex: 1;
   min-width: 0;
 }
+/* 供应商下拉选择器：与输入控件同占右侧弹性区 */
+.modal .fld.row .pv-sel {
+  flex: 1;
+  min-width: 0;
+}
 .modal .fld.row .hint {
   flex-basis: 100%;
   margin-left: 122px;

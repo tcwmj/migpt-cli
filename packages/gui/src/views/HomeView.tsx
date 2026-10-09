@@ -209,7 +209,7 @@ export function HomeView(props: {
               girlImg,
             ],
             ['选择设备', '从云端账号拉取音箱列表，选择要接入的设备', catImg],
-            ['对话服务', '选择已有对话角色，或新建角色绑定人设', closeImg],
+            ['对话服务', '选择已有对话角色，或新建角色绑定角色性格', closeImg],
           ].map(([t, d, img], i) => (
             <div
               key={t}
