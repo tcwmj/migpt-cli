@@ -153,6 +153,13 @@
   border-radius: 2px;
   background: var(--accent);
 }
+/* 分组标题右侧附属信息（如用量进度百分比）：推到最右、常规字重弱化 */
+.grp h4 .aside {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-regular);
+  color: var(--ink-3);
+}
 /* 表单分组统一：移除橙色横幅背景，分组名下方加与横幅等宽的分割线，
    橙色竖条保留在文字左侧（absolute 外移 10px），分组名文字与输入项 label 左对齐 */
 .rform .grp h4,
