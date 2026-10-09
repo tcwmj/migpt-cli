@@ -38,12 +38,29 @@ export function useAppData(showToast: (msg: string) => void) {
     retry: false,
   })
 
-  // 首次会话结果写入 authed
+  // 首次会话结果写入 authed；网络错误（后端未启动）也视为未登录，展示登录页
   useEffect(() => {
     if (authed === null && sessionQ.isSuccess) {
       setAuthed(sessionQ.data)
     }
-  }, [authed, sessionQ.isSuccess, sessionQ.data])
+    if (authed === null && sessionQ.isError) {
+      setAuthed(false)
+      const msg = (sessionQ.error as Error).message
+      if (
+        msg === 'Failed to fetch' ||
+        msg.includes('NetworkError') ||
+        msg.includes('fetch')
+      ) {
+        setLoginErr('无法连接到服务器，请确认后端服务已启动')
+      }
+    }
+  }, [
+    authed,
+    sessionQ.isSuccess,
+    sessionQ.isError,
+    sessionQ.data,
+    sessionQ.error,
+  ])
 
   const enabled = !!authed
 
@@ -118,11 +135,17 @@ export function useAppData(showToast: (msg: string) => void) {
       } catch (e) {
         const msg = (e as Error).message
         setAuthed(false)
-        setLoginErr(
-          msg === 'unauthorized'
-            ? '用户名或密码错误（初始账号 admin，密码 123456）'
-            : msg || '无法连接服务',
-        )
+        if (msg === 'unauthorized') {
+          setLoginErr('用户名或密码错误（初始账号 admin，密码 123456）')
+        } else if (
+          msg === 'Failed to fetch' ||
+          msg.includes('NetworkError') ||
+          msg.includes('fetch')
+        ) {
+          setLoginErr('无法连接到服务器，请确认后端服务已启动')
+        } else {
+          setLoginErr(msg || '登录失败，请稍后重试')
+        }
         return false
       }
     },

@@ -14,6 +14,7 @@ const VALID_VIEWS: View[] = [
   'settings',
   'profile',
   'syslogs',
+  'stats',
 ]
 
 /** 从 URL hash 解析视图名称 */

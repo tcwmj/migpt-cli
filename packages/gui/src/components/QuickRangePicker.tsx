@@ -1,4 +1,4 @@
-/* ══ LogDateFilter 复合组件 ══
+/* ══ QuickRangePicker 复合组件 ══
  *  将 QuickRangeFilter（快捷时段）与 DateRangePicker（日历选择）组合为单一入口。
  *  点击触发按钮弹出面板，左侧为快捷过滤、右侧为日历。*/
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -36,17 +36,19 @@ function matchQuickItem(
   return fromKey === f && toKey === t
 }
 
-export interface LogDateFilterProps {
+export interface QuickRangePickerProps {
   /** 当前起始日期（yyyyMMdd） */
   fromKey: string
   /** 当前结束日期（yyyyMMdd） */
   toKey: string
-  /** 有日志落盘的日期集合，传给日历组件 */
+  /** 有日志落盘的日期集合，传给日历组件；未传则允许所有过去及当天日期 */
   logDates?: DateRangePickerProps['logDates']
   /** 自定义快捷选项 */
   quickItems?: QuickRangeItem[]
   /** 范围变化回调 */
   onRangeChange: (from: string, to: string) => void
+  /** 是否隐藏底部提示文本 */
+  hideHint?: boolean
 }
 
 /**
@@ -54,13 +56,14 @@ export interface LogDateFilterProps {
  * 点击按钮弹出面板：左侧 QuickRangeFilter 快捷选中，右侧 DateRangePicker 精确选择。
  * 弹出面板中快捷过滤选中或日历选择范围后均自动关闭面板。
  */
-export function LogDateFilter({
+export function QuickRangePicker({
   fromKey,
   toKey,
   logDates,
   quickItems,
   onRangeChange,
-}: LogDateFilterProps) {
+  hideHint,
+}: QuickRangePickerProps) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const single = fromKey === toKey
@@ -174,6 +177,7 @@ export function LogDateFilter({
               fromKey={fromKey}
               toKey={toKey}
               logDates={logDates}
+              showHint={!hideHint}
               onSelect={(f, t) => handleChange(f, t)}
             />
           </div>

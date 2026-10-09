@@ -3,12 +3,76 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Button, Switch } from '../components/atoms/index.ts'
-import { LogDateFilter } from '../components/LogDateFilter.tsx'
+import { QuickRangePicker } from '../components/QuickRangePicker.tsx'
+import type { QuickRangeItem } from '../components/QuickRangeFilter.tsx'
 
 const TODAY_KEY = ((d: Date) =>
   `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`)(
   new Date(),
 )
+
+const keyOf = (d: Date) => TODAY_KEY // placeholder - overridden below
+// Actual keyOf for use in quick items
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const qKeyOf = (d: Date) =>
+  `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`
+
+// 快捷时段选项（与 StatsView 一致）
+const LOGS_QUICK_ITEMS: QuickRangeItem[] = [
+  { id: 'today', label: '今天', toRange: () => [TODAY_KEY, TODAY_KEY] },
+  {
+    id: 'this_month',
+    label: '本月',
+    toRange: () => {
+      const n = new Date()
+      return [qKeyOf(new Date(n.getFullYear(), n.getMonth(), 1)), TODAY_KEY]
+    },
+  },
+  {
+    id: 'this_year',
+    label: '今年',
+    toRange: () => {
+      const n = new Date()
+      return [qKeyOf(new Date(n.getFullYear(), 0, 1)), TODAY_KEY]
+    },
+  },
+  {
+    id: 'last_1d',
+    label: '最近 1 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 1)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+  {
+    id: 'last_3d',
+    label: '最近 3 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 2)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+  {
+    id: 'last_7d',
+    label: '最近 7 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 6)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+  {
+    id: 'last_30d',
+    label: '最近 30 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 29)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+]
 
 export function SysLogsView(props: {
   query?: string
@@ -127,10 +191,11 @@ export function SysLogsView(props: {
           </label>
           {!viewingToday && <span className="tb-tag">历史日志</span>}
           <div className="tb-right">
-            <LogDateFilter
+            <QuickRangePicker
               fromKey={fromKey}
               toKey={toKey}
               logDates={logDates}
+              quickItems={LOGS_QUICK_ITEMS}
               onRangeChange={(f, t) => {
                 setFromKey(f)
                 setToKey(t)

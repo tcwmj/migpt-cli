@@ -36,6 +36,8 @@ export interface DateRangePickerProps {
   toKey: string
   /** 有日志落盘的日期集合（null=尚未加载），用于日历置灰 */
   logDates?: Set<string> | null
+  /** 是否显示底部提示文本 */
+  showHint?: boolean
   /** 日期是否可以点击的额外判断（在 logDates 基础上增加） */
   canSelect?: (k: string) => boolean
   /** 选择完成 */
@@ -50,6 +52,8 @@ export function DateRangePicker({
   fromKey,
   toKey,
   logDates,
+  showHint = true,
+  canSelect,
   onSelect,
 }: DateRangePickerProps) {
   const [month, setMonth] = useState(() => dateOfKey(fromKey))
@@ -103,8 +107,9 @@ export function DateRangePicker({
           const k = keyOf(day)
           const isToday = k === TODAY_KEY
           const future = k > TODAY_KEY
-          const noLog = !logDates || !isToday || logDates.has(k)
-          const disabled = future || noLog
+          const noLog = !logDates || (isToday && !logDates.has(k))
+          const disabled =
+            future || noLog || (canSelect ? !canSelect(k) : false)
           // 已选范围高亮（含锚点到悬停前的预选区间）
           const inRange =
             !disabled &&
@@ -144,7 +149,9 @@ export function DateRangePicker({
       <div className="ui-cal-foot">
         <span>
           {anchor === null
-            ? '灰色日期暂无日志 · 点击选择起始日期'
+            ? showHint
+              ? '点击选择起始日期'
+              : ''
             : `起始 ${cnDate(anchor)} · 点击选择结束日期`}
         </span>
         <button

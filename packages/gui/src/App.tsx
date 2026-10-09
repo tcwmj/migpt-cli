@@ -13,6 +13,7 @@ import { LogsView } from './views/LogsView.tsx'
 import { SysLogsView } from './views/SysLogsView.tsx'
 import { RoomsView } from './views/RoomsView.tsx'
 import { RolesView } from './views/RolesView.tsx'
+import { StatsView } from './views/StatsView.tsx'
 import { Drawer } from './components/Drawer.tsx'
 import { ModalShell } from './components/ModalShell.tsx'
 import { Wizard } from './components/Wizard.tsx'
@@ -288,6 +289,8 @@ export function App() {
           {view === 'syslogs' && (
             <SysLogsView query={query} onToast={showToast} />
           )}
+
+          {view === 'stats' && <StatsView onNavigate={setView} />}
 
           {(view === 'settings' || view === 'think' || view === 'voice') && (
             <ServicesView

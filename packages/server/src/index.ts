@@ -25,6 +25,7 @@ import { registerLogRoutes } from './routes/logs.js'
 import { registerLegacyRoutes } from './routes/legacy.js'
 import { registerTestRoutes } from './routes/misc.js'
 import { registerBackupRoutes } from './routes/backup.js'
+import { registerStatsRoutes } from './routes/stats.js'
 import type { ServerOptions } from './routes/shared.js'
 import { logger } from './logger.js'
 import { requestId, errorHandler } from './middleware.js'
@@ -113,6 +114,7 @@ export function runServer(options?: ServerOptions) {
   registerLegacyRoutes({ app, options })
   registerTestRoutes({ app, options })
   registerBackupRoutes({ app, options })
+  registerStatsRoutes({ app, options })
 
   // 统一错误处理：置于全部路由之后，捕获未处理异常并记录带 reqId 的错误日志
   app.use(errorHandler())
@@ -139,7 +141,9 @@ export function runServer(options?: ServerOptions) {
       logger.info('秘密路径：已启用')
       // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
       if (isAuth && !options?.users && usingDefaultAuth()) {
-        logger.warn('正在使用默认登录凭据，请尽快修改密码，或使用 --pwd 启动参数设置 AUTH_PASSWORD 环境变量。')
+        logger.warn(
+          '正在使用默认登录凭据，请尽快修改密码，或使用 --pwd 启动参数设置 AUTH_PASSWORD 环境变量。',
+        )
       }
       if (options?.open) {
         open(`http://localhost:${port}`)

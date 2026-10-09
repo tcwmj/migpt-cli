@@ -15,6 +15,7 @@ export type View =
   | 'settings'
   | 'profile'
   | 'syslogs'
+  | 'stats'
 
 export const TITLES: Record<View, string> = {
   home: '首页',
@@ -29,6 +30,7 @@ export const TITLES: Record<View, string> = {
   settings: '基础设置',
   profile: '个人中心',
   syslogs: '系统日志',
+  stats: '使用统计',
 }
 
 /** 各菜单页顶部搜索输入框的提示信息（切换菜单后动态切换） */
@@ -45,6 +47,7 @@ export const SEARCH_HINT: Record<View, string> = {
   syslogs: '搜索系统日志内容',
   settings: '搜索设置项',
   profile: '搜索设置项',
+  stats: '搜索统计维度',
 }
 
 /** 思考服务供应商（与 mi-gpt 原版一致：自定义 + 8 家官方） */

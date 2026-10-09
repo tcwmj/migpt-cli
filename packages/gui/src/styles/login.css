@@ -284,6 +284,29 @@
   box-shadow: 0 0 0 3px rgba(217, 100, 42, 0.1);
 }
 
+/* 密码可见性切换按钮 */
+.login-card .pwd-toggle {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-m);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color var(--dur-150) ease;
+}
+
+.login-card .pwd-toggle:hover {
+  color: var(--ink-1);
+}
+
+.login-card .input-wrap:has(.pwd-toggle) input {
+  padding-right: 46px;
+}
+
 .login-safe {
   display: flex;
   align-items: center;

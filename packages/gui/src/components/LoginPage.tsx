@@ -17,6 +17,7 @@ export function LoginPage({
   const uRef = useRef<HTMLInputElement>(null)
   const pRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
+  const [showPwd, setShowPwd] = useState(false)
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const u = uRef.current?.value ?? ''
@@ -67,11 +68,19 @@ export function LoginPage({
             <input
               ref={pRef}
               name="password"
-              type="password"
+              type={showPwd ? 'text' : 'password'}
               required
               placeholder="请输入密码"
               autoComplete="current-password"
             />
+            <button
+              type="button"
+              className="pwd-toggle"
+              onClick={() => setShowPwd(!showPwd)}
+              aria-label={showPwd ? '隐藏密码' : '显示密码'}
+            >
+              <I n={showPwd ? 'eyeClosed' : 'eye'} size={16} />
+            </button>
           </Field>
           <Button
             type="submit"

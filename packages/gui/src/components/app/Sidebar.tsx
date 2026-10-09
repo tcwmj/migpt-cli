@@ -13,6 +13,7 @@ const NAV: View[] = [
   'rooms',
   'models',
   'logs',
+  'stats',
   'syslogs',
 ]
 
@@ -30,6 +31,7 @@ const NAV_ICON: Record<View, string> = {
   models: 'gear',
   settings: 'gear',
   profile: 'gear',
+  stats: 'chart',
 }
 
 export function Sidebar(props: {
