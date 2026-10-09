@@ -259,11 +259,11 @@
   width: 100%;
 }
 
-/* 侧栏折叠/展开把手：空心钝角三角形，骑在侧栏右边界上（以右边界为镜），
-   展开把手尖朝右、收起把手尖朝左，两态完全镜像对称 */
+/* 侧栏折叠/展开把手：三角箭头贴在侧栏右边缘内侧（right: 2px），
+   展开态箭头朝右、收起态箭头朝左 */
 .side-toggle {
   position: absolute;
-  right: -8px;
+  right: 2px;
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
