@@ -30,9 +30,15 @@ jest.mock('../paths.js', () => {
   }
 })
 
-jest.mock('../store.js', () => ({
-  listDeviceMetas: jest.fn(async () => []),
-}))
+jest.mock('../store.js', () => {
+  const actual = jest.requireActual<typeof import('../store/entities.js')>(
+    '../store/entities.js',
+  )
+  return {
+    listDeviceMetas: jest.fn(async () => []),
+    loadDeviceConfig: actual.loadDeviceConfig,
+  }
+})
 
 import * as paths from '../paths.js'
 import { listDeviceMetas } from '../store.js'

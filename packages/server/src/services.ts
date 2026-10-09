@@ -220,28 +220,38 @@ export async function resolveBindings(
   const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
   const role = meta.roleId ? roles.find((r) => r.id === meta.roleId) : undefined
 
-  // 思考服务：设备覆盖 → 继承人设 → 全局默认
-  let think = meta.thinkServiceId
-    ? thinks.find((t) => t.id === meta.thinkServiceId)
-    : undefined
-  let thinkSource: 'device' | 'role' | 'global' = 'device'
+  // 思考服务：角色列表（failover）→ 角色单选兼容 → 全局默认
+  let think: (typeof thinks)[0] | undefined
+  let thinkSource: 'role' | 'global' = 'role'
+  const thinkIds = role?.thinkServiceIds ?? []
+  if (thinkIds.length > 0) {
+    // 按顺序跳过 limitReached 的服务
+    for (const sid of thinkIds) {
+      const svc = thinks.find((t) => t.id === sid)
+      if (svc && !svc.limitReached) {
+        think = svc
+        break
+      }
+    }
+    // 全部标记时回退第一个（允许重试，限额可能已重置）
+    if (!think) {
+      think = thinks.find((t) => t.id === thinkIds[0])
+    }
+  }
+  // 无列表时保留 role.thinkServiceId 兼容旧数据
   if (!think && role?.thinkServiceId) {
     think = thinks.find((t) => t.id === role.thinkServiceId)
-    thinkSource = 'role'
   }
   if (!think) {
     think = thinks.find((t) => t.isDefault) ?? thinks[0]
     thinkSource = 'global'
   }
 
-  // 语音服务：设备覆盖 → 继承人设 → 全局默认
-  let voice = meta.voiceOverrideId
-    ? voices.find((v) => v.id === meta.voiceOverrideId)
-    : undefined
-  let voiceSource: 'device' | 'role' | 'global' = 'device'
-  if (!voice && role?.voiceId) {
+  // 语音服务：角色指定 → 全局默认
+  let voice: (typeof voices)[0] | undefined
+  let voiceSource: 'role' | 'global' = 'role'
+  if (role?.voiceId) {
     voice = voices.find((v) => v.id === role.voiceId)
-    voiceSource = 'role'
   }
   if (!voice) {
     voice = voices.find((v) => v.isDefault) ?? voices[0]
@@ -271,12 +281,7 @@ export async function resolveBindings(
       name: think?.name || '未配置',
       detail: think ? `${think.provider} · ${think.model}` : undefined,
       source: thinkSource,
-      sourceLabel:
-        thinkSource === 'device'
-          ? '设备覆盖'
-          : thinkSource === 'role'
-            ? '继承人设'
-            : '全局默认',
+      sourceLabel: thinkSource === 'role' ? '角色绑定' : '全局默认',
     },
     {
       key: 'voice' as const,
@@ -288,12 +293,7 @@ export async function resolveBindings(
           : `${voice.provider} · ${voice.voiceId || '默认音色'}`
         : undefined,
       source: voiceSource,
-      sourceLabel:
-        voiceSource === 'device'
-          ? '设备覆盖'
-          : voiceSource === 'role'
-            ? '继承人设'
-            : '全局默认',
+      sourceLabel: voiceSource === 'role' ? '角色绑定' : '全局默认',
     },
   ]
 

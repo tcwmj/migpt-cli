@@ -67,8 +67,6 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       speakerModel?: string
       roleId?: string
       accountId?: string
-      thinkServiceId?: string
-      voiceOverrideId?: string
       exitKeepAliveAfter?: number
       roomRef?: string
       roomName?: string
@@ -100,8 +98,6 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       speakerModel: body.speakerModel,
       roleId: body.roleId,
       accountId: body.accountId,
-      thinkServiceId: body.thinkServiceId,
-      voiceOverrideId: body.voiceOverrideId,
       exitKeepAliveAfter: body.exitKeepAliveAfter,
       roomRef: body.roomRef,
       roomName: body.roomName,
@@ -183,8 +179,6 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       if (
         body.meta.roleId !== undefined ||
         body.meta.accountId !== undefined ||
-        body.meta.thinkServiceId !== undefined ||
-        body.meta.voiceOverrideId !== undefined ||
         body.meta.speakerModel !== undefined ||
         body.meta.did !== undefined ||
         body.meta.exitKeepAliveAfter !== undefined ||

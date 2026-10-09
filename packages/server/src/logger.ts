@@ -172,6 +172,12 @@ export interface LogRow {
   time: string
   kind: 'user' | 'ai' | 'system'
   text: string
+  /** 本次交互消耗的 input token 数 */
+  inputTokens?: number
+  /** 本次交互消耗的 output token 数 */
+  outputTokens?: number
+  /** 本次使用的思考服务 ID（用于 failover 追踪） */
+  thinkServiceId?: string
 }
 export const logRows = new Map<string, LogRow[]>()
 
@@ -180,6 +186,42 @@ const LOG_TS_RE = /^(\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2})/
 const LOG_TS_STRIP_RE = /^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/
 const LOG_USER_RE = /^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/
 const LOG_AI_RE = /^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
+// token 用量解析正则（中英文格式）
+const INPUT_TOKEN_RE =
+  /(?:prompt_tokens|input_tokens|输入.*?token)[=:]\s*(\d+)/i
+const OUTPUT_TOKEN_RE =
+  /(?:completion_tokens|output_tokens|输出.*?token)[=:]\s*(\d+)/i
+
+/** fire-and-forget：将 token 用量累加到角色绑定的第一个可用思考服务 */
+async function accumulateTokens(
+  deviceId: string,
+  input: number,
+  output: number,
+) {
+  // 动态 import 避免 logger ← entities 循环依赖
+  const { getDeviceMeta, getRoles, getThinkServices, saveThinkServices } =
+    await import('./store.js')
+  const meta = await getDeviceMeta(deviceId)
+  if (!meta?.roleId) return
+  const roles = await getRoles()
+  const role = roles.find((r) => r.id === meta.roleId)
+  if (!role) return
+  const serviceIds = role.thinkServiceIds?.length
+    ? role.thinkServiceIds
+    : role.thinkServiceId
+      ? [role.thinkServiceId]
+      : []
+  if (!serviceIds.length) return
+  const services = await getThinkServices()
+  const target = services.find(
+    (s) => serviceIds.includes(s.id) && !s.limitReached,
+  )
+  if (!target) return
+  target.tokenInputUsed = (target.tokenInputUsed ?? 0) + input
+  target.tokenOutputUsed = (target.tokenOutputUsed ?? 0) + output
+  target.tokenUsed = (target.tokenUsed ?? 0) + input + output
+  await saveThinkServices(services)
+}
 
 export function appendLog(id: string, line: string) {
   let buf = logBuffers.get(id)
@@ -202,7 +244,22 @@ export function appendLog(id: string, line: string) {
     let kind: LogRow['kind'] = 'system'
     if (LOG_USER_RE.test(body)) kind = 'user'
     else if (LOG_AI_RE.test(body)) kind = 'ai'
-    rows.push({ time: m[1], kind, text: body })
+    const row: LogRow = { time: m[1], kind, text: body }
+    // 解析 token 用量（仅 AI 行）
+    if (kind === 'ai') {
+      const inputMatch = body.match(INPUT_TOKEN_RE)
+      const outputMatch = body.match(OUTPUT_TOKEN_RE)
+      if (inputMatch) row.inputTokens = Number(inputMatch[1])
+      if (outputMatch) row.outputTokens = Number(outputMatch[1])
+      if (row.inputTokens || row.outputTokens) {
+        void accumulateTokens(
+          id,
+          row.inputTokens ?? 0,
+          row.outputTokens ?? 0,
+        ).catch(() => {})
+      }
+    }
+    rows.push(row)
   } else if (rows.length) {
     rows[rows.length - 1].text += '\n' + body
   }

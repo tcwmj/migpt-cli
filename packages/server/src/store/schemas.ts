@@ -58,6 +58,7 @@ export const roleSchema = z.object({
   onAIError: strArr,
   exitKeepAliveAfter: num.optional(),
   thinkServiceId: optStr,
+  thinkServiceIds: z.array(str).optional(),
   voiceId: optStr,
 })
 export const roleListSchema = z.array(roleSchema)
@@ -71,6 +72,11 @@ export const thinkServiceSchema = z.object({
   baseUrl: optStr,
   temperature: num.optional(),
   isDefault: optBool,
+  tokenInputUsed: num.optional(),
+  tokenOutputUsed: num.optional(),
+  tokenUsed: num.optional(),
+  tokenLimit: num.optional(),
+  limitReached: z.boolean().optional(),
   createdAt: num,
   hasApiKey: optBool,
 })
@@ -85,6 +91,11 @@ export const voiceServiceSchema = z.object({
   builtin: optBool,
   isDefault: optBool,
   tts: z.custom<TTSConfig>().optional(),
+  tokenInputUsed: num.optional(),
+  tokenOutputUsed: num.optional(),
+  tokenUsed: num.optional(),
+  tokenLimit: num.optional(),
+  limitReached: z.boolean().optional(),
   createdAt: num,
 })
 export const voiceServiceListSchema = z.array(voiceServiceSchema)
@@ -119,8 +130,6 @@ export const deviceMetaSchema = z.object({
   speakerModel: optStr,
   roleId: optStr,
   accountId: optStr,
-  thinkServiceId: optStr,
-  voiceOverrideId: optStr,
   exitKeepAliveAfter: num.optional(),
   roomRef: optStr,
   roomName: optStr,

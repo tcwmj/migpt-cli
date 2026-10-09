@@ -94,7 +94,7 @@ describe('registerBackupRoutes · 导出', () => {
       redacted: true,
       data: {},
     } as never)
-    const { res } = await call(register(), 'GET /api/backup/export')
+    const { res } = await call(register(), 'GET /api/v1/backup/export')
     expect(buildBundle).toHaveBeenCalledWith(true)
     expect(res.headers['Content-Type']).toContain('application/json')
     expect(res.headers['Content-Disposition']).toContain('attachment')
@@ -105,7 +105,7 @@ describe('registerBackupRoutes · 导出', () => {
 describe('registerBackupRoutes · 导入', () => {
   test('成功时回传导入统计', async () => {
     jest.mocked(applyBackup).mockResolvedValue({ accounts: 2 } as never)
-    const { res } = await call(register(), 'POST /api/backup/import', {})
+    const { res } = await call(register(), 'POST /api/v1/backup/import', {})
     expect(res.body).toEqual({ success: true, imported: { accounts: 2 } })
   })
 
@@ -113,7 +113,11 @@ describe('registerBackupRoutes · 导入', () => {
     jest
       .mocked(applyBackup)
       .mockRejectedValue(new DataValidationError('格式不匹配'))
-    const { res, errs } = await call(register(), 'POST /api/backup/import', {})
+    const { res, errs } = await call(
+      register(),
+      'POST /api/v1/backup/import',
+      {},
+    )
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: '格式不匹配' })
     expect(errs).toHaveLength(0)
@@ -121,7 +125,7 @@ describe('registerBackupRoutes · 导入', () => {
 
   test('其他异常转交 next（交由统一错误中间件）', async () => {
     jest.mocked(applyBackup).mockRejectedValue(new Error('boom'))
-    const { errs } = await call(register(), 'POST /api/backup/import', {})
+    const { errs } = await call(register(), 'POST /api/v1/backup/import', {})
     expect(errs).toHaveLength(1)
     expect((errs[0] as Error).message).toBe('boom')
   })
@@ -130,7 +134,7 @@ describe('registerBackupRoutes · 导入', () => {
 describe('registerBackupRoutes · 列表 / 立即备份', () => {
   test('列表回传备份清单', async () => {
     jest.mocked(listBackups).mockResolvedValue([{ name: 'b.json' }] as never)
-    const { res } = await call(register(), 'GET /api/backup/list')
+    const { res } = await call(register(), 'GET /api/v1/backup/list')
     expect(res.body).toEqual({ backups: [{ name: 'b.json' }] })
   })
 
@@ -138,7 +142,7 @@ describe('registerBackupRoutes · 列表 / 立即备份', () => {
     jest
       .mocked(createBackupFile)
       .mockResolvedValue('C:/data/backups/backup-1.json')
-    const { res } = await call(register(), 'POST /api/backup/run')
+    const { res } = await call(register(), 'POST /api/v1/backup/run')
     expect(res.body).toEqual({ success: true, file: 'backup-1.json' })
   })
 })

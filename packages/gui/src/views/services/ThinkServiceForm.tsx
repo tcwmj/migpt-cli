@@ -1,7 +1,7 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { PROVIDERS, PROVIDER_PRESETS } from '../../constants.ts'
-import { Button, Field } from '../../components/atoms/index.ts'
+import { Button, Field, Tag } from '../../components/atoms/index.ts'
 import type { ThinkDraft } from '../drafts.ts'
 
 export function ThinkServiceForm(props: {
@@ -13,6 +13,7 @@ export function ThinkServiceForm(props: {
   onEdit: (e: boolean) => void
   onSelect: (id: string | null) => void
   onSave: () => void
+  onClearLimitReached?: () => void
 }) {
   const {
     thinkDraft,
@@ -23,6 +24,7 @@ export function ThinkServiceForm(props: {
     onEdit,
     onSelect,
   } = props
+  const currentSvc = selThink ? thinkSvcs.find((s) => s.id === selThink) : null
   return (
     <div className="form-card">
       <h3>
@@ -136,6 +138,69 @@ export function ThinkServiceForm(props: {
             />
           </Field>
         </div>
+      </div>
+      <div className="grp">
+        <h4>Token 管理</h4>
+        <div className="row">
+          <Field label="输入 Token">
+            <input
+              type="number"
+              min="0"
+              value={thinkDraft.tokenInputUsed ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onDraft({ ...thinkDraft, tokenInputUsed: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="输出 Token">
+            <input
+              type="number"
+              min="0"
+              value={thinkDraft.tokenOutputUsed ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onDraft({ ...thinkDraft, tokenOutputUsed: e.target.value })
+              }
+            />
+          </Field>
+        </div>
+        <div className="row">
+          <Field label="合计 Token">
+            <input
+              type="number"
+              min="0"
+              value={thinkDraft.tokenUsed ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onDraft({ ...thinkDraft, tokenUsed: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="Token 上限">
+            <input
+              type="number"
+              min="0"
+              value={thinkDraft.tokenLimit ?? ''}
+              placeholder="不限"
+              onChange={(e) =>
+                onDraft({ ...thinkDraft, tokenLimit: e.target.value })
+              }
+            />
+          </Field>
+        </div>
+        {currentSvc?.limitReached && (
+          <div className="row">
+            <div className="rr">
+              <Tag tone="bad">限额已达</Tag>
+              {props.onClearLimitReached && (
+                <Button variant="ghost" onClick={props.onClearLimitReached}>
+                  清除限额标记
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       <div className="acts">
         <span className="sp" />

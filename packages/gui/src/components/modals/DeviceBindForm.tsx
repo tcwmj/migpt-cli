@@ -8,8 +8,6 @@ export function DeviceBindForm({
   setV,
   accounts,
   roles,
-  thinkSvcs,
-  voiceSvcs,
   models,
   rooms,
 }: DeviceBindFormProps) {
@@ -31,43 +29,16 @@ export function DeviceBindForm({
           ))}
         </select>
       </Field>
-      <Field row label="对话角色">
+      <Field row label="对话角色" required>
         <select
           value={v.roleId || ''}
           onChange={(e) => setV({ ...v, roleId: e.target.value })}
+          required
         >
-          <option value="">（保持当前）</option>
+          <option value="">请选择角色</option>
           {roles.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field row label="思考服务">
-        <select
-          value={v.thinkServiceId || ''}
-          onChange={(e) => setV({ ...v, thinkServiceId: e.target.value })}
-        >
-          <option value="">（继承角色 / 全局默认）</option>
-          {thinkSvcs.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-              {s.isDefault ? ' · 默认' : ''}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field row label="语音服务（设备覆盖）">
-        <select
-          value={v.voiceOverrideId || ''}
-          onChange={(e) => setV({ ...v, voiceOverrideId: e.target.value })}
-        >
-          <option value="">（继承角色 / 全局默认）</option>
-          {voiceSvcs.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-              {s.isDefault ? ' · 默认' : ''}
             </option>
           ))}
         </select>

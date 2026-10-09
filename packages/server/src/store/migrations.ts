@@ -14,8 +14,18 @@ import {
   versionFileSchema,
   writeJsonChecked,
 } from './schemas.js'
-import { getAccounts, getRooms, listDeviceMetas } from './entities.js'
-import { splitBuiltinEntities } from './overrides.js'
+import {
+  getAccounts,
+  getRoles,
+  getRooms,
+  getThinkServices,
+  getVoiceServices,
+  listDeviceMetas,
+  saveDeviceMeta,
+  saveRoles,
+  saveThinkServices,
+} from './entities.js'
+import { saveVoiceServices, splitBuiltinEntities } from './overrides.js'
 
 export interface Migration {
   /** 目标版本号（从 1 起连续递增，不允许空洞） */
@@ -27,7 +37,7 @@ export interface Migration {
 }
 
 /** 当前数据结构版本：新增迁移时同步 +1 */
-export const DATA_VERSION = 2
+export const DATA_VERSION = 3
 
 /** 迁移：旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
 export async function migrateRooms(): Promise<void> {
@@ -61,6 +71,75 @@ export async function migrateRooms(): Promise<void> {
     await writeJsonChecked(roomsFile, rooms, roomListSchema, '会话群')
 }
 
+/**
+ * 迁移 v3：Token 用量追踪 + 思考服务 Failover + 设备字段精简
+ *
+ * 1. 角色：旧 thinkServiceId → thinkServiceIds: [thinkServiceId]（仅当 thinkServiceIds 不存在时）
+ * 2. 设备：移除 thinkServiceId / voiceOverrideId 字段（设备不再直接绑定）
+ * 3. ThinkService / VoiceService：补全 token 用量字段默认值（0）
+ */
+export async function migrateTokenUsageFailover(): Promise<void> {
+  // ── 1. 角色迁移：thinkServiceId → thinkServiceIds ────────────────
+  const roles = await getRoles()
+  let rolesChanged = false
+  for (const role of roles) {
+    if (role.thinkServiceId && !role.thinkServiceIds) {
+      role.thinkServiceIds = [role.thinkServiceId]
+      delete role.thinkServiceId
+      rolesChanged = true
+    }
+  }
+  if (rolesChanged) await saveRoles(roles)
+
+  // ── 2. 设备迁移：移除 thinkServiceId / voiceOverrideId ───────────
+  const metas = await listDeviceMetas()
+  for (const meta of metas) {
+    const raw = meta as unknown as Record<string, unknown>
+    if (raw.thinkServiceId !== undefined || raw.voiceOverrideId !== undefined) {
+      delete raw.thinkServiceId
+      delete raw.voiceOverrideId
+      await saveDeviceMeta(meta.id, meta)
+    }
+  }
+
+  // ── 3. ThinkService / VoiceService：补全 token 用量默认值 ─────────
+  const thinkServices = await getThinkServices()
+  let thinkChanged = false
+  for (const svc of thinkServices) {
+    if (svc.tokenInputUsed == null) {
+      svc.tokenInputUsed = 0
+      thinkChanged = true
+    }
+    if (svc.tokenOutputUsed == null) {
+      svc.tokenOutputUsed = 0
+      thinkChanged = true
+    }
+    if (svc.tokenUsed == null) {
+      svc.tokenUsed = 0
+      thinkChanged = true
+    }
+  }
+  if (thinkChanged) await saveThinkServices(thinkServices)
+
+  const voiceServices = await getVoiceServices()
+  let voiceChanged = false
+  for (const svc of voiceServices) {
+    if (svc.tokenInputUsed == null) {
+      svc.tokenInputUsed = 0
+      voiceChanged = true
+    }
+    if (svc.tokenOutputUsed == null) {
+      svc.tokenOutputUsed = 0
+      voiceChanged = true
+    }
+    if (svc.tokenUsed == null) {
+      svc.tokenUsed = 0
+      voiceChanged = true
+    }
+  }
+  if (voiceChanged) await saveVoiceServices(voiceServices)
+}
+
 export const migrations: Migration[] = [
   {
     version: 1,
@@ -76,6 +155,12 @@ export const migrations: Migration[] = [
     description:
       '内置/用户数据分离：内置型号与语音移出可写文件，用户改动存入 overrides.json',
     up: splitBuiltinEntities,
+  },
+  {
+    version: 3,
+    description:
+      'Token 用量追踪 + 思考服务 Failover：角色 thinkServiceId → thinkServiceIds、设备移除服务覆盖、服务补全 token 默认值',
+    up: migrateTokenUsageFailover,
   },
 ]
 

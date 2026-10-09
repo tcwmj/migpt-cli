@@ -1,7 +1,7 @@
 import type { VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { TTS_ENGINES } from '../../constants.ts'
-import { Button, Field } from '../../components/atoms/index.ts'
+import { Button, Field, Tag } from '../../components/atoms/index.ts'
 import type { VoiceDraft } from '../drafts.ts'
 
 export function VoiceServiceForm(props: {
@@ -13,6 +13,7 @@ export function VoiceServiceForm(props: {
   onEdit: (e: boolean) => void
   onSelect: (id: string | null) => void
   onSave: () => void
+  onClearLimitReached?: () => void
 }) {
   const {
     voiceDraft,
@@ -23,6 +24,7 @@ export function VoiceServiceForm(props: {
     onEdit,
     onSelect,
   } = props
+  const currentSvc = selVoice ? voiceSvcs.find((s) => s.id === selVoice) : null
   return (
     <div className="form-card">
       <h3>
@@ -162,6 +164,69 @@ export function VoiceServiceForm(props: {
                 rows={5}
               />
             </Field>
+          </div>
+        )}
+      </div>
+      <div className="grp">
+        <h4>Token 管理</h4>
+        <div className="row">
+          <Field label="输入 Token">
+            <input
+              type="number"
+              min="0"
+              value={voiceDraft.tokenInputUsed ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onDraft({ ...voiceDraft, tokenInputUsed: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="输出 Token">
+            <input
+              type="number"
+              min="0"
+              value={voiceDraft.tokenOutputUsed ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onDraft({ ...voiceDraft, tokenOutputUsed: e.target.value })
+              }
+            />
+          </Field>
+        </div>
+        <div className="row">
+          <Field label="合计 Token">
+            <input
+              type="number"
+              min="0"
+              value={voiceDraft.tokenUsed ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onDraft({ ...voiceDraft, tokenUsed: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="Token 上限">
+            <input
+              type="number"
+              min="0"
+              value={voiceDraft.tokenLimit ?? ''}
+              placeholder="不限"
+              onChange={(e) =>
+                onDraft({ ...voiceDraft, tokenLimit: e.target.value })
+              }
+            />
+          </Field>
+        </div>
+        {currentSvc?.limitReached && (
+          <div className="row">
+            <div className="rr">
+              <Tag tone="bad">限额已达</Tag>
+              {props.onClearLimitReached && (
+                <Button variant="ghost" onClick={props.onClearLimitReached}>
+                  清除限额标记
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>

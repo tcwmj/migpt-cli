@@ -9,6 +9,10 @@ export type ThinkDraft = {
   apiKey: string
   temperature: string
   baseUrl: string
+  tokenInputUsed?: string
+  tokenOutputUsed?: string
+  tokenUsed?: string
+  tokenLimit?: string
 }
 export type VoiceDraft = {
   name: string
@@ -21,6 +25,10 @@ export type VoiceDraft = {
   openaiModel: string
   openaiBaseUrl: string
   customJson: string
+  tokenInputUsed?: string
+  tokenOutputUsed?: string
+  tokenUsed?: string
+  tokenLimit?: string
 }
 export type ModelDraft = {
   name: string

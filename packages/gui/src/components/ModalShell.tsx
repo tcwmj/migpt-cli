@@ -85,7 +85,13 @@ export function ModalShell(props: {
         {modal.kind === 'account' && <AccountForm {...formProps} />}
         {modal.kind === 'think' && <ThinkForm {...formProps} />}
         {modal.kind === 'voice' && <VoiceForm {...formProps} />}
-        {modal.kind === 'role' && <RoleForm {...formProps} />}
+        {modal.kind === 'role' && (
+          <RoleForm
+            {...formProps}
+            thinkSvcs={props.thinkSvcs}
+            voiceSvcs={props.voiceSvcs}
+          />
+        )}
         {modal.kind === 'pwd' && <PwdForm {...formProps} />}
         {modal.kind === 'deviceBind' &&
           (noticeOnly ? (

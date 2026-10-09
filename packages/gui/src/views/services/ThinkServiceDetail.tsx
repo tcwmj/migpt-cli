@@ -1,6 +1,6 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { Button } from '../../components/atoms/index.ts'
+import { Button, Tag } from '../../components/atoms/index.ts'
 import { PROVIDERS } from '../../constants.ts'
 
 export function ThinkServiceDetail(props: {
@@ -55,6 +55,59 @@ export function ThinkServiceDetail(props: {
               <span className="v">{svc?.temperature ?? 0.7}</span>
             </div>
           </div>
+        </div>
+        <div className="grp">
+          <h4>Token 用量</h4>
+          <div className="row">
+            <div className="rr">
+              <span className="k">输入</span>
+              <span className="v">
+                {(svc?.tokenInputUsed ?? 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="rr">
+              <span className="k">输出</span>
+              <span className="v">
+                {(svc?.tokenOutputUsed ?? 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="rr">
+              <span className="k">合计</span>
+              <span className="v">
+                {(svc?.tokenUsed ?? 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="rr">
+              <span className="k">上限</span>
+              <span className="v">
+                {svc?.tokenLimit != null
+                  ? svc.tokenLimit.toLocaleString()
+                  : '未设置'}
+              </span>
+            </div>
+          </div>
+          {svc?.tokenLimit != null && svc?.tokenUsed != null && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">用量进度</span>
+                <span className="v">
+                  <progress
+                    value={svc.tokenUsed}
+                    max={svc.tokenLimit}
+                    style={{ width: 120 }}
+                  />{' '}
+                  {svc.tokenLimit > 0
+                    ? `${((svc.tokenUsed / svc.tokenLimit) * 100).toFixed(1)}%`
+                    : '—'}
+                </span>
+              </div>
+              {svc.limitReached && (
+                <div className="rr">
+                  <Tag tone="bad">限额已达</Tag>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="acts">

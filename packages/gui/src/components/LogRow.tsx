@@ -27,7 +27,19 @@ export function LogRow(props: {
         <Tag tone="accent">{devName}</Tag>
         <em className={'k k-' + l.kind}>{kindLabel}</em>
       </span>
-      <span className="txt">{l.text}</span>
+      <span className="txt">
+        {l.text}
+        {l.kind === 'user' && (l as any).inputTokens != null && (
+          <span style={{ fontSize: '0.75em', opacity: 0.6, marginLeft: 4 }}>
+            [input: {(l as any).inputTokens} tokens]
+          </span>
+        )}
+        {l.kind === 'ai' && (l as any).outputTokens != null && (
+          <span style={{ fontSize: '0.75em', opacity: 0.6, marginLeft: 4 }}>
+            [output: {(l as any).outputTokens} tokens]
+          </span>
+        )}
+      </span>
       {multi && (
         <span className="more">
           <I n={open ? 'up' : 'down'} size={12} />

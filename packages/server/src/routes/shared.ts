@@ -71,6 +71,7 @@ export const ROLE_FIELDS = [
   'onAIError',
   'exitKeepAliveAfter',
   'thinkServiceId',
+  'thinkServiceIds',
   'voiceId',
 ] as const
 export const THINK_FIELDS = [
@@ -81,6 +82,11 @@ export const THINK_FIELDS = [
   'baseUrl',
   'temperature',
   'isDefault',
+  'tokenInputUsed',
+  'tokenOutputUsed',
+  'tokenUsed',
+  'tokenLimit',
+  'limitReached',
 ] as const
 export const VOICE_FIELDS = [
   'name',
@@ -89,6 +95,11 @@ export const VOICE_FIELDS = [
   'ttsCommand',
   'tts',
   'isDefault',
+  'tokenInputUsed',
+  'tokenOutputUsed',
+  'tokenUsed',
+  'tokenLimit',
+  'limitReached',
 ] as const
 export const MODEL_FIELDS = [
   'name',
@@ -107,8 +118,6 @@ export const DEVICE_META_FIELDS = [
   'speakerModel',
   'roleId',
   'accountId',
-  'thinkServiceId',
-  'voiceOverrideId',
   'exitKeepAliveAfter',
   'roomRef',
   'roomName',

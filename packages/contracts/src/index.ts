@@ -39,7 +39,9 @@ export interface Role {
   onAIError: string[]
   /** 连续对话无响应自动退出时间（秒，默认 30） */
   exitKeepAliveAfter?: number
-  /** 该角色默认引用的思考服务（设备未覆盖时生效） */
+  /** 有序思考服务列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
+  thinkServiceIds?: string[]
+  /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
   thinkServiceId?: string
   /** 该角色默认引用的语音服务（设备未覆盖时生效） */
   voiceId?: string
@@ -59,6 +61,16 @@ export interface ThinkService {
   temperature?: number
   /** 全局默认思考服务：未指定角色/设备时回退到这里 */
   isDefault?: boolean
+  /** 已消耗 input token 数（自动累加 + 手动修正） */
+  tokenInputUsed?: number
+  /** 已消耗 output token 数（自动累加 + 手动修正） */
+  tokenOutputUsed?: number
+  /** 已消耗 token 总数（自动累加 + 手动修正） */
+  tokenUsed?: number
+  /** token 上限（用户设置） */
+  tokenLimit?: number
+  /** 余额不足标记：API 返回 429/402 等错误时自动置 true，用户可手动清除 */
+  limitReached?: boolean
   createdAt: number
   /** 读接口脱敏标记：apiKey 明文不回传，仅回传是否已配置 */
   hasApiKey?: boolean
@@ -82,6 +94,16 @@ export interface VoiceService {
   isDefault?: boolean
   /** 第三方 TTS 引擎配置（provider !== 'builtin' 时生效） */
   tts?: import('mi-gpt-tts').TTSConfig
+  /** 已消耗 input token 数（自动累加 + 手动修正） */
+  tokenInputUsed?: number
+  /** 已消耗 output token 数（自动累加 + 手动修正） */
+  tokenOutputUsed?: number
+  /** 已消耗 token 总数（自动累加 + 手动修正） */
+  tokenUsed?: number
+  /** token 上限（用户设置） */
+  tokenLimit?: number
+  /** 余额不足标记：API 返回 429/402 等错误时自动置 true，用户可手动清除 */
+  limitReached?: boolean
   createdAt: number
 }
 
@@ -105,10 +127,6 @@ export interface DeviceMeta {
   speakerModel?: string
   roleId?: string
   accountId?: string
-  /** 设备级思考服务覆盖（优先级最高） */
-  thinkServiceId?: string
-  /** 设备级语音服务覆盖（优先级最高） */
-  voiceOverrideId?: string
   /** 连续对话超时（秒）：无响应多久自动退出唤醒模式，默认 30 */
   exitKeepAliveAfter?: number
   /** 会话群引用（Room 实体 id）；多设备可共用同一会话群 */
@@ -242,6 +260,7 @@ export const ENTITY_FIELDS = {
     'onAIReplied',
     'onAIError',
     'exitKeepAliveAfter',
+    'thinkServiceIds',
     'thinkServiceId',
     'voiceId',
   ],
@@ -254,6 +273,11 @@ export const ENTITY_FIELDS = {
     'baseUrl',
     'temperature',
     'isDefault',
+    'tokenInputUsed',
+    'tokenOutputUsed',
+    'tokenUsed',
+    'tokenLimit',
+    'limitReached',
     'createdAt',
     'hasApiKey',
   ],
@@ -266,6 +290,11 @@ export const ENTITY_FIELDS = {
     'builtin',
     'isDefault',
     'tts',
+    'tokenInputUsed',
+    'tokenOutputUsed',
+    'tokenUsed',
+    'tokenLimit',
+    'limitReached',
     'createdAt',
   ],
   speakerModel: [
@@ -289,8 +318,6 @@ export const ENTITY_FIELDS = {
     'speakerModel',
     'roleId',
     'accountId',
-    'thinkServiceId',
-    'voiceOverrideId',
     'exitKeepAliveAfter',
     'roomRef',
     'roomName',
