@@ -5,12 +5,12 @@ import { TITLES, type View } from '../../constants.ts'
 /** 主菜单项（顺序即侧栏顺序） */
 const NAV: View[] = [
   'home',
-  'think',
-  'voice',
-  'roles',
   'accounts',
   'devices',
+  'roles',
   'rooms',
+  'think',
+  'voice',
   'models',
   'logs',
   'stats',

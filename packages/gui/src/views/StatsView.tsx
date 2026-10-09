@@ -3,10 +3,8 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   BarChart as RBarChart,
   Bar,
-  Cell,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,

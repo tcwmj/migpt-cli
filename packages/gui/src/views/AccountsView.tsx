@@ -47,10 +47,8 @@ export function AccountsView(props: {
   return (
     <section data-view="accounts" className="on">
       <div className="filters">
-        <Chip on>全部账号</Chip>
-        <span className="sp">
-          <span className="count">共 {accounts.length} 个</span>
-        </span>
+        <Chip on>全部账号 {accounts.length}</Chip>
+        <span className="sp" />
       </div>
       <div className="split">
         <aside className="slist">
@@ -157,7 +155,7 @@ export function AccountsView(props: {
                 </div>
               </div>
               <h3 className="acct-dev">
-                <I n="speaker" size={17} /> 账号设备
+                <I n="speaker" size={17} /> 云端账号
                 <span className="sp" />
                 <button
                   className="icbtn"

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as api from '../apis.ts'
 import { type DeviceRow, type LogEntry, type SpeakerModel } from '../apis.ts'
 import { I } from '../icons.tsx'
-import { Chip, EmptyState } from '../components/atoms/index.ts'
+import { Chip, EmptyState, Switch } from '../components/atoms/index.ts'
 import { LogRow } from '../components/LogRow.tsx'
 
 export function LogsView(props: {
@@ -17,6 +17,7 @@ export function LogsView(props: {
   >('all')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
+  const [live, setLive] = useState(true)
   const load = useCallback(() => {
     setBusy(true)
     api
@@ -26,6 +27,11 @@ export function LogsView(props: {
       .finally(() => setBusy(false))
   }, [])
   useEffect(load, [load])
+  useEffect(() => {
+    if (!live) return
+    const t = window.setInterval(load, 5000)
+    return () => window.clearInterval(t)
+  }, [live, load])
   const list = useMemo(() => {
     if (!logs) return null
     return logs.filter(
@@ -40,6 +46,17 @@ export function LogsView(props: {
     system: '设备日志',
   } as const
   const deviceById = (id: string) => props.devices.find((d) => d.id === id)
+  const kindCounts = useMemo(() => {
+    if (!logs) return { all: 0, user: 0, ai: 0, system: 0 }
+    const filtered =
+      devFilter === 'all' ? logs : logs.filter((l) => l.deviceId === devFilter)
+    return {
+      all: filtered.length,
+      user: filtered.filter((l) => l.kind === 'user').length,
+      ai: filtered.filter((l) => l.kind === 'ai').length,
+      system: filtered.filter((l) => l.kind === 'system').length,
+    }
+  }, [logs, devFilter])
   const selDevName =
     devFilter === 'all' ? '全部设备' : deviceById(devFilter)?.alias || devFilter
   return (
@@ -48,11 +65,9 @@ export function LogsView(props: {
         <aside className="slist">
           <div className="filters">
             <Chip on={devFilter === 'all'} onClick={() => setDevFilter('all')}>
-              全部设备
+              全部设备 {props.devices.length}
             </Chip>
-            <span className="sp">
-              <span className="count">共 {props.devices.length} 台</span>
-            </span>
+            <span className="sp" />
           </div>
           {props.devices.map((d) => {
             const m = props.models.find(
@@ -91,32 +106,32 @@ export function LogsView(props: {
               on={kindFilter === 'all'}
               onClick={() => setKindFilter('all')}
             >
-              全部对话
+              全部对话 {kindCounts.all}
             </Chip>
             <Chip
               on={kindFilter === 'user'}
               onClick={() => setKindFilter('user')}
             >
-              用户提问
+              用户提问 {kindCounts.user}
             </Chip>
             <Chip on={kindFilter === 'ai'} onClick={() => setKindFilter('ai')}>
-              设备回复
+              设备回复 {kindCounts.ai}
             </Chip>
             <Chip
               on={kindFilter === 'system'}
               onClick={() => setKindFilter('system')}
             >
-              设备日志
+              设备日志 {kindCounts.system}
             </Chip>
             <span className="sp" />
-            <button
-              className="icon-btn"
-              title="刷新"
-              disabled={busy}
-              onClick={load}
+            <label
+              className="switch-inline"
+              title="开启后每 5 秒自动刷新对话记录"
             >
-              <I n="refresh" size={16} />
-            </button>
+              <span className="live-dot" data-on={live ? '1' : '0'} />
+              <span className="k">自动刷新</span>
+              <Switch checked={live} onChange={(v) => setLive(v)} as="span" />
+            </label>
           </div>
 
           {list === null ? (

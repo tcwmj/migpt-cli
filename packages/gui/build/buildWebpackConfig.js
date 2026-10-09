@@ -2,7 +2,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import webpack from 'webpack'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
-// import CopyPlugin from 'copy-webpack-plugin'
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
 import TerserJSPlugin from 'terser-webpack-plugin'
 import OptimizeCSSAssetsPlugin from 'css-minimizer-webpack-plugin'
@@ -78,17 +77,11 @@ export default function buildWebpackConfig(mode) {
       ],
     },
     plugins: [
-      // new webpack.ProvidePlugin({
-      //   process: 'process/browser',
-      // }),
       new MiniCssExtractPlugin(),
       new HtmlWebpackPlugin({
         filename: 'index.html',
         template: './src/index.html',
       }),
-      // new CopyPlugin({
-      //   patterns: [{ from: 'public' }],
-      // }),
     ],
     resolve: {
       modules: ['node_modules'],

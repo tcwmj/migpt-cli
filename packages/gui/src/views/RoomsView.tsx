@@ -77,10 +77,8 @@ export function RoomsView(props: {
   return (
     <section data-view="rooms" className="on">
       <div className="filters">
-        <Chip on>全部会话群</Chip>
-        <span className="sp">
-          <span className="count">共 {props.rooms.length} 个</span>
-        </span>
+        <Chip on>全部会话群 {props.rooms.length}</Chip>
+        <span className="sp" />
       </div>
       <div className="split">
         <aside className="slist">

@@ -455,15 +455,6 @@ export async function testTts(ttsConfig: TTSConfig) {
 }
 
 // ── 统计接口 ────────────────────────────────────────────────
-export type StatsRange =
-  | 'today'
-  | 'this_month'
-  | 'this_year'
-  | 'last_1d'
-  | 'last_3d'
-  | 'last_7d'
-  | 'last_30d'
-
 export type StatsDimension = 'role' | 'device' | 'service'
 
 export interface TokenStats {
@@ -475,11 +466,6 @@ export interface TokenStats {
 
 export interface TimeSeriesPoint extends TokenStats {
   date: string
-}
-
-export interface DimensionStats extends TokenStats {
-  id: string
-  name: string
 }
 
 export interface DimensionEntity {
@@ -507,43 +493,8 @@ export interface DeviceHealth {
   totalTokens: number
 }
 
-export interface StatsResponse {
-  totals: TokenStats
-  filtered: TokenStats
-  timeline: TimeSeriesPoint[]
-  dimensionData: DimensionStats[]
-  entities: Record<string, DimensionEntity[]>
-  serviceHealth: ServiceHealth[]
-  deviceHealth: DeviceHealth[]
-  range: StatsRange
-  groupPeriod: string
-}
-
-export const RANGE_LABELS: Record<StatsRange, string> = {
-  today: '今天',
-  this_month: '本月',
-  this_year: '今年',
-  last_1d: '最近 1 天',
-  last_3d: '最近 3 天',
-  last_7d: '最近 7 天',
-  last_30d: '最近 30 天',
-}
-
 export const DIMENSION_LABELS: Record<string, string> = {
   role: '对话角色',
   device: '设备服务',
   service: '模型服务',
-}
-
-export const getStats = (
-  range: StatsRange = 'today',
-  dimension?: StatsDimension,
-  ids?: string[],
-) => {
-  const params = new URLSearchParams({ range })
-  if (dimension) params.set('dimension', dimension)
-  if (ids && ids.length > 0) params.set('ids', ids.join(','))
-  return fetch(api(`/stats?${params}`), {
-    headers: headers(false),
-  }).then((r) => j<StatsResponse>(r))
 }

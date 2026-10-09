@@ -88,7 +88,10 @@ export function WizardDeviceStep(props: {
               </div>
               {pulling && <div className="hint">正在从小米云端拉取设备…</div>}
               {pullErr && (
-                <EmptyState title="未获取到设备信息" style={{ padding: '16px' }} />
+                <EmptyState
+                  title="未获取到设备信息"
+                  style={{ padding: '16px' }}
+                />
               )}
               {pulled && pulled.length > 0
                 ? pulled.map((d) => {
@@ -127,7 +130,9 @@ export function WizardDeviceStep(props: {
                         {bound ? (
                           <Tag tone="neu">已接入</Tag>
                         ) : (
-                          <Tag tone={d.presence === 'online' ? 'accent' : 'neu'}>
+                          <Tag
+                            tone={d.presence === 'online' ? 'accent' : 'neu'}
+                          >
                             {d.presence === 'online' ? '在线' : '离线'}
                           </Tag>
                         )}
@@ -154,7 +159,7 @@ export function WizardDeviceStep(props: {
               <div className="notice err">{pullErr}</div>
               <div className="desc">
                 返回上一步检查小米 ID 与
-                passToken，或到「账号设备」页更新凭据后重试。
+                passToken，或到「云端账号」页更新凭据后重试。
               </div>
             </div>
           ) : did ? (

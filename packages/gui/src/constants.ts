@@ -19,7 +19,7 @@ export type View =
 
 export const TITLES: Record<View, string> = {
   home: '首页',
-  accounts: '账号设备',
+  accounts: '云端账号',
   devices: '设备服务',
   roles: '对话角色',
   logs: '对话记录',

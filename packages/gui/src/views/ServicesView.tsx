@@ -1,4 +1,5 @@
 /* ══ ServicesView ══ */
+import { useMemo, useState } from 'react'
 import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import type { ThinkService, VoiceService } from '../apis.ts'
 import type { ThinkDraft, VoiceDraft } from './drafts.ts'
@@ -8,6 +9,7 @@ import { ThinkServiceForm } from './services/ThinkServiceForm.tsx'
 import { VoiceServiceList } from './services/VoiceServiceList.tsx'
 import { VoiceServiceDetail } from './services/VoiceServiceDetail.tsx'
 import { VoiceServiceForm } from './services/VoiceServiceForm.tsx'
+import { PROVIDERS, TTS_ENGINES } from '../constants.ts'
 
 export function ServicesView(props: {
   tab: 'think' | 'voice'
@@ -59,19 +61,70 @@ export function ServicesView(props: {
     usageThink,
     usageVoice,
   } = props
+  const [thinkProvider, setThinkProvider] = useState('all')
+  const [voiceProvider, setVoiceProvider] = useState('all')
+
+  const thinkProviderCounts = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const s of thinkSvcs) {
+      map[s.provider] = (map[s.provider] || 0) + 1
+    }
+    return map
+  }, [thinkSvcs])
+
+  const voiceProviderCounts = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const s of voiceSvcs) {
+      const key = s.builtin ? 'builtin' : s.provider
+      map[key] = (map[key] || 0) + 1
+    }
+    return map
+  }, [voiceSvcs])
+
+  const filteredThinkSvcs = useMemo(
+    () =>
+      thinkProvider === 'all'
+        ? thinkSvcs
+        : thinkSvcs.filter((s) => s.provider === thinkProvider),
+    [thinkSvcs, thinkProvider],
+  )
+
+  const filteredVoiceSvcs = useMemo(
+    () =>
+      voiceProvider === 'all'
+        ? voiceSvcs
+        : voiceSvcs.filter((s) =>
+            voiceProvider === 'builtin'
+              ? s.builtin
+              : !s.builtin && s.provider === voiceProvider,
+          ),
+    [voiceSvcs, voiceProvider],
+  )
   return (
     <section data-view="settings" className="on">
       {tab === 'think' && (
         <>
           <div className="filters">
-            <Chip on>全部服务</Chip>
-            <span className="sp">
-              <span className="count">共 {thinkSvcs.length} 个</span>
-            </span>
+            <Chip
+              on={thinkProvider === 'all'}
+              onClick={() => setThinkProvider('all')}
+            >
+              全部服务 {thinkSvcs.length}
+            </Chip>
+            {Object.entries(thinkProviderCounts).map(([prov, count]) => (
+              <Chip
+                key={prov}
+                on={thinkProvider === prov}
+                onClick={() => setThinkProvider(prov)}
+              >
+                {PROVIDERS[prov] || prov} {count}
+              </Chip>
+            ))}
+            <span className="sp" />
           </div>
           <div className="split">
             <ThinkServiceList
-              services={thinkSvcs}
+              services={filteredThinkSvcs}
               selThink={selThink}
               onSelect={onSelectThink}
             />
@@ -122,14 +175,26 @@ export function ServicesView(props: {
       {tab === 'voice' && (
         <>
           <div className="filters">
-            <Chip on>全部服务</Chip>
-            <span className="sp">
-              <span className="count">共 {voiceSvcs.length} 个</span>
-            </span>
+            <Chip
+              on={voiceProvider === 'all'}
+              onClick={() => setVoiceProvider('all')}
+            >
+              全部服务 {voiceSvcs.length}
+            </Chip>
+            {Object.entries(voiceProviderCounts).map(([prov, count]) => (
+              <Chip
+                key={prov}
+                on={voiceProvider === prov}
+                onClick={() => setVoiceProvider(prov)}
+              >
+                {TTS_ENGINES[prov] || prov} {count}
+              </Chip>
+            ))}
+            <span className="sp" />
           </div>
           <div className="split">
             <VoiceServiceList
-              services={voiceSvcs}
+              services={filteredVoiceSvcs}
               selVoice={selVoice}
               onSelect={onSelectVoice}
             />

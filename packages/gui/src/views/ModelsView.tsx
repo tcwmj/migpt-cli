@@ -1,4 +1,5 @@
 /* ══ ModelsView ══ */
+import { useMemo } from 'react'
 import { I } from '../icons.tsx'
 import {
   Button,
@@ -43,21 +44,27 @@ export function ModelsView(props: {
     onReset,
     onSave,
   } = props
+  const filterCounts = useMemo(
+    () => ({
+      all: models.length,
+      consec: models.filter((m) => m.consecutive).length,
+      plain: models.filter((m) => !m.consecutive).length,
+    }),
+    [models],
+  )
   return (
     <section data-view="models" className="on">
       <div className="filters">
         <Chip on={filter === 'all'} onClick={() => onFilter('all')}>
-          全部型号
+          全部型号 {filterCounts.all}
         </Chip>
         <Chip on={filter === 'consec'} onClick={() => onFilter('consec')}>
-          支持连续对话
+          支持连续对话 {filterCounts.consec}
         </Chip>
         <Chip on={filter === 'plain'} onClick={() => onFilter('plain')}>
-          无法连续对话
+          无法连续对话 {filterCounts.plain}
         </Chip>
-        <span className="sp">
-          <span className="count">共 {filterModels.length} 个</span>
-        </span>
+        <span className="sp" />
       </div>
       <div className="split">
         <aside className="slist">

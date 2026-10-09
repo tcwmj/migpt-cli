@@ -75,7 +75,7 @@ export function WizardAccountStep(props: {
           {accounts.length === 0 && (
             <EmptyState
               title="还没有云端账号"
-              desc="请新建一个账号，或在「账号设备」页先接入。"
+              desc="请新建一个账号，或在「云端账号」页先接入。"
               style={{ padding: '16px' }}
             />
           )}

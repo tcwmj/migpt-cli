@@ -55,8 +55,6 @@ export interface DateRangePickerProps {
   logDates?: Set<string> | null
   /** 是否显示底部提示文本 */
   showHint?: boolean
-  /** 日期是否可以点击的额外判断（在 logDates 基础上增加） */
-  canSelect?: (k: string) => boolean
   /** 选择完成 */
   onSelect: (from: string, to: string) => void
 }
@@ -70,7 +68,6 @@ export function DateRangePicker({
   toKey,
   logDates,
   showHint = true,
-  canSelect,
   onSelect,
 }: DateRangePickerProps) {
   const [month, setMonth] = useState(() => dateOfKey(fromKey))

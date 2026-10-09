@@ -65,7 +65,7 @@ export function DevicesView(props: {
             )
           }
         >
-          全部设备
+          全部设备 {filterDevices.length}
         </Chip>
         {devAcctGroups.map((g) => (
           <Chip
@@ -78,12 +78,10 @@ export function DevicesView(props: {
               )
             }
           >
-            {g.name}
+            {g.name} {devices.filter((d) => d.accountId === g.id).length}
           </Chip>
         ))}
-        <span className="sp">
-          <span className="count">共 {filterDevices.length} 台</span>
-        </span>
+        <span className="sp" />
       </div>
       <div className="split">
         <DeviceList
@@ -101,7 +99,7 @@ export function DevicesView(props: {
             <EmptyState
               icon="speaker"
               title="还没有绑定设备"
-              desc="先在「账号设备」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。"
+              desc="先在「云端账号」接入小米账号，再通过三步向导把音箱绑定到角色与思考服务。"
               action={
                 <Button
                   variant="primary"

@@ -169,13 +169,14 @@ export function App() {
               accounts={accounts}
               devices={devices}
               roles={roles}
+              rooms={rooms}
               thinkSvcs={thinkSvcs}
               voiceSvcs={voiceSvcs}
               models={models}
               runningCount={runningCount}
-              logCount={logCount}
               builtinModelCount={builtinModelCount}
               customModelCount={customModelCount}
+              logCount={logCount}
               onNav={setView}
               onOpenThink={() => {
                 setSettingTab('think')

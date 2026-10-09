@@ -5,6 +5,7 @@ import type {
   Account,
   DeviceRow,
   Role,
+  Room,
   SpeakerModel,
   ThinkService,
   VoiceService,
@@ -32,13 +33,14 @@ export function HomeView(props: {
   accounts: Account[]
   devices: DeviceRow[]
   roles: Role[]
+  rooms: Room[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   models: SpeakerModel[]
   runningCount: number
-  logCount: number
   builtinModelCount: number
   customModelCount: number
+  logCount: number
   onNav: (v: View) => void
   onOpenThink: () => void
   onOpenVoice: () => void
@@ -50,13 +52,14 @@ export function HomeView(props: {
     accounts,
     devices,
     roles,
+    rooms,
     thinkSvcs,
     voiceSvcs,
     models,
     runningCount,
-    logCount,
     builtinModelCount,
     customModelCount,
+    logCount,
     onNav,
     onOpenThink,
     onOpenVoice,
@@ -96,7 +99,7 @@ export function HomeView(props: {
             style={{ backgroundImage: `url(${livingImg})` }}
           />
           <div className="kv">
-            <div className="k">账号设备</div>
+            <div className="k">云端账号</div>
             <div className="v num">{accounts.length}</div>
           </div>
           <div className="d mut">
@@ -136,16 +139,18 @@ export function HomeView(props: {
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
-        <button className="kpi" onClick={() => onNav('logs')}>
+        <button className="kpi" onClick={() => onNav('rooms')}>
           <span
             className="pic"
             style={{ backgroundImage: `url(${studyImg})` }}
           />
           <div className="kv">
-            <div className="k">对话记录</div>
-            <div className="v num">{logCount}</div>
+            <div className="k">会话群</div>
+            <div className="v num">{rooms.length}</div>
           </div>
-          <div className="d mut">累计对话与系统日志</div>
+          <div className="d mut">
+            {rooms.map((r) => r.name).join(' · ') || '尚未创建'}
+          </div>
           <I n="arrowR" className="go" size={14} />
         </button>
         <button className="kpi" onClick={onOpenThink}>

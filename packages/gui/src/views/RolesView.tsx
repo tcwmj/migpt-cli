@@ -106,10 +106,8 @@ export function RolesView(props: {
   return (
     <section data-view="roles" className="on">
       <div className="filters">
-        <Chip on>全部角色</Chip>
-        <span className="sp">
-          <span className="count">共 {props.roles.length} 个</span>
-        </span>
+        <Chip on>全部角色 {props.roles.length}</Chip>
+        <span className="sp" />
       </div>
       <div className="roles">
         <RoleList
