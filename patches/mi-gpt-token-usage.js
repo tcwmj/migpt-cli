@@ -18,17 +18,15 @@ if (!fs.existsSync(targetFile)) {
 let content = fs.readFileSync(targetFile, 'utf-8');
 
 // 检查是否已经应用过补丁
-if (content.includes('Prompt tokens:')) {
+if (content.includes('stream_options: { include_usage: true }')) {
   console.log('  ⚠️  mi-gpt token 用量补丁已应用，跳过');
   process.exit(0);
 }
 
-// 要查找的代码模式（使用 Unicode 转义序列）
-// 注意：需要匹配完整的代码块，避免匹配到错误的位置
-const oldPattern = /const message = \(_b = \(_a = chatCompletion == null \? void 0 : chatCompletion\.choices\) == null \? void 0 : _a\[0\]\) == null \? void 0 : _b\.message;\s*if \(trace && this\.traceOutput\) \{\s*this\._logger\.log\(`\\u2705 Answer: \$\{.*?\}`\.trim\(\)\);\s*\}\s*return message;/;
+// 补丁 1: 修改 chat 方法，添加 token 用量输出
+const oldChatPattern = /const message = \(_b = \(_a = chatCompletion == null \? void 0 : chatCompletion\.choices\) == null \? void 0 : _a\[0\]\) == null \? void 0 : _b\.message;\s*if \(trace && this\.traceOutput\) \{\s*this\._logger\.log\(`\\u2705 Answer: \$\{.*?\}`\.trim\(\)\);\s*\}\s*return message;/;
 
-// 新代码，添加 token 用量输出
-const newCode = `const message = (_b = (_a = chatCompletion == null ? void 0 : chatCompletion.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message;
+const newChatCode = `const message = (_b = (_a = chatCompletion == null ? void 0 : chatCompletion.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message;
     if (trace && this.traceOutput) {
       this._logger.log(\`\\u2705 Answer: \${(message == null ? void 0 : message.content) ?? "None"}\`.trim());
       // 输出 token 用量信息
@@ -41,12 +39,32 @@ const newCode = `const message = (_b = (_a = chatCompletion == null ? void 0 : c
     }
     return message;`;
 
-// 应用补丁
-if (oldPattern.test(content)) {
-  content = content.replace(oldPattern, newCode);
-  fs.writeFileSync(targetFile, content, 'utf-8');
-  console.log('  ✅ mi-gpt token 用量补丁应用成功');
+// 补丁 2: 修改 chatStream 方法，添加 stream_options 和 token 用量输出
+const oldStreamPattern = /const stream = await this\._client\.chat\.completions\.create\(\{\s*model,\s*tools,\s*stream: true,\s*messages:/;
+
+const newStreamCode = `const stream = await this._client.chat.completions.create({
+      model,
+      tools,
+      stream: true,
+      stream_options: { include_usage: true },
+      messages:`;
+
+// 应用补丁 1
+if (oldChatPattern.test(content)) {
+  content = content.replace(oldChatPattern, newChatCode);
+  console.log('  ✅ 补丁 1 应用成功: chat 方法');
 } else {
-  console.log('  ⚠️  未找到目标代码，可能 mi-gpt 版本不匹配');
-  console.log('  💡 请手动检查 node_modules/mi-gpt/dist/index.js');
+  console.log('  ⚠️  补丁 1 未找到目标代码，可能已应用');
 }
+
+// 应用补丁 2
+if (oldStreamPattern.test(content)) {
+  content = content.replace(oldStreamPattern, newStreamCode);
+  console.log('  ✅ 补丁 2 应用成功: chatStream 方法 stream_options');
+} else {
+  console.log('  ⚠️  补丁 2 未找到目标代码，可能已应用');
+}
+
+// 保存修改后的文件
+fs.writeFileSync(targetFile, content, 'utf-8');
+console.log('  ✅ 所有补丁应用完成');

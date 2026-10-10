@@ -16,6 +16,7 @@
     "node": ">=24.21.0"
   },
   "scripts": {
+    "postinstall": "node patches/mi-gpt-token-usage.js",
     "prepare": "husky",
     "dev": "node scripts/dev.js",
     "lint": "eslint \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\"",
