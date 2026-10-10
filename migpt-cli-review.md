@@ -12,7 +12,7 @@
 | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 形态    | Nx monorepo，7 个 workspace：`packages/{contracts,controller,server,gui,options,options-with-preview}` + `apps/{cli,server}` |
 | 后端    | Express 4 + TypeScript，分层清晰（路由层 → store 门面 → 子模块），pino 日志、zod 校验、helmet、express-rate-limit            |
-| 前端    | React 18 SPA，webpack + babel 构建，Tailwind 配置但实际手写 CSS，@tanstack/react-query                                       |
+| 前端    | React 18 SPA，webpack + babel 构建，Tailwind（`tw-` 前缀，用于 options 包）+ 手写 CSS，@tanstack/react-query                 |
 | 契约    | `@migptgui/contracts` 前后端类型单一事实源，"零构建"直接被引用                                                               |
 | 持久化  | JSON 文件存储（`~/.migptgui`），原子写 + 写队列 + 可重入迁移 + 内置数据补充                                                  |
 | 构建/CI | nx 增量构建；CI 含 lint/format/test/build/Trivy 门禁；Release 含 SBOM + cosign + 多架构                                      |
@@ -91,10 +91,10 @@
   - webpack 加 `optimization.splitChunks:{chunks:'all'}` + 对 `StatsView`/`LogsView`/`SysLogsView` 用 `React.lazy` 路由级懒加载（recharts 仅统计页加载，初始 JS 可降至 1–2MB）。
   - 把 banner `setInterval` 下沉到 `HomeView` 局部 state。
 
-**10. `StatsView` 1001 行 MOCK 未接后端**
+**10. `StatsView` 1001 行 MOCK 未接后端** ✅（已解决）
 
-- `StatsView.tsx` 约 2/3 是 `MOCK_*` 数据 + 生成器，grep 命中 18 处 `MOCK`、0 处真实 `/stats` 调用——"看起来有功能、实际无数据"的假页面。
-- 修复：接真实统计 API，或删除该死功能（若保留务必懒加载）。
+- 原问题：`StatsView.tsx` 约 2/3 是 `MOCK_*` 数据 + 生成器，grep 命中 18 处 `MOCK`、0 处真实 `/stats` 调用——"看起来有功能、实际无数据"的假页面。
+- 现状：MOCK 数据已全部移除，`StatsView` 经 `apis.ts:getStats()` 调用真实 `GET /api/v1/stats`（后端按系统日志中 AI 对话记录聚合 token/次数，支持 from/to 日期、role/device/service 维度过滤、当日小时粒度分组）；并保留 React.lazy 懒加载。
 
 ---
 
@@ -129,7 +129,7 @@
 
 - React-query 仅用于拉数据，**全仓零 `useMutation`**：写操作绕过缓存走裸 `api.*` + `refreshAll()`（任一保存使所有实体失效重拉），无乐观更新/精准失效。
 - Prop drilling：`DevicesView`/`ServicesView` 等接收 20+ props 逐层下传，而这些实体本就在 RQ 缓存中——应让视图直接 `useQuery` 或加轻量 Context。
-- Tailwind 死配置：`tailwind.config.js` 设 `prefix:'tw-'` 但源码零 `tw-` 类，真实样式是 5,910 行手写 CSS——二选一（真用 Tailwind 或删依赖+死指令）。
+- ~~Tailwind 死配置~~（**审查误报，已更正**）：`tailwind.config.js` 设 `prefix:'tw-'`，`packages/options/src` 多个组件实际使用 `tw-*` 类（Ai/Characters/LotCommand/MultiInput 等），`theme.css` 的 `@tailwind components/utilities` 指令生效，编译产物 `dist/main.css` 含 `.tw-*` 工具类。Tailwind **在用**，非死配置；当时仅 grep 了 `gui/src` 漏掉 `options/src` 导致误判。
 - 内部错误直接 `String(err)` 外吐（`stats.ts:448`/`legacy.ts:31`/`logger.ts:154`），存在信息泄露；改为记录日志 + 返回通用错误。
 - 删除死代码 `routes/auth.ts:131` `safeEqual`（仅被自身测试引用）。
 
@@ -161,3 +161,25 @@
 4. **技术债清理**：node 版本、死依赖、Dockerfile 一致性作为独立 chore PR。
 
 > 注：以上文件:行号均来自本次审查时的代码快照；改动前请 `git diff` 复核上下文。
+
+---
+
+## 六、落地状态（2026-10-10 实施记录）
+
+**已完成**（提交 `6397bdb` 及后续）：
+
+- ✅ P0 全部四项：`errors.ts` + `assertSafeId`（devices/backup 路径穿越）、`/api/test` SSRF 白名单、`trust proxy=1`、误导日志删除 + README 修正。
+- ✅ P0 追加：审查后发现的**裸 async 处理器悬挂 bug**——28 处未包 `asyncHandler` 的路由（含全部 devices 路由）一旦抛错（正是 `assertSafeId` 抛的 `BadRequestError`）会变成 unhandled rejection、请求悬挂。已全部包裹并经集成测试验证回 400。
+- ✅ P1：Cookie `secure`、`session.secret` 原子写（write-file-atomic）、`safeEqual` 死代码删除、stats 内部错误不外吐、`contracts.test.ts` 脱敏一致性 9 项断言。
+- ✅ P1 前端瘦身：webpack `runtimeChunk:'single'` + vendor `splitChunks`（实测产物 runtime 3.5K / vendors 713K / main 184K）、`StatsView` React.lazy（异步 chunk 15.8K）、banner state 下沉 HomeView。
+- ✅ P1 集成测试：`routes/integration.test.ts`（supertest + createApp 拆分，13 项）覆盖认证链、路径穿越 400、SSRF 400、trust proxy→Secure Cookie、stats 真实链路空数据结构。
+- ✅ P2：`@types/node` ^24 对齐（lockfile 同步）、`@blueprintjs/icons`/`@types/lodash` 死依赖删除、`docker/Dockerfile` 非 root。
+- ✅ P2 CI 安全门禁：gitleaks 密钥扫描（fetch-depth:0 + `.gitleaks.toml` 放行测试夹具）、`npm audit` 生产 high/critical 门控（`scripts/audit-gate.mjs`，已知豁免 `GHSA-c475-qrg2-pj4r`：mi-gpt>=4.2 依赖链 basic-ftp DoS，上游无修复、降级属破坏性变更——上游修复后应移除豁免）。
+- ✅ 审查报告两处更正：Tailwind 实为在用（误报，见 #12 更正）；StatsView 已接真实数据（见 #10 更新）。
+- ✅ GUI `tsc --noEmit` 的 3 个 CSS 副作用导入错误（`globals.d.ts` 模块声明 + `import './css.ts'`）。
+
+**遗留**（已知、有意识不阻塞）：
+
+- ⏳ GUI 测试基建（Vitest + @testing-library）：本轮以「后端集成测试」优先，前端测试仍为零。
+- ⏳ 预存 flaky 单测 3 套（logger / store/auth / store/backup）：auth 为 `getEnv()` 模块加载期快照导致 env 注入测试失效（需改为调用时读取）；backup/logger 疑为 Windows 文件时序抖动，Linux CI 上大概率通过。
+- ⏳ `basic-ftp` 上游漏洞跟踪：mi-gpt 新版本或 proxy-agent 修复后移除 CI 豁免。
