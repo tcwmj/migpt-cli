@@ -6,13 +6,13 @@
   transition: grid-template-columns var(--dur-240) var(--ease-standard);
 }
 
+/* 窄屏兜底：内容列最小 0（轨道整体可横向滚动见 .main），侧栏轨道宽度固定 64px。
+   收起形态（品牌文字隐藏/图标居中/tooltip）统一由 .app.off 承担——
+   App.tsx 在 ≤1180px 时自动置收起态（sideCollapsed），与手动收起共用同一套样式，
+   避免旧做法（媒体查询只压列宽、单独藏 .label）造成的标题折行与样式不一致。 */
 @media (max-width: 1180px) {
   .app {
-    grid-template-columns: 64px 1fr;
-  }
-  .side .label,
-  .side .foot-txt {
-    display: none;
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 }
 

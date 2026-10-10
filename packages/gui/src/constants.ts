@@ -469,7 +469,15 @@ export function buildVoiceTts(v: VoiceFormValues): {
       return { tts, err: '自定义 TTS 配置不能为空' }
     }
     try {
-      Object.assign(tts, JSON.parse(v.customJson))
+      const parsed = JSON.parse(v.customJson)
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return { tts, err: '自定义 TTS 配置必须为 JSON 对象' }
+      }
+      Object.assign(tts, parsed)
     } catch (e) {
       return {
         tts,

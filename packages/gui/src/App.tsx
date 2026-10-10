@@ -72,21 +72,17 @@ export function App() {
   // 窄屏（≤1180px）自动进入侧栏「图标轨道」收起态（Ant Design Pro 同款实践）：
   // 走统一的 .app.off 样式——品牌文字隐藏、图标居中、悬浮显示菜单名 tooltip，
   // 不会像纯 CSS 媒体查询那样只压宽度导致标题折行。
-  // 仅在跨越断点时切换：进入窄屏强制收起，回到宽屏恢复用户自己的收起偏好。
+  // narrow 与用户手动偏好分离：不写 localStorage，回到宽屏自动恢复用户原设置。
+  const [narrow, setNarrow] = useState<boolean>(
+    () => window.matchMedia('(max-width: 1180px)').matches,
+  )
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1180px)')
-    let wasNarrow = mq.matches
-    if (wasNarrow) setSideOff(true)
-    const onChange = (e: MediaQueryListEvent) => {
-      if (e.matches && !wasNarrow) setSideOff(true)
-      else if (!e.matches && wasNarrow)
-        setSideOff(localStorage.getItem('migpt-side-off') === '1')
-      wasNarrow = e.matches
-    }
+    const onChange = (e: MediaQueryListEvent) => setNarrow(e.matches)
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  const sideCollapsed = sideOff || narrow
 
   // Hash 路由同步：视图状态与 URL hash 双向绑定
   useHashRouter(view, setView, setSettingTab)
@@ -197,10 +193,10 @@ export function App() {
   }
 
   return (
-    <div className={'app' + (sideOff ? ' off' : '')}>
+    <div className={'app' + (sideCollapsed ? ' off' : '')}>
       <Sidebar
         view={view}
-        sideOff={sideOff}
+        sideOff={sideCollapsed}
         onNav={nav}
         onProfile={() => setView('profile')}
         onToggle={() => setSideOff(!sideOff)}
