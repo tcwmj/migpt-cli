@@ -107,9 +107,7 @@ export function RoomsView(props: {
                   <Tag>内置</Tag>
                 ) : used ? (
                   <Tag tone="accent">{used} 个角色</Tag>
-                ) : (
-                  <Tag tone="neu">未关联</Tag>
-                )}
+                ) : null}
               </div>
             )
           })}

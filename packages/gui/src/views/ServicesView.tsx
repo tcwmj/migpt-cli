@@ -262,6 +262,7 @@ export function ServicesView(props: {
                   onEdit={onEditVoice}
                   onSelect={onSelectVoice}
                   onSave={onSaveVoice}
+                  onReset={onResetVoice}
                 />
               ) : null}
             </section>
