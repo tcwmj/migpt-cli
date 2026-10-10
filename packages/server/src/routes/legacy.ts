@@ -6,20 +6,32 @@ import { type GuiConfig } from '@migptgui/options'
 import { root } from '../paths.js'
 import { loadDeviceConfig, saveDeviceConfig } from '../store.js'
 import { logBuffers, appendLog } from '../logger.js'
-import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
+import {
+  API_PREFIX,
+  ok,
+  fail,
+  asyncHandler,
+  type RouteContext,
+} from './shared.js'
 
 export function registerLegacyRoutes({ app }: RouteContext): void {
   const defaultDeviceCwd = path.join(root, 'default')
 
-  app.get(`${API_PREFIX}/default`, async (_req, res) => {
-    const config = await loadDeviceConfig('default')
-    res.json(config ? { config } : {})
-  })
+  app.get(
+    `${API_PREFIX}/default`,
+    asyncHandler(async (_req, res) => {
+      const config = await loadDeviceConfig('default')
+      res.json(config ? { config } : {})
+    }),
+  )
 
-  app.put(`${API_PREFIX}/default`, async (req, res) => {
-    await saveDeviceConfig('default', req.body as GuiConfig)
-    ok(res)
-  })
+  app.put(
+    `${API_PREFIX}/default`,
+    asyncHandler(async (req, res) => {
+      await saveDeviceConfig('default', req.body as GuiConfig)
+      ok(res)
+    }),
+  )
 
   app.delete(`${API_PREFIX}/default`, (_req, res) => {
     Promise.all([
@@ -31,34 +43,43 @@ export function registerLegacyRoutes({ app }: RouteContext): void {
     )
   })
 
-  app.post(`${API_PREFIX}/default/start`, async (req, res) => {
-    const migptConfig = req.body as GuiConfig
-    await saveDeviceConfig('default', migptConfig)
-    if (
-      migptConfig.config.speaker.tts === 'custom' &&
-      migptConfig.gui &&
-      migptConfig.gui.ttsProvider !== 'custom' &&
-      migptConfig.tts
-    ) {
-      migptConfig.env.TTS_BASE_URL = `${(migptConfig.gui.publicURL || '').replace(/\/+$/, '')}/default/tts`
-    }
-    await run(
-      'default',
-      migptConfig as unknown as RunConfig,
-      defaultDeviceCwd,
-      (deviceId, line) => appendLog(deviceId, line),
-    )
-    ok(res)
-  })
+  app.post(
+    `${API_PREFIX}/default/start`,
+    asyncHandler(async (req, res) => {
+      const migptConfig = req.body as GuiConfig
+      await saveDeviceConfig('default', migptConfig)
+      if (
+        migptConfig.config.speaker.tts === 'custom' &&
+        migptConfig.gui &&
+        migptConfig.gui.ttsProvider !== 'custom' &&
+        migptConfig.tts
+      ) {
+        migptConfig.env.TTS_BASE_URL = `${(migptConfig.gui.publicURL || '').replace(/\/+$/, '')}/default/tts`
+      }
+      await run(
+        'default',
+        migptConfig as unknown as RunConfig,
+        defaultDeviceCwd,
+        (deviceId, line) => appendLog(deviceId, line),
+      )
+      ok(res)
+    }),
+  )
 
-  app.post(`${API_PREFIX}/default/stop`, async (_req, res) => {
-    await stop('default')
-    ok(res)
-  })
+  app.post(
+    `${API_PREFIX}/default/stop`,
+    asyncHandler(async (_req, res) => {
+      await stop('default')
+      ok(res)
+    }),
+  )
 
-  app.get(`${API_PREFIX}/default/logs`, async (_req, res) => {
-    const limit = Number(_req.query.limit) || 100
-    const buf = logBuffers.get('default') || []
-    res.json({ logs: buf.slice(-limit) })
-  })
+  app.get(
+    `${API_PREFIX}/default/logs`,
+    asyncHandler(async (_req, res) => {
+      const limit = Number(_req.query.limit) || 100
+      const buf = logBuffers.get('default') || []
+      res.json({ logs: buf.slice(-limit) })
+    }),
+  )
 }

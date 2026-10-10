@@ -32,11 +32,13 @@ import { requestId, errorHandler } from './middleware.js'
 
 export type { ServerOptions }
 
-export function runServer(options?: ServerOptions) {
-  const port = options?.port || 36597
+/**
+ * 组装 HTTP 应用（中间件 + 全部路由），不监听端口、不跑迁移。
+ * 与 runServer 拆开的目的：集成测试可直接 createApp() 交给 supertest 驱动，
+ * 无需真实 listen / 迁移 / 种子流程。
+ */
+export function createApp(options?: ServerOptions) {
   // 认证默认启用（中间件无条件挂载）；--no-auth 时由 apps/server 传 auth:false
-  const isAuth = options?.auth !== false
-
   const app = express()
   app.disable('x-powered-by')
   // 部署在反向代理（如 nginx/Caddy）之后时，据此从 X-Forwarded-* 取真实客户端 IP 与 TLS 状态，
@@ -133,6 +135,20 @@ export function runServer(options?: ServerOptions) {
   // 统一错误处理：置于全部路由之后，捕获未处理异常并记录带 reqId 的错误日志
   app.use(errorHandler())
 
+  return app
+}
+
+/** 服务句柄：close() 停止定时器并关闭 HTTP 监听（测试/嵌入场景用） */
+export interface ServerHandle {
+  app: express.Express
+  listenPort: number
+  close: () => Promise<void>
+}
+
+export function runServer(options?: ServerOptions): ServerHandle {
+  const port = options?.port || 36597
+  const app = createApp(options)
+
   // 启动顺序：先按数据版本升级（一次性结构变更），再注入演示日志；全部就绪后才开始监听。
   // 内置型号/语音源自代码（见 store/builtins.ts），无需种子写入；迁移/种子在监听前完成，
   // 避免首个请求读到升级中的半成品数据。
@@ -151,9 +167,9 @@ export function runServer(options?: ServerOptions) {
     await Promise.allSettled([seedDemoLogs()])
     server = app.listen(port, () => {
       logger.info({ port }, '服务已启动')
-      logger.info(`登录认证：${isAuth ? '已启用' : '未启用'}`)
+      logger.info(`登录认证：${options?.auth !== false ? '已启用' : '未启用'}`)
       // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
-      if (isAuth && !options?.users && usingDefaultAuth()) {
+      if (options?.auth !== false && !options?.users && usingDefaultAuth()) {
         logger.warn(
           '正在使用默认登录凭据，请尽快修改密码，或使用 --pwd 启动参数设置 AUTH_PASSWORD 环境变量。',
         )
@@ -183,4 +199,15 @@ export function runServer(options?: ServerOptions) {
   }
   process.on('SIGTERM', shutdown)
   process.on('SIGINT', shutdown)
+
+  return {
+    app,
+    listenPort: port,
+    close: () =>
+      new Promise<void>((resolve) => {
+        stopBackups()
+        if (server) server.close(() => resolve())
+        else resolve()
+      }),
+  }
 }

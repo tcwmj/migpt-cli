@@ -12,7 +12,13 @@ import {
   destroySession,
   bumpSessionEpoch,
 } from '../session.js'
-import { API_PREFIX, ok, fail, type RouteContext } from './shared.js'
+import {
+  API_PREFIX,
+  ok,
+  fail,
+  asyncHandler,
+  type RouteContext,
+} from './shared.js'
 
 export function registerAuthRoutes({ app, options }: RouteContext): void {
   // 认证失败限流（express-rate-limit 标准实现）：窗口内失败超限直接拒绝，抵御口令爆破；
@@ -98,26 +104,29 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
   }
 
   // ── 修改登录凭据（持久化到 auth.json，前端「我的」页调用）─────
-  app.put(`${API_PREFIX}/auth`, async (req, res) => {
-    const body = req.body as {
-      oldUser?: string
-      oldPassword?: string
-      newUser?: string
-      newPassword?: string
-    }
-    if (!body.newUser || !body.newPassword) {
-      fail(res, 400, '新用户名和新密码必填')
-      return
-    }
-    const users = resolveAuth(options?.users)
-    const current = users[body.oldUser || '']
-    if (!current || !verifyPassword(current, body.oldPassword || '')) {
-      fail(res, 403, '旧密码不正确')
-      return
-    }
-    await saveAuthCredentials(body.newUser, body.newPassword)
-    // 凭据已变更：令牌纪元 +1，全部已登录会话立即失效（用户需重新登录）
-    bumpSessionEpoch()
-    ok(res)
-  })
+  app.put(
+    `${API_PREFIX}/auth`,
+    asyncHandler(async (req, res) => {
+      const body = req.body as {
+        oldUser?: string
+        oldPassword?: string
+        newUser?: string
+        newPassword?: string
+      }
+      if (!body.newUser || !body.newPassword) {
+        fail(res, 400, '新用户名和新密码必填')
+        return
+      }
+      const users = resolveAuth(options?.users)
+      const current = users[body.oldUser || '']
+      if (!current || !verifyPassword(current, body.oldPassword || '')) {
+        fail(res, 403, '旧密码不正确')
+        return
+      }
+      await saveAuthCredentials(body.newUser, body.newPassword)
+      // 凭据已变更：令牌纪元 +1，全部已登录会话立即失效（用户需重新登录）
+      bumpSessionEpoch()
+      ok(res)
+    }),
+  )
 }
