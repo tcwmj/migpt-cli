@@ -75,7 +75,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         alias: string
         did: string
         speakerModel?: string
-        roleId?: string
+        robotId?: string
         accountId?: string
         thinkServiceIds?: string[]
         thinkServiceId?: string
@@ -98,7 +98,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         return
       }
       // 对话角色必填：角色承载人设与对话行为，无角色无法编译运行配置
-      if (!body.roleId) {
+      if (!body.robotId) {
         fail(res, 400, '对话角色必填')
         return
       }
@@ -122,7 +122,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         alias: body.alias,
         did: body.did,
         speakerModel: body.speakerModel,
-        roleId: body.roleId,
+        robotId: body.robotId,
         accountId: body.accountId,
         thinkServiceIds: body.thinkServiceIds,
         thinkServiceId: body.thinkServiceId,
@@ -225,14 +225,14 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
           return
         }
         // 对话角色必填：合并后仍须指定（不再有内置默认人设回退）
-        if (!nextMeta.roleId) {
+        if (!nextMeta.robotId) {
           fail(res, 400, '对话角色必填')
           return
         }
         await saveDeviceMeta(id, nextMeta)
         // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
         if (
-          body.meta.roleId !== undefined ||
+          body.meta.robotId !== undefined ||
           body.meta.accountId !== undefined ||
           body.meta.speakerModel !== undefined ||
           body.meta.did !== undefined ||

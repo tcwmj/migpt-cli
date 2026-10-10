@@ -13,20 +13,20 @@ jest.mock('../store.js', () => {
   return {
     assertUniqueName: entities.assertUniqueName,
     assertEntity: schemas.assertEntity,
-    getRoles: jest.fn(async () => []),
+    getRobots: jest.fn(async () => []),
     listDeviceMetas: jest.fn(async () => []),
   }
 })
 
 import { z } from 'zod'
-import { getRoles, listDeviceMetas } from '../store.js'
+import { getRobots, listDeviceMetas } from '../store.js'
 import { DataValidationError } from '../store/schemas.js'
-import type { Role } from '../types.js'
+import type { Robot } from '../types.js'
 import {
   createCrudRouter,
   collectRefs,
   deviceRefs,
-  roleRefs,
+  robotRefs,
   type CrudConfig,
   type RefRule,
 } from './crud.js'
@@ -94,7 +94,7 @@ const register = (over: Partial<CrudConfig<Item>> = {}) => {
 }
 
 beforeEach(() => {
-  jest.mocked(getRoles).mockResolvedValue([])
+  jest.mocked(getRobots).mockResolvedValue([])
   jest.mocked(listDeviceMetas).mockResolvedValue([])
 })
 
@@ -305,7 +305,7 @@ describe('createCrudRouter · schema 落盘校验', () => {
 describe('collectRefs', () => {
   const rules: RefRule[] = [
     { key: 'devices', find: async (id) => (id === 'x' ? ['客厅'] : []) },
-    { key: 'roles', find: async () => [] },
+    { key: 'robots', find: async () => [] },
   ]
 
   test('汇总非空引用', async () => {
@@ -325,6 +325,7 @@ describe('deviceRefs', () => {
         alias: '客厅',
         did: 'X',
         speakerModel: 'm1',
+        robotId: 'r1',
         ttsSecret: 's',
         createdAt: 1,
       },
@@ -333,6 +334,7 @@ describe('deviceRefs', () => {
         alias: '书房',
         did: 'X',
         speakerModel: '小爱音箱',
+        robotId: 'r1',
         ttsSecret: 's',
         createdAt: 2,
       },
@@ -348,14 +350,14 @@ describe('deviceRefs', () => {
   })
 })
 
-describe('roleRefs', () => {
+describe('robotRefs', () => {
   test('按角色字段命中并返回角色名', async () => {
-    jest.mocked(getRoles).mockResolvedValue([
+    jest.mocked(getRobots).mockResolvedValue([
       { id: 'r1', name: '傻妞', thinkServiceId: 't1' },
       { id: 'r2', name: '助手', thinkServiceId: 't2' },
-    ] as unknown as Role[])
-    const rule = roleRefs('thinkServiceId')
-    expect(rule.key).toBe('roles')
+    ] as unknown as Robot[])
+    const rule = robotRefs('thinkServiceId')
+    expect(rule.key).toBe('robots')
     expect(await rule.find('t1', {})).toEqual(['傻妞'])
     expect(await rule.find('t9', {})).toEqual([])
   })

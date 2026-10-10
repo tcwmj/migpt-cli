@@ -22,7 +22,7 @@ export interface Account {
   hasMiPassword?: boolean
 }
 
-export interface Role {
+export interface Robot {
   id: string
   name: string
   profile: string
@@ -135,7 +135,7 @@ export interface DeviceMeta {
   did: string
   speakerModel?: string
   /** 引用的对话角色（必填；角色承载人设与对话行为） */
-  roleId: string
+  robotId: string
   accountId?: string
   /** 有序思考服务列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
   thinkServiceIds?: string[]
@@ -143,7 +143,7 @@ export interface DeviceMeta {
   thinkServiceId?: string
   /** 引用的语音服务（必填；不再回退全局默认） */
   voiceId?: string
-  /** @deprecated 已迁移至 Role.roomRef；保留仅兼容旧数据读取 */
+  /** @deprecated 已迁移至 Robot.roomRef；保留仅兼容旧数据读取 */
   roomRef?: string
   /** @deprecated 已迁移至 Room 实体，保留仅兼容旧数据读取 */
   roomName?: string
@@ -193,22 +193,22 @@ export interface PulledDevice {
 
 /**
  * 绑定链来源标注：
- * - account / role  来自设备显式绑定
+ * - account / robot  来自设备显式绑定
  * - think / voice   仅来自设备指定（必填；不再回退角色或全局默认）
  * - room            依次回退：角色指定 → 设备旧字段兼容
  */
 export interface BindingRow {
-  key: 'account' | 'role' | 'think' | 'voice' | 'room'
+  key: 'account' | 'robot' | 'think' | 'voice' | 'room'
   label: string
   name: string
   detail?: string
-  source: 'device' | 'role' | 'global'
+  source: 'device' | 'robot' | 'global'
   sourceLabel: string
 }
 
 export interface DeviceBindings {
   account?: Account
-  role?: Role
+  robot?: Robot
   think?: ThinkService
   voice?: VoiceService
   room?: Room
@@ -256,7 +256,7 @@ export const ENTITY_FIELDS = {
     'hasPassToken',
     'hasMiPassword',
   ],
-  role: [
+  robot: [
     'id',
     'name',
     'profile',
@@ -330,7 +330,7 @@ export const ENTITY_FIELDS = {
     'alias',
     'did',
     'speakerModel',
-    'roleId',
+    'robotId',
     'accountId',
     'thinkServiceIds',
     'thinkServiceId',
@@ -348,7 +348,7 @@ export const ENTITY_FIELDS = {
 interface EntityMap {
   settings: Settings
   account: Account
-  role: Role
+  robot: Robot
   thinkService: ThinkService
   voiceService: VoiceService
   speakerModel: SpeakerModel
@@ -369,7 +369,7 @@ const _fieldExactness: {
 } = {
   settings: true,
   account: true,
-  role: true,
+  robot: true,
   thinkService: true,
   voiceService: true,
   speakerModel: true,

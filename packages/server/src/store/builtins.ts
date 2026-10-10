@@ -2,7 +2,7 @@
 // 内置型号 / 内置语音 / 内置会话群 / 内置角色是系统自带、不可删除的实体；
 // 它们的「定义」放在代码里，用户的修改以补丁形式写入 overrides.json（见 ./overrides.js）。
 // 这样内置定义可随版本升级自动修正，而用户自建实体始终独立存放、不受「重置默认」影响。
-import type { Role, Room, SpeakerModel, VoiceService } from '../types.js'
+import type { Robot, Room, SpeakerModel, VoiceService } from '../types.js'
 
 /**
  * 系统内置音箱型号（禁删禁编辑定义；用户改动存覆盖补丁）。
@@ -257,9 +257,9 @@ export const BUILTIN_ROOMS: Omit<Room, 'createdAt'>[] = [
 /**
  * 系统内置对话角色（永不可删；可编辑、可重置默认）。
  * 数据取自迁移前用户保存的角色「傻妞」（id IgKuWadm），保留原 id
- * 以兼容设备 roleId 引用；旧数据中的死键（checkNotContinueKeywords 等契约外字段）不纳入定义。
+ * 以兼容设备 robotId 引用；旧数据中的死键（checkNotContinueKeywords 等契约外字段）不纳入定义。
  */
-export const BUILTIN_ROLES: Role[] = [
+export const BUILTIN_ROBOTS: Robot[] = [
   {
     id: 'IgKuWadm',
     name: '傻妞',
@@ -292,12 +292,12 @@ export const BUILTIN_CREATED_AT = 0
 const BUILTIN_MODEL_IDS = new Set(BUILTIN_MODELS.map((m) => m.id))
 const BUILTIN_VOICE_IDS = new Set(BUILTIN_VOICE_SERVICES.map((v) => v.id))
 const BUILTIN_ROOM_IDS = new Set(BUILTIN_ROOMS.map((r) => r.id))
-const BUILTIN_ROLE_IDS = new Set(BUILTIN_ROLES.map((r) => r.id))
+const BUILTIN_ROBOT_IDS = new Set(BUILTIN_ROBOTS.map((r) => r.id))
 
 export const isBuiltinModel = (id: string): boolean => BUILTIN_MODEL_IDS.has(id)
 export const isBuiltinVoice = (id: string): boolean => BUILTIN_VOICE_IDS.has(id)
 export const isBuiltinRoom = (id: string): boolean => BUILTIN_ROOM_IDS.has(id)
-export const isBuiltinRole = (id: string): boolean => BUILTIN_ROLE_IDS.has(id)
+export const isBuiltinRobot = (id: string): boolean => BUILTIN_ROBOT_IDS.has(id)
 
 /** 内置型号的完整默认实体（补齐 createdAt）；非内置返回 undefined */
 export function builtinModelDefault(id: string): SpeakerModel | undefined {
@@ -317,8 +317,8 @@ export function builtinRoomDefault(id: string): Room | undefined {
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }
 
-/** 内置角色的完整默认实体（Role 无 createdAt，直接返回定义副本）；非内置返回 undefined */
-export function builtinRoleDefault(id: string): Role | undefined {
-  const def = BUILTIN_ROLES.find((r) => r.id === id)
+/** 内置角色的完整默认实体（Robot 无 createdAt，直接返回定义副本）；非内置返回 undefined */
+export function builtinRobotDefault(id: string): Robot | undefined {
+  const def = BUILTIN_ROBOTS.find((r) => r.id === id)
   return def ? { ...def } : undefined
 }

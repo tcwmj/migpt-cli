@@ -1,7 +1,7 @@
 import { Field } from '../atoms/index.ts'
-import type { RoleFormProps } from './types.ts'
+import type { RobotFormProps } from './types.ts'
 
-export function RoleForm({ v, setV }: RoleFormProps) {
+export function RobotForm({ v, setV }: RobotFormProps) {
   return (
     <>
       <div style={{ display: 'flex', gap: 12 }}>

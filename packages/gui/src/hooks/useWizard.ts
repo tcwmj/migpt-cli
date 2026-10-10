@@ -1,7 +1,7 @@
 /* ══ 三步设备连接向导：草稿状态 + 账号/角色即时创建 + 保存并启动 ══ */
 import { useState } from 'react'
 import * as api from '../apis.ts'
-import type { Account, Role } from '../apis.ts'
+import type { Account, Robot } from '../apis.ts'
 import type { WizardDraft } from '../components/wizard/types.ts'
 import { errText } from '../components/app/errText.ts'
 
@@ -19,7 +19,7 @@ export function useWizard(opts: {
       alias: '',
       did: '',
       model: '',
-      roleId: '',
+      robotId: '',
       thinkServiceIds: [],
       voiceId: '',
     })
@@ -41,20 +41,20 @@ export function useWizard(opts: {
     await refreshAll()
     return u
   }
-  const newRole = async (d: { name: string; profile?: string }) => {
-    const created = await api.createRole(d)
+  const newRobot = async (d: { name: string; profile?: string }) => {
+    const created = await api.createRobot(d)
     await refreshAll()
     return created
   }
-  const updateRole = async (id: string, d: Partial<Role>) => {
-    const u = await api.updateRole(id, d)
+  const updateRobot = async (id: string, d: Partial<Robot>) => {
+    const u = await api.updateRobot(id, d)
     await refreshAll()
     return u
   }
   const finish = async () => {
     if (!wizard) return
     // 设备服务与角色必填：避免提交后由后端 400 拒绝
-    if (!wizard.roleId) {
+    if (!wizard.robotId) {
       showToast('请选择一个对话角色')
       return
     }
@@ -71,7 +71,7 @@ export function useWizard(opts: {
         alias: wizard.alias,
         did: wizard.did,
         speakerModel: wizard.model || undefined,
-        roleId: wizard.roleId,
+        robotId: wizard.robotId,
         accountId: wizard.accountId || undefined,
         thinkServiceIds: wizard.thinkServiceIds,
         voiceId: wizard.voiceId,
@@ -92,8 +92,8 @@ export function useWizard(opts: {
     setDraft,
     newAccount,
     updateAccount,
-    newRole,
-    updateRole,
+    newRobot,
+    updateRobot,
     finish,
   }
 }

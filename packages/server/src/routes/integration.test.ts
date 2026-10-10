@@ -19,7 +19,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -141,7 +141,7 @@ describe('路径穿越防护（assertSafeId 经完整链回 400）', () => {
       data: {
         settings: {},
         accounts: [],
-        roles: [],
+        robots: [],
         thinkServices: [],
         voiceServices: [],
         speakerModels: [],

@@ -3,14 +3,14 @@ import { createHash } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import {
   type Account,
-  type Role,
+  type Robot,
   type DeviceMeta,
   type PulledDevice,
   type DeviceBindings,
 } from './types.js'
 import {
   getAccounts,
-  getRoles,
+  getRobots,
   getThinkServices,
   getVoiceServices,
   getRooms,
@@ -139,12 +139,15 @@ export async function pullMicoDevices(
  * 按角色编译设备运行时配置。角色为必填（设备必须绑定对话角色），
  * 不再有任何内置默认值回退：所有 bot / 对话行为字段均直接取自角色。
  */
-export function buildConfigFromRole(role: Role, account?: Account): GuiConfig {
+export function buildConfigFromRobot(
+  robot: Robot,
+  account?: Account,
+): GuiConfig {
   return {
     config: {
       bot: {
-        name: role.name,
-        profile: role.profile.replace(/\\n/g, '\n'),
+        name: robot.name,
+        profile: robot.profile.replace(/\\n/g, '\n'),
       },
       master: {
         name: '主人',
@@ -156,18 +159,18 @@ export function buildConfigFromRole(role: Role, account?: Account): GuiConfig {
         // mi-service-lite 会先用 passToken 尝试，有效则不需要 password
         password: account?.miPassword || 'passToken-mode',
         switchSpeakerKeywords: ['把声音换成'],
-        callAIKeywords: role.callAIKeywords,
-        wakeUpKeywords: role.wakeUpKeywords,
-        exitKeywords: role.exitKeywords,
-        onEnterAI: role.onEnterAI,
-        onExitAI: role.onExitAI,
-        onAIAsking: role.onAIAsking,
-        onAIReplied: role.onAIReplied,
-        onAIError: role.onAIError,
+        callAIKeywords: robot.callAIKeywords,
+        wakeUpKeywords: robot.wakeUpKeywords,
+        exitKeywords: robot.exitKeywords,
+        onEnterAI: robot.onEnterAI,
+        onExitAI: robot.onExitAI,
+        onAIAsking: robot.onAIAsking,
+        onAIReplied: robot.onAIReplied,
+        onAIError: robot.onAIError,
         // 连续对话检测参数：两个检测字段存毫秒（checkTTSStatusAfter 编译转秒），自动退出时间存秒
-        exitKeepAliveAfter: role.exitKeepAliveAfter,
-        checkInterval: role.checkInterval,
-        checkTTSStatusAfter: Math.round(role.checkTTSStatusAfter / 1000),
+        exitKeepAliveAfter: robot.exitKeepAliveAfter,
+        checkInterval: robot.checkInterval,
+        checkTTSStatusAfter: Math.round(robot.checkTTSStatusAfter / 1000),
       },
     },
     env: {
@@ -183,14 +186,16 @@ export async function resolveBindings(
   meta: DeviceMeta,
 ): Promise<DeviceBindings> {
   // 单次并行读取全部关联集合
-  const [accounts, roles, thinks, voices] = await Promise.all([
+  const [accounts, robots, thinks, voices] = await Promise.all([
     getAccounts(),
-    getRoles(),
+    getRobots(),
     getThinkServices(),
     getVoiceServices(),
   ])
   const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
-  const role = meta.roleId ? roles.find((r) => r.id === meta.roleId) : undefined
+  const robot = meta.robotId
+    ? robots.find((r) => r.id === meta.robotId)
+    : undefined
 
   // 思考服务：仅取设备指定列表（failover），不再回退角色或全局默认
   let think: (typeof thinks)[0] | undefined
@@ -227,7 +232,7 @@ export async function resolveBindings(
 
   // 会话群：角色指定 → 设备旧字段兼容（'' 视为未设置，用 || 回退）
   const rooms = await getRooms()
-  const roomRef = role?.roomRef || meta.roomRef || meta.roomName
+  const roomRef = robot?.roomRef || meta.roomRef || meta.roomName
   const room = roomRef
     ? rooms.find((r) => r.id === roomRef || r.name === roomRef)
     : undefined
@@ -242,10 +247,10 @@ export async function resolveBindings(
       sourceLabel: '设备指定',
     },
     {
-      key: 'role' as const,
+      key: 'robot' as const,
       label: '对话角色',
-      name: role?.name || '未绑定',
-      detail: role ? undefined : '将使用默认行为',
+      name: robot?.name || '未绑定',
+      detail: robot ? undefined : '将使用默认行为',
       source: 'device' as const,
       sourceLabel: '设备绑定',
     },
@@ -274,12 +279,12 @@ export async function resolveBindings(
       label: '会话群',
       name: room?.name || '未设置',
       detail: room?.description,
-      source: role?.roomRef ? ('role' as const) : ('device' as const),
-      sourceLabel: role?.roomRef ? '角色绑定' : '设备指定',
+      source: robot?.roomRef ? ('robot' as const) : ('device' as const),
+      sourceLabel: robot?.roomRef ? '角色绑定' : '设备指定',
     },
   ]
 
-  return { account, role, think, voice, room, rows }
+  return { account, robot, think, voice, room, rows }
 }
 
 /**
@@ -296,12 +301,12 @@ export async function buildRunConfig(
     resolveBindings(meta),
     getSpeakerModelByRef(meta.speakerModel),
   ])
-  const { account, role, think, voice, room } = bindings
+  const { account, robot, think, voice, room } = bindings
   // 对话角色必填：缺失说明设备未绑定角色（或角色已被删除），无法编译人设配置
-  if (!role) {
+  if (!robot) {
     throw new Error('设备未绑定对话角色，无法编译运行配置')
   }
-  const config = buildConfigFromRole(role, account)
+  const config = buildConfigFromRobot(robot, account)
 
   // 保留已有设备的 GUI 字段（publicURL / ttsProvider / speakerModel 等）
   if (existingConfig?.gui) {

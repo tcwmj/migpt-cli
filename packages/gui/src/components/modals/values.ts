@@ -32,12 +32,12 @@ export function initModalValues(modal: ModalState): Record<string, string> {
     init.model = v.model
     init.baseUrl = v.baseUrl
     init.customJson = v.customJson
-  } else if (modal.kind === 'role') {
+  } else if (modal.kind === 'robot') {
     init.name = (p.name as string) || ''
     init.profile = (p.profile as string) || ''
   } else if (modal.kind === 'deviceBind') {
     init.accountId = (p.accountId as string) || ''
-    init.roleId = (p.roleId as string) || ''
+    init.robotId = (p.robotId as string) || ''
     init.speakerModel = (p.speakerModel as string) || ''
   }
   return init
@@ -77,7 +77,7 @@ export function buildModalPayload(
     })
     if (err) return { err }
     if (Object.keys(tts).length) out.tts = tts as never
-  } else if (modal.kind === 'role') {
+  } else if (modal.kind === 'robot') {
     out = { name: v.name, profile: v.profile }
   } else if (modal.kind === 'pwd') {
     if (!v.old) {
@@ -91,11 +91,11 @@ export function buildModalPayload(
     }
     out = { old: v.old, pwd: v.pwd }
   } else if (modal.kind === 'deviceBind') {
-    if (!v.roleId) {
+    if (!v.robotId) {
       return { err: '请选择对话角色' }
     }
     out = {
-      roleId: v.roleId,
+      robotId: v.robotId,
       accountId: v.accountId || undefined,
       speakerModel: v.speakerModel || undefined,
     }

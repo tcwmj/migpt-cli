@@ -34,7 +34,7 @@ export function useDevicesCrud(opts: {
     did: d.did,
     speakerModel: d.speakerModel || '',
     accountId: d.accountId || '',
-    roleId: d.roleId || '',
+    robotId: d.robotId || '',
     thinkServiceIds: d.thinkServiceIds || [],
     voiceId: d.voiceId || '',
     ttsSecret: d.ttsSecret || '',
@@ -44,7 +44,7 @@ export function useDevicesCrud(opts: {
     did: '',
     speakerModel: '',
     accountId: '',
-    roleId: '',
+    robotId: '',
     thinkServiceIds: [],
     voiceId: '',
     ttsSecret: '',
@@ -73,7 +73,7 @@ export function useDevicesCrud(opts: {
       showToast('请选择一个语音服务')
       return
     }
-    if (!devDraft.roleId) {
+    if (!devDraft.robotId) {
       showToast('请选择一个对话角色')
       return
     }
@@ -85,7 +85,7 @@ export function useDevicesCrud(opts: {
             did: devDraft.did,
             speakerModel: devDraft.speakerModel || undefined,
             accountId: devDraft.accountId || undefined,
-            roleId: devDraft.roleId,
+            robotId: devDraft.robotId,
             thinkServiceIds: devDraft.thinkServiceIds.length
               ? devDraft.thinkServiceIds
               : undefined,
@@ -101,7 +101,7 @@ export function useDevicesCrud(opts: {
           did: devDraft.did,
           speakerModel: devDraft.speakerModel || undefined,
           accountId: devDraft.accountId || undefined,
-          roleId: devDraft.roleId,
+          robotId: devDraft.robotId,
           thinkServiceIds: devDraft.thinkServiceIds.length
             ? devDraft.thinkServiceIds
             : undefined,

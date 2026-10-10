@@ -48,7 +48,7 @@ export type DevDraft = {
   did: string
   speakerModel: string
   accountId: string
-  roleId: string
+  robotId: string
   thinkServiceIds: string[]
   voiceId: string
   ttsSecret: string

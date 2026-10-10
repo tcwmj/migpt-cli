@@ -12,7 +12,7 @@ import { LoginPage } from './components/LoginPage.tsx'
 import { LogsView } from './views/LogsView.tsx'
 import { SysLogsView } from './views/SysLogsView.tsx'
 import { RoomsView } from './views/RoomsView.tsx'
-import { RolesView } from './views/RolesView.tsx'
+import { RobotsView } from './views/RobotsView.tsx'
 import { Drawer } from './components/Drawer.tsx'
 import { ModalShell } from './components/ModalShell.tsx'
 import { Wizard } from './components/Wizard.tsx'
@@ -27,7 +27,7 @@ import { useAppData } from './hooks/useAppData.ts'
 import { useConfirm } from './hooks/useConfirm.ts'
 import { useDevicesCrud } from './hooks/useDevicesCrud.ts'
 import { useModelsCrud } from './hooks/useModelsCrud.ts'
-import { useRolesRoomsCrud } from './hooks/useRolesRoomsCrud.ts'
+import { useRobotsRoomsCrud } from './hooks/useRobotsRoomsCrud.ts'
 import { useServicesCrud } from './hooks/useServicesCrud.ts'
 import { useToast } from './hooks/useToast.ts'
 import { useWizard } from './hooks/useWizard.ts'
@@ -48,7 +48,7 @@ export function App() {
     logout,
     accounts,
     devices,
-    roles,
+    robots,
     thinkSvcs,
     voiceSvcs,
     models,
@@ -105,7 +105,7 @@ export function App() {
   })
   const svc = useServicesCrud({
     devices,
-    roles,
+    robots,
     thinkSvcs,
     voiceSvcs,
     showToast,
@@ -128,8 +128,8 @@ export function App() {
     refreshAll,
     setConfirm,
   })
-  const rr = useRolesRoomsCrud({
-    roles,
+  const rr = useRobotsRoomsCrud({
+    robots,
     rooms,
     devices,
     query,
@@ -150,10 +150,10 @@ export function App() {
       case 'devices':
         dev.selectDev(id)
         break
-      case 'roles':
-        // RolesView 会自动选中第一个，需要手动设置
+      case 'robots':
+        // RobotsView 会自动选中第一个，需要手动设置
         // 这里通过 URL hash 触发选择
-        window.location.hash = `#roles/${id}`
+        window.location.hash = `#robots/${id}`
         break
       case 'rooms':
         window.location.hash = `#rooms/${id}`
@@ -212,7 +212,7 @@ export function App() {
             <HomeView
               accounts={accounts}
               devices={devices}
-              roles={roles}
+              robots={robots}
               rooms={rooms}
               thinkSvcs={thinkSvcs}
               voiceSvcs={voiceSvcs}
@@ -263,7 +263,7 @@ export function App() {
                   did: d.did,
                   speakerModel: mm?.id || '',
                   accountId: d.accountId,
-                  roleId: '',
+                  robotId: '',
                   thinkServiceIds: [],
                   voiceId: '',
                   ttsSecret: '',
@@ -306,7 +306,7 @@ export function App() {
               modelPickOpen={dev.modelPickOpen}
               modelPickQ={dev.modelPickQ}
               models={models}
-              roles={roles}
+              robots={robots}
               accounts={accounts}
               rooms={rooms}
               thinkSvcs={thinkSvcs}
@@ -334,7 +334,7 @@ export function App() {
               rooms={rr.filterRooms}
               allRooms={rooms}
               devices={devices}
-              roles={roles}
+              robots={robots}
               onSave={rr.saveRoom}
               onCreate={rr.createRoom}
               onDelete={rr.delRoom}
@@ -343,17 +343,17 @@ export function App() {
             />
           )}
 
-          {view === 'roles' && (
-            <RolesView
-              roles={rr.filterRoles}
-              allRoles={roles}
+          {view === 'robots' && (
+            <RobotsView
+              robots={rr.filterRobots}
+              allRobots={robots}
               rooms={rooms}
               devices={devices}
-              roleUsage={rr.roleUsage}
-              onSave={rr.saveRole}
-              onCreate={rr.createRole}
-              onDelete={rr.delRole}
-              onReset={rr.resetRole}
+              robotUsage={rr.robotUsage}
+              onSave={rr.saveRobot}
+              onCreate={rr.createRobot}
+              onDelete={rr.delRobot}
+              onReset={rr.resetRobot}
               onNavigate={handleNavigate}
             />
           )}
@@ -382,7 +382,7 @@ export function App() {
               voiceEdit={svc.voiceEdit}
               selVoiceObj={svc.selVoiceObj}
               devices={devices}
-              roles={roles}
+              robots={robots}
               onSelectThink={svc.selectThink}
               onDraftThink={svc.setThinkDraft}
               onEditThink={svc.setThinkEdit}
@@ -420,7 +420,7 @@ export function App() {
         <Drawer
           detail={detail}
           running={devices.find((x) => x.id === detail.meta.id)?.running}
-          roles={roles}
+          robots={robots}
           thinkSvcs={thinkSvcs}
           voiceSvcs={voiceSvcs}
           accounts={accounts}
@@ -453,7 +453,7 @@ export function App() {
         <ModalShell
           modal={modal}
           accounts={accounts}
-          roles={roles}
+          robots={robots}
           thinkSvcs={thinkSvcs}
           voiceSvcs={voiceSvcs}
           models={models}
@@ -479,7 +479,7 @@ export function App() {
         <Wizard
           step={wizard.step}
           accounts={accounts}
-          roles={roles}
+          robots={robots}
           models={models}
           thinkSvcs={thinkSvcs}
           voiceSvcs={voiceSvcs}
@@ -488,8 +488,8 @@ export function App() {
           onClose={wz.closeWizard}
           onNewAccount={wz.newAccount}
           onUpdateAccount={wz.updateAccount}
-          onNewRole={wz.newRole}
-          onUpdateRole={wz.updateRole}
+          onNewRobot={wz.newRobot}
+          onUpdateRobot={wz.updateRobot}
           devices={devices}
           onFinish={wz.finish}
         />

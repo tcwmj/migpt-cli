@@ -5,7 +5,7 @@ import * as api from '../apis.ts'
 import type {
   Account,
   DeviceRow,
-  Role,
+  Robot,
   Room,
   SpeakerModel,
   ThinkService,
@@ -17,7 +17,7 @@ export const queryKeys = {
   session: ['session'] as const,
   devices: ['devices'] as const,
   accounts: ['accounts'] as const,
-  roles: ['roles'] as const,
+  robots: ['robots'] as const,
   thinkServices: ['think-services'] as const,
   voiceServices: ['voice-services'] as const,
   speakerModels: ['speaker-models'] as const,
@@ -76,9 +76,9 @@ export function useAppData(showToast: (msg: string) => void) {
     queryFn: api.getAccounts,
     enabled,
   })
-  const rolesQ = useQuery({
-    queryKey: queryKeys.roles,
-    queryFn: api.getRoles,
+  const robotsQ = useQuery({
+    queryKey: queryKeys.robots,
+    queryFn: api.getRobots,
     enabled,
   })
   const thinkQ = useQuery({
@@ -108,7 +108,15 @@ export function useAppData(showToast: (msg: string) => void) {
   })
 
   /* ── 任一查询 401 → 登出 ── */
-  const queries = [devicesQ, accountsQ, rolesQ, thinkQ, voiceQ, modelsQ, roomsQ]
+  const queries = [
+    devicesQ,
+    accountsQ,
+    robotsQ,
+    thinkQ,
+    voiceQ,
+    modelsQ,
+    roomsQ,
+  ]
   const hasUnauthorized = queries.some(
     (q) => q.error && (q.error as Error).message === 'unauthorized',
   )
@@ -174,7 +182,7 @@ export function useAppData(showToast: (msg: string) => void) {
     logout,
     accounts: accountsQ.data ?? ([] as Account[]),
     devices,
-    roles: rolesQ.data ?? ([] as Role[]),
+    robots: robotsQ.data ?? ([] as Robot[]),
     thinkSvcs: thinkQ.data ?? ([] as ThinkService[]),
     voiceSvcs: voiceQ.data ?? ([] as VoiceService[]),
     models,

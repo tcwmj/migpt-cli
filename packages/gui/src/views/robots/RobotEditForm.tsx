@@ -1,5 +1,5 @@
 import Select from 'react-select/creatable'
-import type { Role, Room } from '../../apis.ts'
+import type { Robot, Room } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
 import { multiSelectStyles } from '../../components/atoms/selectStyles.ts'
@@ -52,12 +52,12 @@ function MsField(props: {
   )
 }
 
-export function RoleEditForm(props: {
-  draft: Role
+export function RobotEditForm(props: {
+  draft: Robot
   creating: boolean
   usage: string[]
   rooms: Room[]
-  setF: (k: keyof Role, v: unknown) => void
+  setF: (k: keyof Robot, v: unknown) => void
   onCancel: () => void
   onSave: () => void
 }) {

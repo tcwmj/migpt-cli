@@ -21,7 +21,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -46,7 +46,7 @@ import {
   parseEntityList,
   readJsonChecked,
   readJsonListChecked,
-  roleSchema,
+  robotSchema,
   versionFileSchema,
   writeJsonChecked,
 } from './schemas.js'
@@ -185,9 +185,9 @@ describe('readJsonListChecked', () => {
 })
 
 describe('schema 定义抽样', () => {
-  test('roleSchema 要求必填数组字段', () => {
+  test('robotSchema 要求必填数组字段', () => {
     expect(
-      roleSchema.safeParse({ id: 'r', name: '角色', profile: '' }).success,
+      robotSchema.safeParse({ id: 'r', name: '角色', profile: '' }).success,
     ).toBe(false)
   })
 

@@ -1,7 +1,7 @@
 import type {
   Account,
   DeviceRow,
-  Role,
+  Robot,
   SpeakerModel,
   ThinkService,
   VoiceService,
@@ -14,7 +14,7 @@ export function DeviceDetail(props: {
   devices: DeviceRow[]
   models: SpeakerModel[]
   accounts: Account[]
-  roles: Role[]
+  robots: Robot[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   onRestart: (id: string) => void
@@ -28,7 +28,7 @@ export function DeviceDetail(props: {
     ? props.models.find((x) => x.id === ref || x.name === ref) || null
     : null
   const account = props.accounts.find((a) => a.id === dev?.accountId)
-  const role = props.roles.find((r) => r.id === dev?.roleId)
+  const robot = props.robots.find((r) => r.id === dev?.robotId)
   const thinkServices = (dev?.thinkServiceIds || [])
     .map((id) => props.thinkSvcs.find((s) => s.id === id))
     .filter(Boolean) as ThinkService[]
@@ -166,13 +166,13 @@ export function DeviceDetail(props: {
             <div className="rr">
               <span className="k">对话角色</span>
               <span className="v">
-                {role ? (
+                {robot ? (
                   <button
                     type="button"
                     className="link-btn"
-                    onClick={() => props.onNavigate?.('roles', role.id)}
+                    onClick={() => props.onNavigate?.('robots', robot.id)}
                   >
-                    {role.name}
+                    {robot.name}
                   </button>
                 ) : (
                   '未指定'

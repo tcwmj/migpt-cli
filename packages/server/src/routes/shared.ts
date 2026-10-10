@@ -56,7 +56,7 @@ export function pick<T extends object>(
   return out as Partial<T>
 }
 
-export const ROLE_FIELDS = [
+export const ROBOT_FIELDS = [
   'name',
   'profile',
   'masterName',
@@ -117,7 +117,7 @@ export const DEVICE_META_FIELDS = [
   'alias',
   'did',
   'speakerModel',
-  'roleId',
+  'robotId',
   'accountId',
   'thinkServiceIds',
   'thinkServiceId',

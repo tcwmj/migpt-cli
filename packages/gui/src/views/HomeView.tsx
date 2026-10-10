@@ -5,7 +5,7 @@ import { Button, Tag } from '../components/atoms/index.ts'
 import type {
   Account,
   DeviceRow,
-  Role,
+  Robot,
   Room,
   SpeakerModel,
   ThinkService,
@@ -19,7 +19,7 @@ import bannerKitchenImg from '../assets/banner-kitchen.jpg'
 import bannerBalconyImg from '../assets/banner-balcony.jpg'
 import livingImg from '../assets/scene-living.jpg'
 import roomImg from '../assets/speaker-room.jpg'
-import roleImg from '../assets/kpi-role.jpg'
+import robotImg from '../assets/kpi-robot.jpg'
 import studyImg from '../assets/scene-study.jpg'
 import heroImg from '../assets/speaker-hero-multi.jpg'
 import voiceImg from '../assets/kpi-voice.jpg'
@@ -31,7 +31,7 @@ import closeImg from '../assets/speaker-close.jpg'
 export function HomeView(props: {
   accounts: Account[]
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   rooms: Room[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
@@ -48,7 +48,7 @@ export function HomeView(props: {
   const {
     accounts,
     devices,
-    roles,
+    robots,
     rooms,
     thinkSvcs,
     voiceSvcs,
@@ -128,17 +128,17 @@ export function HomeView(props: {
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
-        <button className="kpi" onClick={() => onNav('roles')}>
+        <button className="kpi" onClick={() => onNav('robots')}>
           <span
             className="pic"
-            style={{ backgroundImage: `url(${roleImg})` }}
+            style={{ backgroundImage: `url(${robotImg})` }}
           />
           <div className="kv">
             <div className="k">对话角色</div>
-            <div className="v num">{roles.length}</div>
+            <div className="v num">{robots.length}</div>
           </div>
           <div className="d mut">
-            {roles.map((r) => r.name).join(' · ') || '尚未创建'}
+            {robots.map((r) => r.name).join(' · ') || '尚未创建'}
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>

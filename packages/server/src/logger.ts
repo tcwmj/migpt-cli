@@ -194,7 +194,8 @@ const LOG_TS_STRIP_RE = /^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/
 // 用户提问：Speaker 🔥 或 [用户] 或 问：等
 const LOG_USER_RE = /Speaker 🔥|^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/
 // AI 回答：Speaker 🔊 或 Open AI ✅ Answer: 或 [AI] 等
-const LOG_AI_RE = /Speaker 🔊|Open AI ✅ Answer:|^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
+const LOG_AI_RE =
+  /Speaker 🔊|Open AI ✅ Answer:|^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
 // token 用量解析正则（中英文格式）
 const INPUT_TOKEN_RE =
   /(?:prompt_tokens|input_tokens|输入.*?token|Prompt tokens)[=:]\s*(\d+)/i
@@ -208,17 +209,17 @@ async function accumulateTokens(
   output: number,
 ) {
   // 动态 import 避免 logger ← entities 循环依赖
-  const { getDeviceMeta, getRoles, getThinkServices, saveThinkServices } =
+  const { getDeviceMeta, getRobots, getThinkServices, saveThinkServices } =
     await import('./store.js')
   const meta = await getDeviceMeta(deviceId)
-  if (!meta?.roleId) return
-  const roles = await getRoles()
-  const role = roles.find((r) => r.id === meta.roleId)
-  if (!role) return
-  const serviceIds = role.thinkServiceIds?.length
-    ? role.thinkServiceIds
-    : role.thinkServiceId
-      ? [role.thinkServiceId]
+  if (!meta?.robotId) return
+  const robots = await getRobots()
+  const robot = robots.find((r) => r.id === meta.robotId)
+  if (!robot) return
+  const serviceIds = robot.thinkServiceIds?.length
+    ? robot.thinkServiceIds
+    : robot.thinkServiceId
+      ? [robot.thinkServiceId]
       : []
   if (!serviceIds.length) return
   const services = await getThinkServices()

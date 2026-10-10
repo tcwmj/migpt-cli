@@ -6,7 +6,7 @@ export type View =
   | 'home'
   | 'accounts'
   | 'devices'
-  | 'roles'
+  | 'robots'
   | 'logs'
   | 'think'
   | 'voice'
@@ -21,7 +21,7 @@ export const TITLES: Record<View, string> = {
   home: '首页',
   accounts: '云端账号',
   devices: '设备服务',
-  roles: '对话角色',
+  robots: '对话角色',
   logs: '对话记录',
   think: '思考服务',
   voice: '语音服务',
@@ -38,7 +38,7 @@ export const SEARCH_HINT: Record<View, string> = {
   home: '搜索账号 / 设备 / 角色 / 服务',
   accounts: '搜索账号名称 / 小米 ID',
   devices: '搜索设备名称 / did',
-  roles: '搜索角色名称 / 人设关键词',
+  robots: '搜索角色名称 / 人设关键词',
   think: '搜索思考服务名称 / 模型',
   voice: '搜索语音服务名称 / 供应商',
   models: '搜索型号名称 / 标识 / did',

@@ -21,7 +21,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -78,7 +78,7 @@ const device = (id: string, alias: string, ttsSecret?: string): DeviceMeta => ({
   id,
   alias,
   did: `D-${id}`,
-  roleId: 'role-1',
+  robotId: 'robot-1',
   ttsSecret: ttsSecret ?? '',
   createdAt: 3,
 })
@@ -146,6 +146,55 @@ describe('buildBundle · 导出', () => {
 })
 
 describe('applyBackup · 导入', () => {
+  test('旧包兼容：data.roles / device.roleId / overrides.roles 归一化为新键', async () => {
+    const bundle = await buildBundle(false)
+    // 模拟实体更名前导出的包：全部换回旧键
+    const legacy = bundle as unknown as {
+      data: Record<string, unknown> & { devices: Record<string, unknown>[] }
+    }
+    legacy.data.roles = [
+      {
+        id: 'r-legacy',
+        name: '旧角色',
+        profile: '',
+        callAIKeywords: [],
+        wakeUpKeywords: [],
+        exitKeywords: [],
+        checkInterval: 1000,
+        checkTTSStatusAfter: 3000,
+        onEnterAI: [],
+        onExitAI: [],
+        onAIAsking: [],
+        onAIReplied: [],
+        onAIError: [],
+        exitKeepAliveAfter: 30,
+      },
+    ]
+    delete legacy.data.robots
+    legacy.data.devices = [
+      {
+        id: 'd9',
+        alias: '书房',
+        did: 'D-d9',
+        roleId: 'r-legacy',
+        ttsSecret: 'sec',
+        createdAt: 1,
+      },
+    ]
+    legacy.data.overrides = { roles: { IgKuWadm: { name: '旧补丁' } } }
+    await applyBackup(legacy)
+    const robots = await read<{ id: string }[]>(paths.robotsFile)
+    expect(robots.map((r) => r.id)).toContain('r-legacy')
+    const meta = await read<Record<string, unknown>>(
+      path.join(paths.devicesRoot, 'd9', 'meta.json'),
+    )
+    expect(meta.robotId).toBe('r-legacy')
+    expect(meta.roleId).toBeUndefined()
+    const ov = await read<Record<string, unknown>>(paths.overridesFile)
+    expect(ov.robots).toEqual({ IgKuWadm: { name: '旧补丁' } })
+    expect(ov.roles).toBeUndefined()
+  })
+
   test('未脱敏包：同 id 覆盖、缺失补齐', async () => {
     await write(paths.accountsFile, [account('a', '旧名', 'tk-old')])
     const bundle = await buildBundle(false)
@@ -215,7 +264,10 @@ describe('applyBackup · 导入', () => {
     expect(await read(paths.overridesFile)).toEqual(
       bundle.data.overrides as unknown,
     )
-    expect((await read(paths.overridesFile)).models?.['xiaomi-pro']).toEqual({
+    expect(
+      (await read<{ models?: Record<string, unknown> }>(paths.overridesFile))
+        .models?.['xiaomi-pro'],
+    ).toEqual({
       name: '我的小爱 Pro',
     })
   })

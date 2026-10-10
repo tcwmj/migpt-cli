@@ -1,4 +1,4 @@
-import type { ThinkService, DeviceRow, Role } from '../../apis.ts'
+import type { ThinkService, DeviceRow, Robot } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
 import { THINK_PROVIDERS } from '../../constants.ts'
@@ -7,7 +7,7 @@ export function ThinkServiceDetail(props: {
   selThink: string
   thinkSvcs: ThinkService[]
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   usageThink: (id: string) => number
   onDelete: (id: string) => void
   onEdit: () => void

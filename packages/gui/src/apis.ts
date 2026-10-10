@@ -5,7 +5,7 @@ import type {
   DeviceBindings,
   DeviceMeta,
   PulledDevice,
-  Role,
+  Robot,
   Room as ContractRoom,
   Settings,
   SpeakerModel,
@@ -22,7 +22,7 @@ export type {
   DeviceBindings,
   DeviceMeta,
   PulledDevice,
-  Role,
+  Robot,
   Settings,
   SpeakerModel,
   ThinkService,
@@ -171,31 +171,31 @@ export const pullDevices = (accountId: string) =>
   post<{ devices: PulledDevice[] }>(api(`/accounts/${accountId}/pull-devices`))
 
 // ── AI 角色 ─────────────────────────────────────────────────
-export const getRoles = () =>
-  fetch(api('/roles'), { headers: headers(false) }).then((r) => j<Role[]>(r))
+export const getRobots = () =>
+  fetch(api('/robots'), { headers: headers(false) }).then((r) => j<Robot[]>(r))
 
-export const createRole = (role: Partial<Role>) =>
-  post<Role>(api('/roles'), role)
+export const createRobot = (robot: Partial<Robot>) =>
+  post<Robot>(api('/robots'), robot)
 
-export const updateRole = (id: string, role: Partial<Role>) =>
-  fetch(api(`/roles/${id}`), {
+export const updateRobot = (id: string, robot: Partial<Robot>) =>
+  fetch(api(`/robots/${id}`), {
     method: 'PUT',
     headers: headers(true),
-    body: JSON.stringify(role),
-  }).then((r) => j<Role>(r))
+    body: JSON.stringify(robot),
+  }).then((r) => j<Robot>(r))
 
-export const deleteRole = (id: string) =>
-  fetch(api(`/roles/${id}`), {
+export const deleteRobot = (id: string) =>
+  fetch(api(`/robots/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 /** 重置内置角色为系统默认值（仅 builtin 可用） */
-export const resetRole = (id: string) =>
-  fetch(api(`/roles/${id}/reset`), {
+export const resetRobot = (id: string) =>
+  fetch(api(`/robots/${id}/reset`), {
     method: 'POST',
     headers: headers(false),
-  }).then((r) => j<Role>(r))
+  }).then((r) => j<Robot>(r))
 
 // ── 思考服务 ─────────────────────────────────────────────────
 export const getThinkServices = () =>
@@ -278,9 +278,9 @@ export const resetSpeakerModel = (id: string) =>
   }).then((r) => j<SpeakerModel>(r))
 
 // ── 会话群（对话记忆上下文归属，多角色共用）───────────────────────
-/** 会话群（extends 共享契约；roleCount 为前端聚合展示字段） */
+/** 会话群（extends 共享契约；robotCount 为前端聚合展示字段） */
 export interface Room extends ContractRoom {
-  roleCount?: number
+  robotCount?: number
 }
 
 export const getRooms = () =>
@@ -323,7 +323,7 @@ export const createDevice = (d: {
   alias: string
   did: string
   speakerModel?: string
-  roleId: string
+  robotId: string
   accountId?: string
   thinkServiceIds?: string[]
   voiceId?: string
@@ -471,7 +471,7 @@ export async function testTts(ttsConfig: TTSConfig) {
 }
 
 // ── 统计接口 ────────────────────────────────────────────────
-export type StatsDimension = 'role' | 'device' | 'service'
+export type StatsDimension = 'robot' | 'device' | 'service'
 
 export interface TokenStats {
   inputTokens: number
@@ -521,7 +521,7 @@ export interface StatsResponse {
 }
 
 export const DIMENSION_LABELS: Record<string, string> = {
-  role: '对话角色',
+  robot: '对话角色',
   device: '设备服务',
   service: '模型服务',
 }

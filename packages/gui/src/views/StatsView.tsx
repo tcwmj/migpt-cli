@@ -328,7 +328,7 @@ function DimensionFilter({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
   const dims: { key: StatsDimension; label: string }[] = [
-    { key: 'role', label: '对话角色' },
+    { key: 'robot', label: '对话角色' },
     { key: 'device', label: '设备服务' },
     { key: 'service', label: '模型服务' },
   ]

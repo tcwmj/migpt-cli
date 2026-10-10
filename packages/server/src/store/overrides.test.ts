@@ -22,7 +22,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -37,10 +37,10 @@ jest.mock('../paths.js', () => {
 })
 
 import * as paths from '../paths.js'
-import type { Role, Room, SpeakerModel, VoiceService } from '../types.js'
+import type { Robot, Room, SpeakerModel, VoiceService } from '../types.js'
 import { BUILTIN_MODELS } from './builtins.js'
 import {
-  getRoles,
+  getRobots,
   getRooms,
   getSpeakerModels,
   getVoiceServices,
@@ -48,19 +48,19 @@ import {
 import {
   getOverrides,
   mergeBuiltinModels,
-  mergeBuiltinRoles,
+  mergeBuiltinRobots,
   mergeBuiltinRooms,
   mergeBuiltinVoices,
-  saveRoles,
+  saveRobots,
   saveRooms,
   saveSpeakerModels,
   saveVoiceServices,
   resetBuiltinModel,
-  resetBuiltinRole,
+  resetBuiltinRobot,
   resetBuiltinRoom,
   resetBuiltinVoice,
   splitBuiltinEntities,
-  splitBuiltinRolesRooms,
+  splitBuiltinRobotsRooms,
 } from './overrides.js'
 
 const write = async (file: string, data: unknown) => {
@@ -271,16 +271,16 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
     await write(paths.roomsFile, [
       { id: 'c-room', name: '我的群', createdAt: 7 },
     ])
-    await write(paths.rolesFile, [])
+    await write(paths.robotsFile, [])
     const rooms = await getRooms()
     expect(rooms[0].id).toBe('dQd66FVw')
     expect(rooms[0].builtin).toBe(true)
     expect(rooms[0].name).toBe('傻妞会话群')
     expect(rooms.map((r) => r.id)).toEqual(['dQd66FVw', 'c-room'])
-    const roles = await getRoles()
-    expect(roles.map((r) => r.id)).toEqual(['IgKuWadm'])
-    expect(roles[0].name).toBe('傻妞')
-    expect(roles[0].builtin).toBe(true)
+    const robots = await getRobots()
+    expect(robots.map((r) => r.id)).toEqual(['IgKuWadm'])
+    expect(robots[0].name).toBe('傻妞')
+    expect(robots[0].builtin).toBe(true)
   })
 
   test('编辑内置会话群仅落覆盖，可写文件保持空', async () => {
@@ -298,10 +298,10 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
   })
 
   test('编辑内置角色仅落覆盖；重置回归代码默认，不波及自建', async () => {
-    const list = await getRoles()
+    const list = await getRobots()
     list.find((r) => r.id === 'IgKuWadm')!.profile = '改过的人设'
     list.push({
-      id: 'c-role',
+      id: 'c-robot',
       name: '自建角色',
       profile: 'p',
       callAIKeywords: [],
@@ -316,28 +316,28 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
       onAIError: [],
       exitKeepAliveAfter: 30,
       createdAt: 1 as never,
-    } as Role)
-    await saveRoles(list)
+    } as Robot)
+    await saveRobots(list)
 
-    expect((await read<Role[]>(paths.rolesFile)).map((r) => r.id)).toEqual([
-      'c-role',
+    expect((await read<Robot[]>(paths.robotsFile)).map((r) => r.id)).toEqual([
+      'c-robot',
     ])
-    expect((await getOverrides()).roles?.['IgKuWadm']).toEqual({
+    expect((await getOverrides()).robots?.['IgKuWadm']).toEqual({
       profile: '改过的人设',
     })
 
-    const def = await resetBuiltinRole('IgKuWadm')
+    const def = await resetBuiltinRobot('IgKuWadm')
     expect(def?.profile).toBe(
       '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。',
     )
-    expect((await getOverrides()).roles).toBeUndefined()
+    expect((await getOverrides()).robots).toBeUndefined()
     // 自建角色仍在
-    expect((await getRoles()).some((r) => r.id === 'c-role')).toBe(true)
+    expect((await getRobots()).some((r) => r.id === 'c-robot')).toBe(true)
   })
 
   test('重置非内置会话群/角色返回 undefined', async () => {
     expect(await resetBuiltinRoom('nope')).toBeUndefined()
-    expect(await resetBuiltinRole('nope')).toBeUndefined()
+    expect(await resetBuiltinRobot('nope')).toBeUndefined()
   })
 
   test('自建项伪造 builtin:true 归零（房间与角色）', () => {
@@ -350,8 +350,8 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
     expect(
       mergeBuiltinRooms([fakeRoom]).find((r) => r.id === 'evil-r')!.builtin,
     ).toBe(false)
-    const fakeRole = {
-      id: 'evil-role',
+    const fakeRobot = {
+      id: 'evil-robot',
       name: '伪装',
       profile: 'p',
       callAIKeywords: [],
@@ -366,9 +366,10 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
       onAIError: [],
       exitKeepAliveAfter: 1,
       builtin: true,
-    } as unknown as Role
+    } as unknown as Robot
     expect(
-      mergeBuiltinRoles([fakeRole]).find((r) => r.id === 'evil-role')!.builtin,
+      mergeBuiltinRobots([fakeRobot]).find((r) => r.id === 'evil-robot')!
+        .builtin,
     ).toBe(false)
   })
 
@@ -382,7 +383,7 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
       },
       { id: 'c-room', name: '自建群', createdAt: 8 },
     ])
-    await write(paths.rolesFile, [
+    await write(paths.robotsFile, [
       {
         id: 'IgKuWadm',
         name: '改名后的傻妞',
@@ -405,26 +406,26 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
       },
     ])
 
-    await splitBuiltinRolesRooms()
+    await splitBuiltinRobotsRooms()
 
     expect((await read<Room[]>(paths.roomsFile)).map((r) => r.id)).toEqual([
       'c-room',
     ])
-    expect(await read<Role[]>(paths.rolesFile)).toEqual([])
+    expect(await read<Robot[]>(paths.robotsFile)).toEqual([])
     const ov = await getOverrides()
     expect(ov.rooms?.['dQd66FVw']).toEqual({ description: '改过的描述' })
-    expect(ov.roles?.['IgKuWadm']).toEqual({
+    expect(ov.robots?.['IgKuWadm']).toEqual({
       name: '改名后的傻妞',
       profile: '新的人设',
     })
 
     // 幂等：再跑一次不产生额外覆盖、不清空自建
-    await splitBuiltinRolesRooms()
+    await splitBuiltinRobotsRooms()
     expect((await read<Room[]>(paths.roomsFile)).map((r) => r.id)).toEqual([
       'c-room',
     ])
     expect((await getOverrides()).rooms).toEqual(ov.rooms)
-    expect((await getOverrides()).roles).toEqual(ov.roles)
+    expect((await getOverrides()).robots).toEqual(ov.robots)
 
     // 重置会话群回归代码默认
     await resetBuiltinRoom('dQd66FVw')

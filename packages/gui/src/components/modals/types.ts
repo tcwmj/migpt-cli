@@ -1,6 +1,6 @@
 import type {
   Account,
-  Role,
+  Robot,
   Room,
   SpeakerModel,
   ThinkService,
@@ -17,7 +17,7 @@ export interface ModalFormProps {
 }
 
 /** 角色表单额外需要思考/语音服务列表做下拉选项 */
-export interface RoleFormProps extends ModalFormProps {
+export interface RobotFormProps extends ModalFormProps {
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
 }
@@ -25,7 +25,7 @@ export interface RoleFormProps extends ModalFormProps {
 /** 设备绑定表单额外需要各实体列表做下拉选项 */
 export interface DeviceBindFormProps extends ModalFormProps {
   accounts: Account[]
-  roles: Role[]
+  robots: Robot[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   models: SpeakerModel[]

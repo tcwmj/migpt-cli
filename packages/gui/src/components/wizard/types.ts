@@ -4,7 +4,7 @@ export type WizardDraft = {
   alias: string
   did: string
   model: string
-  roleId: string
+  robotId: string
   thinkServiceIds: string[]
   voiceId: string
 }

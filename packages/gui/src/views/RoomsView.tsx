@@ -1,6 +1,6 @@
 /* ══ RoomsView ══ */
 import { useEffect, useState } from 'react'
-import { type DeviceRow, type Role, type Room } from '../apis.ts'
+import { type DeviceRow, type Robot, type Room } from '../apis.ts'
 import { I } from '../icons.tsx'
 import {
   Button,
@@ -14,7 +14,7 @@ export function RoomsView(props: {
   rooms: Room[]
   allRooms: Room[]
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   onSave: (r: Room) => void
   onCreate: (r: Partial<Room>) => Promise<Room | null> | void
   onDelete: (id: string) => void
@@ -29,7 +29,7 @@ export function RoomsView(props: {
   })
   const [edit, setEdit] = useState(false)
   const [creating, setCreating] = useState(false)
-  // 刷新/首屏时列表数据异步到达，useState 初值为空 → 数据就绪后补选第一项（与 RolesView 一致）
+  // 刷新/首屏时列表数据异步到达，useState 初值为空 → 数据就绪后补选第一项（与 RobotsView 一致）
   useEffect(() => {
     setSelId((s) => s || props.rooms[0]?.id || null)
   }, [props.rooms])
@@ -90,7 +90,7 @@ export function RoomsView(props: {
       <div className="split">
         <aside className="slist">
           {props.rooms.map((r) => {
-            const used = props.roles.filter((d) => d.roomRef === r.id).length
+            const used = props.robots.filter((d) => d.roomRef === r.id).length
             return (
               <div
                 key={r.id}
@@ -219,7 +219,7 @@ export function RoomsView(props: {
                       <span className="k">关联角色</span>
                       <span className="v">
                         {(() => {
-                          const used = props.roles.filter(
+                          const used = props.robots.filter(
                             (d) => d.roomRef === sel.id,
                           )
                           return used.length ? (
@@ -230,7 +230,7 @@ export function RoomsView(props: {
                                   type="button"
                                   className="link-btn"
                                   onClick={() =>
-                                    props.onNavigate?.('roles', d.id)
+                                    props.onNavigate?.('robots', d.id)
                                   }
                                 >
                                   {d.name}

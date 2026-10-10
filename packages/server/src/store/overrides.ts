@@ -1,24 +1,24 @@
 // ── 内置实体的用户覆盖（内置只读，用户改动分离存放）────────────────
 // 设计：内置型号 / 内置语音 / 内置会话群 / 内置角色的「定义」只在代码里（./builtins.js，
 // 随版本升级自动修正），可写文件 speakerModels.json / voiceServices.json / rooms.json /
-// roles.json 只存用户自建实体；用户对内置项的修改以「补丁」形式写入 overrides.json，
+// robots.json 只存用户自建实体；用户对内置项的修改以「补丁」形式写入 overrides.json，
 // 读取时叠加到代码默认值上。
 // 好处：内置定义不会被用户数据覆盖而失联（恢复默认 = 删除补丁，代码默认即刻回归），
 // 用户自建实体与覆盖互不干扰，任何一次「重置」都不会波及其他数据。
 import {
   overridesFile,
-  rolesFile,
+  robotsFile,
   roomsFile,
   speakerModelsFile,
   voiceServicesFile,
 } from '../paths.js'
-import type { Role, Room, SpeakerModel, VoiceService } from '../types.js'
+import type { Robot, Room, SpeakerModel, VoiceService } from '../types.js'
 import { logger } from '../logger.js'
 import { readJson } from './json.js'
 import {
   overridesSchema,
   readJsonChecked,
-  roleListSchema,
+  robotListSchema,
   roomListSchema,
   speakerModelListSchema,
   voiceServiceListSchema,
@@ -27,15 +27,15 @@ import {
 import {
   BUILTIN_CREATED_AT,
   BUILTIN_MODELS,
-  BUILTIN_ROLES,
+  BUILTIN_ROBOTS,
   BUILTIN_ROOMS,
   BUILTIN_VOICE_SERVICES,
   builtinModelDefault,
-  builtinRoleDefault,
+  builtinRobotDefault,
   builtinRoomDefault,
   builtinVoiceDefault,
   isBuiltinModel,
-  isBuiltinRole,
+  isBuiltinRobot,
   isBuiltinRoom,
   isBuiltinVoice,
 } from './builtins.js'
@@ -64,8 +64,8 @@ const VOICE_OVERRIDE_FIELDS: readonly (keyof VoiceService)[] = [
 /** 内置会话群可被用户覆盖的字段（id/builtin/createdAt 由框架固定，不参与覆盖） */
 const ROOM_OVERRIDE_FIELDS: readonly (keyof Room)[] = ['name', 'description']
 
-/** 内置角色可被用户覆盖的字段（id/builtin 由框架固定；role 无 createdAt） */
-const ROLE_OVERRIDE_FIELDS: readonly (keyof Role)[] = [
+/** 内置角色可被用户覆盖的字段（id/builtin 由框架固定；robot 无 createdAt） */
+const ROBOT_OVERRIDE_FIELDS: readonly (keyof Robot)[] = [
   'name',
   'profile',
   'masterName',
@@ -89,7 +89,7 @@ export interface Overrides {
   models?: Record<string, Partial<SpeakerModel>>
   voices?: Record<string, Partial<VoiceService>>
   rooms?: Record<string, Partial<Room>>
-  roles?: Record<string, Partial<Role>>
+  robots?: Record<string, Partial<Robot>>
 }
 
 export async function getOverrides(): Promise<Overrides> {
@@ -102,7 +102,7 @@ function prune(ov: Overrides): Overrides {
   if (ov.models && Object.keys(ov.models).length) out.models = ov.models
   if (ov.voices && Object.keys(ov.voices).length) out.voices = ov.voices
   if (ov.rooms && Object.keys(ov.rooms).length) out.rooms = ov.rooms
-  if (ov.roles && Object.keys(ov.roles).length) out.roles = ov.roles
+  if (ov.robots && Object.keys(ov.robots).length) out.robots = ov.robots
   return out
 }
 
@@ -182,15 +182,15 @@ export function mergeBuiltinRooms(
   return [...builtins, ...customs]
 }
 
-export function mergeBuiltinRoles(
-  custom: Role[],
-  patches?: Record<string, Partial<Role>>,
-): Role[] {
-  // Role 无 createdAt；同上——内置身份只认代码注册表 id，自建项伪造标记归零
+export function mergeBuiltinRobots(
+  custom: Robot[],
+  patches?: Record<string, Partial<Robot>>,
+): Robot[] {
+  // Robot 无 createdAt；同上——内置身份只认代码注册表 id，自建项伪造标记归零
   const customs = custom
-    .filter((r) => !isBuiltinRole(r.id))
+    .filter((r) => !isBuiltinRobot(r.id))
     .map((r) => (r.builtin ? { ...r, builtin: false } : r))
-  const builtins = BUILTIN_ROLES.map((d) => {
+  const builtins = BUILTIN_ROBOTS.map((d) => {
     const patch = patches?.[d.id]
     return patch ? { ...d, ...patch, id: d.id, builtin: true } : { ...d }
   })
@@ -255,23 +255,23 @@ export async function saveRooms(list: Room[]): Promise<void> {
   await persist(prev, { ...prev, rooms })
 }
 
-export async function saveRoles(list: Role[]): Promise<void> {
+export async function saveRobots(list: Robot[]): Promise<void> {
   await writeJsonChecked(
-    rolesFile,
-    list.filter((r) => !isBuiltinRole(r.id)),
-    roleListSchema,
+    robotsFile,
+    list.filter((r) => !isBuiltinRobot(r.id)),
+    robotListSchema,
     '角色',
   )
   const prev = await getOverrides()
-  const roles: Record<string, Partial<Role>> = {}
+  const robots: Record<string, Partial<Robot>> = {}
   for (const r of list) {
-    if (!isBuiltinRole(r.id)) continue
-    const def = builtinRoleDefault(r.id)
+    if (!isBuiltinRobot(r.id)) continue
+    const def = builtinRobotDefault(r.id)
     if (!def) continue
-    const patch = diffFields(r, def, ROLE_OVERRIDE_FIELDS)
-    if (patch) roles[r.id] = patch
+    const patch = diffFields(r, def, ROBOT_OVERRIDE_FIELDS)
+    if (patch) robots[r.id] = patch
   }
-  await persist(prev, { ...prev, roles })
+  await persist(prev, { ...prev, robots })
 }
 
 // ── 重置：删除覆盖补丁，代码默认值即刻回归（不触碰任何自建实体）──
@@ -315,14 +315,16 @@ export async function resetBuiltinRoom(id: string): Promise<Room | undefined> {
   return def
 }
 
-export async function resetBuiltinRole(id: string): Promise<Role | undefined> {
-  const def = builtinRoleDefault(id)
+export async function resetBuiltinRobot(
+  id: string,
+): Promise<Robot | undefined> {
+  const def = builtinRobotDefault(id)
   if (!def) return undefined
   const prev = await getOverrides()
-  if (prev.roles?.[id]) {
-    const roles = { ...prev.roles }
-    delete roles[id]
-    await persist(prev, { ...prev, roles })
+  if (prev.robots?.[id]) {
+    const robots = { ...prev.robots }
+    delete robots[id]
+    await persist(prev, { ...prev, robots })
   }
   return def
 }
@@ -397,14 +399,14 @@ export async function splitBuiltinEntities(): Promise<void> {
  * 内置定义取自迁移时的用户数据原值（含原 id），既有差异即刻成为补丁基线，
  * 用户对内置项保留原数据的编辑不会再落为无意义补丁。
  */
-export async function splitBuiltinRolesRooms(): Promise<void> {
-  const [rawRooms, rawRoles, prev] = await Promise.all([
+export async function splitBuiltinRobotsRooms(): Promise<void> {
+  const [rawRooms, rawRobots, prev] = await Promise.all([
     readJson<Room[]>(roomsFile, []),
-    readJson<Role[]>(rolesFile, []),
+    readJson<Robot[]>(robotsFile, []),
     getOverrides(),
   ])
   const rooms: Record<string, Partial<Room>> = { ...(prev.rooms ?? {}) }
-  const roles: Record<string, Partial<Role>> = { ...(prev.roles ?? {}) }
+  const robots: Record<string, Partial<Robot>> = { ...(prev.robots ?? {}) }
 
   const customRooms: Room[] = []
   for (const r of rawRooms) {
@@ -418,24 +420,24 @@ export async function splitBuiltinRolesRooms(): Promise<void> {
     if (patch) rooms[r.id] = patch
   }
 
-  const customRoles: Role[] = []
-  for (const r of rawRoles) {
-    if (!isBuiltinRole(r.id)) {
-      customRoles.push(r.builtin ? { ...r, builtin: false } : r)
+  const customRobots: Robot[] = []
+  for (const r of rawRobots) {
+    if (!isBuiltinRobot(r.id)) {
+      customRobots.push(r.builtin ? { ...r, builtin: false } : r)
       continue
     }
-    const def = builtinRoleDefault(r.id)
+    const def = builtinRobotDefault(r.id)
     if (!def) continue
-    const patch = diffFields(r, def, ROLE_OVERRIDE_FIELDS)
-    if (patch) roles[r.id] = patch
+    const patch = diffFields(r, def, ROBOT_OVERRIDE_FIELDS)
+    if (patch) robots[r.id] = patch
   }
 
   await Promise.all([
     writeJsonChecked(roomsFile, customRooms, roomListSchema, '会话群'),
-    writeJsonChecked(rolesFile, customRoles, roleListSchema, '角色'),
+    writeJsonChecked(robotsFile, customRobots, robotListSchema, '角色'),
   ])
-  await persist(prev, { ...prev, rooms, roles })
+  await persist(prev, { ...prev, rooms, robots })
   logger.info(
-    `内置/用户数据分离（会话群/角色）：保留自建会话群 ${customRooms.length} 个、自建角色 ${customRoles.length} 个`,
+    `内置/用户数据分离（会话群/角色）：保留自建会话群 ${customRooms.length} 个、自建角色 ${customRobots.length} 个`,
   )
 }

@@ -2,7 +2,7 @@ import Select from 'react-select'
 import type {
   Account,
   DeviceRow,
-  Role,
+  Robot,
   Room,
   SpeakerModel,
   ThinkService,
@@ -19,7 +19,7 @@ export function DeviceForm(props: {
   devices: DeviceRow[]
   models: SpeakerModel[]
   accounts: Account[]
-  roles: Role[]
+  robots: Robot[]
   rooms: Room[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
@@ -158,13 +158,13 @@ export function DeviceForm(props: {
         <div className="row">
           <Field label="对话角色" required>
             <select
-              value={devDraft.roleId}
+              value={devDraft.robotId}
               onChange={(e) =>
-                props.onDraft({ ...devDraft, roleId: e.target.value })
+                props.onDraft({ ...devDraft, robotId: e.target.value })
               }
             >
               <option value="">未设置</option>
-              {props.roles.map((r) => (
+              {props.robots.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
                 </option>

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import {
   type Account,
-  type Role,
+  type Robot,
   type Room,
   type SpeakerModel,
   type ThinkService,
@@ -14,7 +14,7 @@ import type { ModalState } from '../ui-types.ts'
 import { AccountForm } from './modals/AccountForm.tsx'
 import { DeviceBindForm } from './modals/DeviceBindForm.tsx'
 import { PwdForm } from './modals/PwdForm.tsx'
-import { RoleForm } from './modals/RoleForm.tsx'
+import { RobotForm } from './modals/RobotForm.tsx'
 import { ThinkForm } from './modals/ThinkForm.tsx'
 import { VoiceForm } from './modals/VoiceForm.tsx'
 import { buildModalPayload, initModalValues } from './modals/values.ts'
@@ -22,7 +22,7 @@ import { buildModalPayload, initModalValues } from './modals/values.ts'
 export function ModalShell(props: {
   modal: ModalState
   accounts: Account[]
-  roles: Role[]
+  robots: Robot[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   models: SpeakerModel[]
@@ -72,7 +72,7 @@ export function ModalShell(props: {
                   ? 'bolt'
                   : modal.kind === 'voice'
                     ? 'mic'
-                    : modal.kind === 'role'
+                    : modal.kind === 'robot'
                       ? 'chat'
                       : 'user'
             }
@@ -85,8 +85,8 @@ export function ModalShell(props: {
         {modal.kind === 'account' && <AccountForm {...formProps} />}
         {modal.kind === 'think' && <ThinkForm {...formProps} />}
         {modal.kind === 'voice' && <VoiceForm {...formProps} />}
-        {modal.kind === 'role' && (
-          <RoleForm
+        {modal.kind === 'robot' && (
+          <RobotForm
             {...formProps}
             thinkSvcs={props.thinkSvcs}
             voiceSvcs={props.voiceSvcs}
@@ -104,7 +104,7 @@ export function ModalShell(props: {
             <DeviceBindForm
               {...formProps}
               accounts={props.accounts}
-              roles={props.roles}
+              robots={props.robots}
               thinkSvcs={props.thinkSvcs}
               voiceSvcs={props.voiceSvcs}
               models={props.models}

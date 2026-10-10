@@ -25,7 +25,7 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
     }
     const data = JSON.parse(await fs.readFile(file, 'utf-8'))
     _jsonCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, data })
-    // 返回克隆，保持「每次解析得到独立对象」的既有语义，避免调用方就地修改（如 roles.push）污染缓存
+    // 返回克隆，保持「每次解析得到独立对象」的既有语义，避免调用方就地修改（如 robots.push）污染缓存
     return structuredClone(data) as T
   } catch {
     _jsonCache.delete(file)

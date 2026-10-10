@@ -22,7 +22,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -41,7 +41,7 @@ import {
   assertUniqueName,
   getAccounts,
   getAccountById,
-  getRoles,
+  getRobots,
   getDeviceMeta,
   listDeviceMetas,
   getRoomByRef,
@@ -147,7 +147,7 @@ describe('设备元数据读取', () => {
       id: 'd1',
       alias: '客厅',
       did: 'X08E',
-      roleId: 'role-1',
+      robotId: 'robot-1',
       ttsSecret: 's',
       createdAt: 1,
     })
@@ -159,7 +159,7 @@ describe('设备元数据读取', () => {
       id: 'b',
       alias: 'B',
       did: 'X',
-      roleId: 'role-1',
+      robotId: 'robot-1',
       ttsSecret: 's',
       createdAt: 20,
     })
@@ -167,7 +167,7 @@ describe('设备元数据读取', () => {
       id: 'a',
       alias: 'A',
       did: 'X',
-      roleId: 'role-1',
+      robotId: 'robot-1',
       ttsSecret: 's',
       createdAt: 10,
     })
@@ -198,8 +198,8 @@ describe('按引用解析会话群 / 型号', () => {
 })
 
 describe('实体列表读取', () => {
-  test('getRoles 读回角色列表', async () => {
-    await write(paths.rolesFile, [
+  test('getRobots 读回角色列表', async () => {
+    await write(paths.robotsFile, [
       {
         id: 'r1',
         name: '傻妞',
@@ -218,8 +218,8 @@ describe('实体列表读取', () => {
       },
     ])
     // 内置角色（傻妞）在前，自建角色在后
-    const roles = await getRoles()
-    expect(roles.some((r) => r.id === 'r1')).toBe(true)
-    expect(roles.some((r) => r.builtin)).toBe(true)
+    const robots = await getRobots()
+    expect(robots.some((r) => r.id === 'r1')).toBe(true)
+    expect(robots.some((r) => r.builtin)).toBe(true)
   })
 })

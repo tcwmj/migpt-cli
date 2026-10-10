@@ -3,7 +3,7 @@ import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import type {
   Account,
   DeviceRow,
-  Role,
+  Robot,
   Room,
   SpeakerModel,
   ThinkService,
@@ -26,7 +26,7 @@ export function DevicesView(props: {
   modelPickOpen: boolean
   modelPickQ: string
   models: SpeakerModel[]
-  roles: Role[]
+  robots: Robot[]
   accounts: Account[]
   rooms: Room[]
   thinkSvcs: ThinkService[]
@@ -53,7 +53,7 @@ export function DevicesView(props: {
     devAcctFilter,
     devAcctGroups,
     models,
-    roles,
+    robots,
     accounts,
     rooms,
     onSelect,
@@ -97,7 +97,7 @@ export function DevicesView(props: {
       <div className="split">
         <DeviceList
           devices={filterDevices}
-          roles={roles}
+          robots={robots}
           models={models}
           selDev={selDev}
           onSelect={onSelect}
@@ -118,7 +118,7 @@ export function DevicesView(props: {
               devices={devices}
               models={models}
               accounts={accounts}
-              roles={roles}
+              robots={robots}
               thinkSvcs={props.thinkSvcs}
               voiceSvcs={props.voiceSvcs}
               onRestart={onRestart}
@@ -133,7 +133,7 @@ export function DevicesView(props: {
               devices={devices}
               models={models}
               accounts={accounts}
-              roles={roles}
+              robots={robots}
               rooms={rooms}
               thinkSvcs={props.thinkSvcs}
               voiceSvcs={props.voiceSvcs}

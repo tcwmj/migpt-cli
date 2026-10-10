@@ -5,11 +5,11 @@ import {
   saveRooms,
   resetBuiltinRoom,
   roomListSchema,
-  getRoles,
+  getRobots,
 } from '../store.js'
 import type { Room } from '../types.js'
 import { API_PREFIX, asyncHandler, fail, pick, ROOM_FIELDS } from './shared.js'
-import { createCrudRouter, roleRefs } from './crud.js'
+import { createCrudRouter, robotRefs } from './crud.js'
 
 export const registerRoomRoutes = createCrudRouter<Room>({
   path: 'rooms',
@@ -19,10 +19,10 @@ export const registerRoomRoutes = createCrudRouter<Room>({
   save: saveRooms,
   schema: roomListSchema,
   listTransform: async (rooms) => {
-    const roles = await getRoles()
+    const robots = await getRobots()
     return rooms.map((r) => ({
       ...r,
-      roleCount: roles.filter((m) => m.roomRef === r.id).length,
+      robotCount: robots.filter((m) => m.roomRef === r.id).length,
     }))
   },
   validate: (body) => (body.name ? null : '会话群名称必填'),
@@ -43,7 +43,7 @@ export const registerRoomRoutes = createCrudRouter<Room>({
     }
   },
   deleteGuard: (target) => (target.builtin ? '系统内置会话群不可删除' : null),
-  refRules: [roleRefs('roomRef')],
+  refRules: [robotRefs('roomRef')],
   refMessage: '该会话群正被对话角色引用，无法删除；请先解绑引用该会话群的角色',
   extra: ({ app }) => {
     // 重置内置会话群为系统默认值（仅 builtin 可用；用户改动可随时恢复）

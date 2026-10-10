@@ -42,6 +42,7 @@ const device = (over: Partial<DeviceMeta> = {}): DeviceMeta => ({
   id: 'd1',
   alias: '客厅音箱',
   did: 'X08E',
+  robotId: 'r1',
   ttsSecret: 'tts-token',
   createdAt: 3,
   ...over,

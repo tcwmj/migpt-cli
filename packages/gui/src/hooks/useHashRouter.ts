@@ -5,7 +5,7 @@ const VALID_VIEWS: View[] = [
   'home',
   'accounts',
   'devices',
-  'roles',
+  'robots',
   'logs',
   'think',
   'voice',

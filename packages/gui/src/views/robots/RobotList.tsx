@@ -1,15 +1,15 @@
-import type { Role } from '../../apis.ts'
+import type { Robot } from '../../apis.ts'
 import { Button, Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 
-export function RoleList(props: {
-  roles: Role[]
+export function RobotList(props: {
+  robots: Robot[]
   selId: string | null
   onSelect: (id: string) => void
   onCreate: () => void
 }) {
   // 内置在前、自建在后（与型号/语音列表的呈现约定一致）
-  const sorted = [...props.roles].sort(
+  const sorted = [...props.robots].sort(
     (a, b) => Number(!!b.builtin) - Number(!!a.builtin),
   )
   return (

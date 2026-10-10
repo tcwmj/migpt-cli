@@ -20,7 +20,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -51,7 +51,7 @@ import {
   refConflict,
   loadDeviceConfig,
   findDeviceBySecret,
-  ROLE_FIELDS,
+  ROBOT_FIELDS,
 } from './shared.js'
 
 const makeRes = () => {
@@ -92,8 +92,8 @@ describe('pick', () => {
   })
 
   test('非对象入参返回空对象', () => {
-    expect(pick(null, ROLE_FIELDS)).toEqual({})
-    expect(pick('str', ROLE_FIELDS)).toEqual({})
+    expect(pick(null, ROBOT_FIELDS)).toEqual({})
+    expect(pick('str', ROBOT_FIELDS)).toEqual({})
   })
 
   test('缺失字段不写入结果', () => {
@@ -178,7 +178,7 @@ describe('findDeviceBySecret', () => {
         id: 'd1',
         alias: 'A',
         did: 'X',
-        roleId: 'r1',
+        robotId: 'r1',
         ttsSecret: 's1',
         createdAt: 1,
       },
@@ -186,7 +186,7 @@ describe('findDeviceBySecret', () => {
         id: 'd2',
         alias: 'B',
         did: 'X',
-        roleId: 'r1',
+        robotId: 'r1',
         ttsSecret: 's2',
         createdAt: 2,
       },

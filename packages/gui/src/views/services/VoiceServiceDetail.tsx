@@ -1,4 +1,4 @@
-import type { VoiceService, DeviceRow, Role } from '../../apis.ts'
+import type { VoiceService, DeviceRow, Robot } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
 import { VOICE_PROVIDERS } from '../../constants.ts'
@@ -8,7 +8,7 @@ export function VoiceServiceDetail(props: {
   selVoiceObj: VoiceService | null
   voiceSvcs: VoiceService[]
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   usageVoice: (id: string) => number
   onDelete: (id: string) => void
   onReset: (id: string) => void

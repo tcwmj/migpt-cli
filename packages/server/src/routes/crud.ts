@@ -6,10 +6,10 @@ import type { ZodTypeAny } from 'zod'
 import {
   assertEntity,
   assertUniqueName,
-  getRoles,
+  getRobots,
   listDeviceMetas,
 } from '../store.js'
-import type { DeviceMeta, Role } from '../types.js'
+import type { DeviceMeta, Robot } from '../types.js'
 import {
   API_PREFIX,
   asyncHandler,
@@ -22,7 +22,7 @@ import {
 
 /** 引用登记规则：删除目标实体前，收集「引用了它」的实体显示名 */
 export interface RefRule {
-  /** 引用清单键名（回包 refs 分组），如 devices / roles */
+  /** 引用清单键名（回包 refs 分组），如 devices / robots */
   key: string
   /** 返回引用了目标 id 的引用方显示名列表（空数组表示无引用） */
   find: (id: string, target: unknown) => Promise<string[]>
@@ -51,13 +51,13 @@ export function deviceRefs(
   }
 }
 
-/** 角色引用规则：按 Role 字段匹配目标 id */
-export function roleRefs(field: keyof Role): RefRule {
+/** 角色引用规则：按 Robot 字段匹配目标 id */
+export function robotRefs(field: keyof Robot): RefRule {
   return {
-    key: 'roles',
+    key: 'robots',
     find: async (id) => {
-      const roles = await getRoles()
-      return roles.filter((r) => r[field] === id).map((r) => r.name)
+      const robots = await getRobots()
+      return robots.filter((r) => r[field] === id).map((r) => r.name)
     },
   }
 }
@@ -77,7 +77,7 @@ export async function collectRefs(
 }
 
 export interface CrudConfig<T extends { id: string; name?: string }> {
-  /** 资源路径段（不含前缀斜杠），如 'roles' → /api/roles */
+  /** 资源路径段（不含前缀斜杠），如 'robots' → /api/robots */
   path: string
   /** 中文实体名，用于 404 文案，如 '角色' */
   label: string

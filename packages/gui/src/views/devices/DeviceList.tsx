@@ -1,10 +1,10 @@
-import type { DeviceRow, Role, SpeakerModel } from '../../apis.ts'
+import type { DeviceRow, Robot, SpeakerModel } from '../../apis.ts'
 import { Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 
 export function DeviceList(props: {
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   models: SpeakerModel[]
   selDev: string | null
   onSelect: (id: string | null) => void
@@ -12,7 +12,7 @@ export function DeviceList(props: {
   return (
     <aside className="slist">
       {props.devices.map((d) => {
-        const r = props.roles.find((x) => x.id === d.roleId)
+        const r = props.robots.find((x) => x.id === d.robotId)
         const m = props.models.find(
           (x) => x.id === d.speakerModel || x.name === d.speakerModel,
         )

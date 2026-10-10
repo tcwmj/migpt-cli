@@ -20,7 +20,7 @@ jest.mock('../paths.js', () => {
     devicesRoot: p.join(root, 'devices'),
     settingsFile: p.join(root, 'settings.json'),
     accountsFile: p.join(root, 'accounts.json'),
-    rolesFile: p.join(root, 'roles.json'),
+    robotsFile: p.join(root, 'robots.json'),
     thinkServicesFile: p.join(root, 'thinkServices.json'),
     voiceServicesFile: p.join(root, 'voiceServices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
@@ -38,7 +38,12 @@ import * as paths from '../paths.js'
 import type { SpeakerModel } from '../types.js'
 import { BUILTIN_MODELS } from './builtins.js'
 import { getOverrides } from './overrides.js'
-import { runMigrations, getDataVersion, DATA_VERSION } from './migrations.js'
+import {
+  runMigrations,
+  getDataVersion,
+  DATA_VERSION,
+  migrateRoleToRobot,
+} from './migrations.js'
 
 const write = async (file: string, data: unknown) => {
   await fs.mkdir(path.dirname(file), { recursive: true })
@@ -96,5 +101,78 @@ describe('runMigrations', () => {
     expect((await getOverrides()).models?.['xiaomi-pro']).toEqual({
       name: '用户改名',
     })
+  })
+})
+
+describe('migrateRoleToRobot（role→robot 实体改名）', () => {
+  const legacyRolesFile = path.join(paths.root, 'roles.json')
+  const legacyMeta = {
+    id: 'd1',
+    alias: '客厅',
+    did: 'X',
+    roleId: 'r-legacy',
+    ttsSecret: 's',
+    createdAt: 1,
+  }
+
+  test('roles.json 改名为 robots.json，内容原样保留', async () => {
+    await write(legacyRolesFile, [{ id: 'r1', name: '傻妞' }])
+    await migrateRoleToRobot()
+    await expect(fs.readFile(legacyRolesFile, 'utf-8')).rejects.toThrow()
+    expect(await read<unknown[]>(paths.robotsFile)).toEqual([
+      { id: 'r1', name: '傻妞' },
+    ])
+  })
+
+  test('robots.json 已存在时保留新文件、删除旧文件', async () => {
+    await write(legacyRolesFile, [{ id: 'r-old' }])
+    await write(paths.robotsFile, [{ id: 'r-new' }])
+    await migrateRoleToRobot()
+    await expect(fs.readFile(legacyRolesFile, 'utf-8')).rejects.toThrow()
+    expect(await read<unknown[]>(paths.robotsFile)).toEqual([{ id: 'r-new' }])
+  })
+
+  test('设备 meta.roleId → robotId 且删除旧键', async () => {
+    await write(path.join(paths.devicesRoot, 'd1', 'meta.json'), legacyMeta)
+    await migrateRoleToRobot()
+    const meta = await read<Record<string, unknown>>(
+      path.join(paths.devicesRoot, 'd1', 'meta.json'),
+    )
+    expect(meta.robotId).toBe('r-legacy')
+    expect(meta.roleId).toBeUndefined()
+  })
+
+  test('overrides.roles 分组迁移为 overrides.robots', async () => {
+    await write(paths.overridesFile, {
+      roles: { IgKuWadm: { name: '改名傻妞' } },
+    })
+    await migrateRoleToRobot()
+    const ov = await read<Record<string, unknown>>(paths.overridesFile)
+    expect(ov.robots).toEqual({ IgKuWadm: { name: '改名傻妞' } })
+    expect(ov.roles).toBeUndefined()
+  })
+
+  test('无旧键时幂等 no-op（已迁移数据不被触碰）', async () => {
+    await write(paths.robotsFile, [{ id: 'r1', name: '新名' }])
+    await write(paths.overridesFile, { robots: { r1: { name: '补丁' } } })
+    await migrateRoleToRobot()
+    await migrateRoleToRobot()
+    expect(await read<unknown[]>(paths.robotsFile)).toEqual([
+      { id: 'r1', name: '新名' },
+    ])
+    expect(await read<Record<string, unknown>>(paths.overridesFile)).toEqual({
+      robots: { r1: { name: '补丁' } },
+    })
+  })
+
+  test('runMigrations 先执行改名：v5 存量 + 旧命名数据 → robots.json', async () => {
+    // 版本已到 v5（不再执行编号迁移），但数据仍是旧命名：启动改名必须仍然生效
+    await write(paths.dataVersionFile, { dataVersion: DATA_VERSION })
+    await write(legacyRolesFile, [{ id: 'r1', name: '傻妞' }])
+    await runMigrations()
+    await expect(fs.readFile(legacyRolesFile, 'utf-8')).rejects.toThrow()
+    expect(await read<unknown[]>(paths.robotsFile)).toEqual([
+      { id: 'r1', name: '傻妞' },
+    ])
   })
 })

@@ -1,7 +1,7 @@
 /* ══ 思考服务与语音服务：选中/草稿/保存/删除/重置 ══ */
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../apis.ts'
-import type { DeviceRow, Role, ThinkService, VoiceService } from '../apis.ts'
+import type { DeviceRow, Robot, ThinkService, VoiceService } from '../apis.ts'
 import {
   PROVIDER_PRESETS,
   buildVoiceTts,
@@ -19,7 +19,7 @@ function tokenNum(s: string | undefined): number {
 
 export function useServicesCrud(opts: {
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   showToast: (msg: string) => void
@@ -28,7 +28,7 @@ export function useServicesCrud(opts: {
 }) {
   const {
     devices,
-    roles,
+    robots,
     thinkSvcs,
     voiceSvcs,
     showToast,

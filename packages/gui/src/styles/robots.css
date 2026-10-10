@@ -1,6 +1,6 @@
 /* ── 对话角色 ── */
 /* 角色列表 + 右侧详情/编辑区：各自独立滚动，不共享页面滚动条（与 .split 同规范） */
-.roles {
+.robots {
   display: grid;
   /* 与统一「左列表 + 右详情」布局（.split）同宽，保持各页列表列一致 */
   grid-template-columns: 300px 1fr;
@@ -11,7 +11,7 @@
 }
 
 @media (max-width: 1180px) {
-  .roles {
+  .robots {
     grid-template-columns: 1fr;
     height: auto;
   }
@@ -29,7 +29,7 @@
   padding-right: var(--sp-2);
 }
 
-.roles .rform {
+.robots .rform {
   animation: cardIn var(--dur-250) ease both;
   height: 100%;
   min-height: 0;
@@ -40,7 +40,7 @@
 }
 @media (max-width: 1180px) {
   .rlist,
-  .roles .rform {
+  .robots .rform {
     height: auto;
     overflow: visible;
   }

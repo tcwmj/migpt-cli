@@ -15,7 +15,7 @@ import {
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerDeviceTtsRoutes } from './routes/device-tts.js'
 import { registerAccountRoutes } from './routes/accounts.js'
-import { registerRoleRoutes } from './routes/roles.js'
+import { registerRobotRoutes } from './routes/robots.js'
 import { registerThinkServiceRoutes } from './routes/think-services.js'
 import { registerVoiceServiceRoutes } from './routes/voice-services.js'
 import { registerSpeakerModelRoutes } from './routes/speaker-models.js'
@@ -136,7 +136,7 @@ export function createApp(options?: ServerOptions) {
   registerAuthRoutes({ app, options })
 
   registerAccountRoutes({ app, options })
-  registerRoleRoutes({ app, options })
+  registerRobotRoutes({ app, options })
   registerThinkServiceRoutes({ app, options })
   registerVoiceServiceRoutes({ app, options })
   registerSpeakerModelRoutes({ app, options })

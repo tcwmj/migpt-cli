@@ -11,7 +11,7 @@ import {
   backupsRoot,
   devicesRoot,
   overridesFile,
-  rolesFile,
+  robotsFile,
   roomsFile,
   settingsFile,
   speakerModelsFile,
@@ -21,7 +21,7 @@ import {
 import type {
   Account,
   DeviceMeta,
-  Role,
+  Robot,
   Room,
   Settings,
   SpeakerModel,
@@ -45,8 +45,8 @@ import {
   overridesSchema,
   readJsonChecked,
   readJsonListChecked,
-  roleListSchema,
-  roleSchema,
+  robotListSchema,
+  robotSchema,
   roomListSchema,
   roomSchema,
   settingsSchema,
@@ -61,7 +61,7 @@ import {
 import {
   getOverrides,
   splitBuiltinEntities,
-  splitBuiltinRolesRooms,
+  splitBuiltinRobotsRooms,
   type Overrides,
 } from './overrides.js'
 import { listDeviceMetas } from './entities.js'
@@ -75,7 +75,7 @@ export const BACKUP_FORMAT_VERSION = 1
 export interface BackupData {
   settings: Settings
   accounts: Account[]
-  roles: Role[]
+  robots: Robot[]
   thinkServices: ThinkService[]
   voiceServices: VoiceService[]
   speakerModels: SpeakerModel[]
@@ -127,7 +127,7 @@ export async function collectData(): Promise<BackupData> {
   const [
     settings,
     accounts,
-    roles,
+    robots,
     thinkServices,
     voiceServices,
     speakerModels,
@@ -136,7 +136,7 @@ export async function collectData(): Promise<BackupData> {
   ] = await Promise.all([
     readJsonChecked(settingsFile, settingsSchema, '登录设置', {}),
     readJsonListChecked(accountsFile, accountSchema, '账号'),
-    readJsonListChecked(rolesFile, roleSchema, '角色'),
+    readJsonListChecked(robotsFile, robotSchema, '角色'),
     readJsonListChecked(thinkServicesFile, thinkServiceSchema, '思考服务'),
     readJsonListChecked(voiceServicesFile, voiceServiceSchema, '语音服务'),
     readJsonListChecked(speakerModelsFile, speakerModelSchema, '型号'),
@@ -147,7 +147,7 @@ export async function collectData(): Promise<BackupData> {
   return {
     settings,
     accounts,
-    roles,
+    robots,
     thinkServices,
     voiceServices,
     speakerModels,
@@ -161,7 +161,7 @@ function redactData(data: BackupData): BackupData {
   return {
     settings: redactSettings(data.settings),
     accounts: data.accounts.map(redactAccount),
-    roles: data.roles,
+    robots: data.robots,
     thinkServices: data.thinkServices.map(redactThinkService),
     voiceServices: data.voiceServices.map(redactVoiceService),
     speakerModels: data.speakerModels,
@@ -218,12 +218,41 @@ function keepSecrets<T extends { id: string }>(
 
 export interface ImportResult {
   accounts: number
-  roles: number
+  robots: number
   thinkServices: number
   voiceServices: number
   speakerModels: number
   rooms: number
   devices: number
+}
+
+/**
+ * 旧包兼容归一化：实体更名 role→robot 之前导出的包用旧键（data.roles、
+ * device.meta.roleId、overrides.roles）。导入前统一转为新键，避免旧包导入失败或静默丢数据。
+ * 新包（无旧键）为 no-op。
+ */
+function normalizeLegacyData(d: BackupData): {
+  robots: Robot[]
+  devices: DeviceMeta[]
+  overrides: Overrides
+} {
+  const legacy = d as BackupData & { roles?: Robot[] }
+  const robots = d.robots ?? legacy.roles ?? []
+  const devices = (d.devices ?? []).map((m) => {
+    const mm = m as DeviceMeta & { roleId?: string }
+    if (mm.roleId === undefined) return mm
+    const { roleId, ...rest } = mm
+    return rest.robotId === undefined ? { ...rest, robotId: roleId } : rest
+  })
+  const overrides: Overrides = { ...(d.overrides ?? {}) }
+  const legacyOv = overrides as Overrides & {
+    roles?: Record<string, Partial<Robot>>
+  }
+  if (legacyOv.roles !== undefined) {
+    if (overrides.robots === undefined) overrides.robots = legacyOv.roles
+    delete legacyOv.roles
+  }
+  return { robots, devices, overrides }
 }
 
 /**
@@ -234,6 +263,11 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
   assertBundle(raw)
   const bundle = raw
   const d = bundle.data
+  const {
+    robots: robotList,
+    devices: deviceList,
+    overrides: overridesData,
+  } = normalizeLegacyData(d)
 
   const [prevAccounts, prevThinks, prevDevices, prevSettings] =
     await Promise.all([
@@ -243,15 +277,18 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
       readJsonChecked(settingsFile, settingsSchema, '登录设置', {}),
     ])
 
-  const accounts = bundle.redacted
-    ? keepSecrets(d.accounts ?? [], prevAccounts, ['passToken', 'miPassword'])
-    : (d.accounts ?? [])
-  const thinkServices = bundle.redacted
-    ? keepSecrets(d.thinkServices ?? [], prevThinks, ['apiKey'])
-    : (d.thinkServices ?? [])
-  const devices = bundle.redacted
-    ? keepSecrets(d.devices ?? [], prevDevices, ['ttsSecret'])
-    : (d.devices ?? [])
+  // 脱敏包按 id 保留本机凭据；未脱敏包以内容为准
+  const keep = <T extends { id: string }>(
+    incoming: T[],
+    existing: T[],
+    keys: readonly (keyof T)[],
+  ): T[] => (bundle.redacted ? keepSecrets(incoming, existing, keys) : incoming)
+  const accounts = keep(d.accounts ?? [], prevAccounts, [
+    'passToken',
+    'miPassword',
+  ])
+  const thinkServices = keep(d.thinkServices ?? [], prevThinks, ['apiKey'])
+  const devices = keep(deviceList, prevDevices, ['ttsSecret'])
   // 旧版 settings 无前端消费者；脱敏导入只更新 miUserId，保留本机既有凭据
   const settings: Settings = bundle.redacted
     ? {
@@ -263,7 +300,7 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
   await Promise.all([
     writeJsonChecked(settingsFile, settings, settingsSchema, '登录设置'),
     writeJsonChecked(accountsFile, accounts, accountListSchema, '账号'),
-    writeJsonChecked(rolesFile, d.roles ?? [], roleListSchema, '角色'),
+    writeJsonChecked(robotsFile, robotList, robotListSchema, '角色'),
     writeJsonChecked(
       thinkServicesFile,
       thinkServices,
@@ -287,12 +324,7 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
     // 脱敏包的补丁已被 scrubSecretsDeep 抹除敏感键，导入后用户改动中的凭据字段同样缺失，
     // 与实体凭据「按 id 保留本机既有值」策略不同，补丁为字段级差异、无法按位补齐，
     // 以包内容为准整体覆盖（重置能力在，随时可回归代码默认）。
-    writeJsonChecked(
-      overridesFile,
-      d.overrides ?? {},
-      overridesSchema,
-      '覆盖补丁',
-    ),
+    writeJsonChecked(overridesFile, overridesData, overridesSchema, '覆盖补丁'),
   ])
   await Promise.all(
     devices.map((m) =>
@@ -309,17 +341,17 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
   // 把这些内置项转为覆盖补丁（合并进刚导入的 overrides），避免读取层
   // 按内置 id 过滤时静默丢失用户对内置项的改动。迁移幂等，新包为无操作。
   await splitBuiltinEntities()
-  await splitBuiltinRolesRooms()
+  await splitBuiltinRobotsRooms()
 
   logger.info(
-    `导入备份：账号 ${accounts.length}、角色 ${(d.roles ?? []).length}、思考服务 ${thinkServices.length}、` +
+    `导入备份：账号 ${accounts.length}、角色 ${robotList.length}、思考服务 ${thinkServices.length}、` +
       `语音 ${(d.voiceServices ?? []).length}、型号 ${(d.speakerModels ?? []).length}、` +
       `会话群 ${(d.rooms ?? []).length}、设备 ${devices.length}${bundle.redacted ? '（脱敏包，保留本机凭据）' : ''}`,
   )
 
   return {
     accounts: accounts.length,
-    roles: (d.roles ?? []).length,
+    robots: robotList.length,
     thinkServices: thinkServices.length,
     voiceServices: (d.voiceServices ?? []).length,
     speakerModels: (d.speakerModels ?? []).length,

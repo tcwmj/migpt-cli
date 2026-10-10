@@ -6,7 +6,7 @@ import {
   EmptyState,
   ProviderLogo,
 } from '../components/atoms/index.ts'
-import type { ThinkService, VoiceService, DeviceRow, Role } from '../apis.ts'
+import type { ThinkService, VoiceService, DeviceRow, Robot } from '../apis.ts'
 import type { ThinkDraft, VoiceDraft } from './drafts.ts'
 import { ThinkServiceList } from './services/ThinkServiceList.tsx'
 import { ThinkServiceDetail } from './services/ThinkServiceDetail.tsx'
@@ -28,7 +28,7 @@ export function ServicesView(props: {
   voiceEdit: boolean
   selVoiceObj: VoiceService | null
   devices: DeviceRow[]
-  roles: Role[]
+  robots: Robot[]
   onSelectThink: (id: string | null) => void
   onDraftThink: (d: ThinkDraft | null) => void
   onEditThink: (e: boolean) => void
@@ -56,7 +56,7 @@ export function ServicesView(props: {
     voiceEdit,
     selVoiceObj,
     devices,
-    roles,
+    robots,
     onSelectThink,
     onDraftThink,
     onEditThink,
@@ -167,7 +167,7 @@ export function ServicesView(props: {
                   selThink={selThink}
                   thinkSvcs={thinkSvcs}
                   devices={devices}
-                  roles={roles}
+                  robots={robots}
                   usageThink={usageThink}
                   onDelete={onDeleteThink}
                   onEdit={() => onEditThink(true)}
@@ -245,7 +245,7 @@ export function ServicesView(props: {
                   selVoiceObj={selVoiceObj}
                   voiceSvcs={voiceSvcs}
                   devices={devices}
-                  roles={roles}
+                  robots={robots}
                   usageVoice={usageVoice}
                   onDelete={onDeleteVoice}
                   onReset={onResetVoice}

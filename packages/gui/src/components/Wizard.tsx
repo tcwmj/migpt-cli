@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import {
   type Account,
-  type Role,
+  type Robot,
   type SpeakerModel,
   type ThinkService,
   type VoiceService,
@@ -11,13 +11,13 @@ import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
 import { WizardAccountStep } from './wizard/WizardAccountStep.tsx'
 import { WizardDeviceStep } from './wizard/WizardDeviceStep.tsx'
-import { WizardRoleStep } from './wizard/WizardRoleStep.tsx'
+import { WizardRobotStep } from './wizard/WizardRobotStep.tsx'
 import type { WizardDraft, WizardSetDraft } from './wizard/types.ts'
 
 export function Wizard(props: {
   step: number
   accounts: Account[]
-  roles: Role[]
+  robots: Robot[]
   models: SpeakerModel[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
@@ -32,8 +32,8 @@ export function Wizard(props: {
     passToken: string
   }) => Promise<Account>
   onUpdateAccount: (id: string, d: Partial<Account>) => Promise<Account>
-  onNewRole: (d: { name: string; profile?: string }) => Promise<Role>
-  onUpdateRole: (id: string, d: Partial<Role>) => Promise<Role>
+  onNewRobot: (d: { name: string; profile?: string }) => Promise<Robot>
+  onUpdateRobot: (id: string, d: Partial<Robot>) => Promise<Robot>
 }) {
   const { draft, setDraft } = props
   const [closing, setClosing] = useState(false)
@@ -53,7 +53,7 @@ export function Wizard(props: {
     (step === 0 && !!draft.accountId) ||
     (step === 1 && !!draft.did && !pullErr) ||
     (step === 2 &&
-      !!draft.roleId &&
+      !!draft.robotId &&
       draft.thinkServiceIds.length > 0 &&
       !!draft.voiceId)
   const finish = () => {
@@ -120,17 +120,17 @@ export function Wizard(props: {
             pullErr={pullErr}
             setPullErr={setPullErr}
           />
-          <WizardRoleStep
+          <WizardRobotStep
             active={step === 2}
-            roles={props.roles}
-            roleId={draft.roleId}
+            robots={props.robots}
+            robotId={draft.robotId}
             thinkSvcs={props.thinkSvcs}
             voiceSvcs={props.voiceSvcs}
             thinkServiceIds={draft.thinkServiceIds}
             voiceId={draft.voiceId}
             setDraft={setDraft}
-            onNewRole={props.onNewRole}
-            onUpdateRole={props.onUpdateRole}
+            onNewRobot={props.onNewRobot}
+            onUpdateRobot={props.onUpdateRobot}
           />
         </div>
         <div className="wf">

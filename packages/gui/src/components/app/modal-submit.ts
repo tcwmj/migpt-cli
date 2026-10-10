@@ -3,7 +3,7 @@ import * as api from '../../apis.ts'
 import type {
   Account,
   DeviceMeta,
-  Role,
+  Robot,
   ThinkService,
   VoiceService,
 } from '../../apis.ts'
@@ -56,13 +56,13 @@ export async function submitModal(opts: {
         showToast('语音服务已创建')
       }
       refreshAll()
-    } else if (modal.kind === 'role') {
-      const payload = (modal.payload || {}) as Role
+    } else if (modal.kind === 'robot') {
+      const payload = (modal.payload || {}) as Robot
       if (payload.id) {
-        await api.updateRole(payload.id, values as Partial<Role>)
+        await api.updateRobot(payload.id, values as Partial<Robot>)
         showToast('角色已保存，角色性格热生效')
       } else {
-        await api.createRole(values as Partial<Role>)
+        await api.createRobot(values as Partial<Robot>)
         showToast('角色已创建')
       }
       refreshAll()

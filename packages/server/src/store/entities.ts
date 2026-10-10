@@ -1,4 +1,4 @@
-// ── 实体读取：settings / accounts / roles / services / models / rooms / devices ──
+// ── 实体读取：settings / accounts / robots / services / models / rooms / devices ──
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import fse from 'fs-extra'
@@ -8,7 +8,7 @@ import {
   devicesRoot,
   settingsFile,
   accountsFile,
-  rolesFile,
+  robotsFile,
   thinkServicesFile,
   voiceServicesFile,
   speakerModelsFile,
@@ -18,7 +18,7 @@ import {
 import {
   type Settings,
   type Account,
-  type Role,
+  type Robot,
   type ThinkService,
   type VoiceService,
   type Room,
@@ -34,7 +34,7 @@ import {
   parseEntity,
   readJsonChecked,
   readJsonListChecked,
-  roleSchema,
+  robotSchema,
   roomSchema,
   settingsSchema,
   speakerModelSchema,
@@ -46,7 +46,7 @@ import {
 import {
   getOverrides,
   mergeBuiltinModels,
-  mergeBuiltinRoles,
+  mergeBuiltinRobots,
   mergeBuiltinRooms,
   mergeBuiltinVoices,
 } from './overrides.js'
@@ -117,12 +117,12 @@ export async function getAccountById(
 }
 
 // 角色：内置角色源自代码 + 用户覆盖补丁，其后拼接用户自建角色。
-export async function getRoles(): Promise<Role[]> {
+export async function getRobots(): Promise<Robot[]> {
   const [custom, ov] = await Promise.all([
-    readJsonListChecked(rolesFile, roleSchema, '角色'),
+    readJsonListChecked(robotsFile, robotSchema, '角色'),
     getOverrides(),
   ])
-  return mergeBuiltinRoles(custom, ov.roles)
+  return mergeBuiltinRobots(custom, ov.robots)
 }
 
 export async function getThinkServices(): Promise<ThinkService[]> {
@@ -203,7 +203,7 @@ export async function saveAccounts(list: Account[]): Promise<void> {
   await writeJsonChecked(accountsFile, list, accountListSchema, '账号')
 }
 
-// saveRoles / saveRooms（内置项剥离 + 覆盖补丁）见 ./overrides.js
+// saveRobots / saveRooms（内置项剥离 + 覆盖补丁）见 ./overrides.js
 
 export async function saveThinkServices(list: ThinkService[]): Promise<void> {
   await writeJsonChecked(

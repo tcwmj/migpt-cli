@@ -4,7 +4,7 @@ import {
   type Account,
   type BindingRow,
   type DeviceDetail,
-  type Role,
+  type Robot,
   type Room,
   type SpeakerModel,
   type ThinkService,
@@ -17,7 +17,7 @@ import { coverOf } from '../utils.ts'
 export function Drawer(props: {
   detail: DeviceDetail
   running?: boolean
-  roles: Role[]
+  robots: Robot[]
   thinkSvcs: ThinkService[]
   voiceSvcs: VoiceService[]
   accounts: Account[]
@@ -43,7 +43,7 @@ export function Drawer(props: {
   const rowIcon = (key: BindingRow['key']) =>
     key === 'account'
       ? 'user'
-      : key === 'role'
+      : key === 'robot'
         ? 'chat'
         : key === 'think'
           ? 'bolt'

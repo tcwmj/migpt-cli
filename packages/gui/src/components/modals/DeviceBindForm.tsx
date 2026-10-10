@@ -7,7 +7,7 @@ export function DeviceBindForm({
   v,
   setV,
   accounts,
-  roles,
+  robots,
   models,
   rooms,
 }: DeviceBindFormProps) {
@@ -31,12 +31,12 @@ export function DeviceBindForm({
       </Field>
       <Field row label="对话角色" required>
         <select
-          value={v.roleId || ''}
-          onChange={(e) => setV({ ...v, roleId: e.target.value })}
+          value={v.robotId || ''}
+          onChange={(e) => setV({ ...v, robotId: e.target.value })}
           required
         >
           <option value="">未设置</option>
-          {roles.map((r) => (
+          {robots.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
             </option>

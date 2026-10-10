@@ -5,7 +5,7 @@ import { logRows, logger, type LogRow } from '../logger.js'
 import {
   getThinkServices,
   getVoiceServices,
-  getRoles,
+  getRobots,
   listDeviceMetas,
 } from '../store.js'
 import { getAllStatus } from '@migptgui/controller'
@@ -191,19 +191,19 @@ async function getFilteredDeviceIds(
   if (!dimension || !ids || ids.length === 0) return null
 
   const devices = await listDeviceMetas()
-  const roles = await getRoles()
+  const robots = await getRobots()
 
   if (dimension === 'device') {
     // 直接按设备 ID 过滤
     return new Set(ids)
   }
 
-  if (dimension === 'role') {
+  if (dimension === 'robot') {
     // 按角色 ID 找到绑定的设备
-    const roleIds = new Set(ids)
+    const robotIds = new Set(ids)
     const deviceIds = new Set<string>()
     for (const device of devices) {
-      if (device.roleId && roleIds.has(device.roleId)) {
+      if (device.robotId && robotIds.has(device.robotId)) {
         deviceIds.add(device.id)
       }
     }
@@ -213,23 +213,23 @@ async function getFilteredDeviceIds(
   if (dimension === 'service') {
     // 按服务 ID 找到绑定的角色，再找设备
     const serviceIds = new Set(ids)
-    const roleIds = new Set<string>()
-    for (const role of roles) {
-      const thinkIds = role.thinkServiceIds?.length
-        ? role.thinkServiceIds
-        : role.thinkServiceId
-          ? [role.thinkServiceId]
+    const robotIds = new Set<string>()
+    for (const robot of robots) {
+      const thinkIds = robot.thinkServiceIds?.length
+        ? robot.thinkServiceIds
+        : robot.thinkServiceId
+          ? [robot.thinkServiceId]
           : []
       for (const sid of thinkIds) {
         if (serviceIds.has(sid)) {
-          roleIds.add(role.id)
+          robotIds.add(robot.id)
           break
         }
       }
     }
     const deviceIds = new Set<string>()
     for (const device of devices) {
-      if (device.roleId && roleIds.has(device.roleId)) {
+      if (device.robotId && robotIds.has(device.robotId)) {
         deviceIds.add(device.id)
       }
     }
@@ -271,7 +271,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
    *   range: today|this_month|this_year|last_1d|last_3d|last_7d|last_30d（与 from/to 互斥）
    *   from: 开始日期 yyyyMMdd（与 range 互斥）
    *   to: 结束日期 yyyyMMdd（与 range 互斥）
-   *   dimension: role|device|service（可选）
+   *   dimension: robot|device|service（可选）
    *   ids: 逗号分隔的实体 ID（可选，配合 dimension 使用）
    * 返回：
    *   totals: 总览（不受过滤影响）
@@ -367,9 +367,9 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         const entityTimelines: Record<string, TimeSeriesPoint[]> = {}
         if (dimension && ids && ids.length > 0) {
           const devices = await listDeviceMetas()
-          const deviceRoleMap = new Map<string, string>()
+          const deviceRobotMap = new Map<string, string>()
           for (const device of devices) {
-            if (device.roleId) deviceRoleMap.set(device.id, device.roleId)
+            if (device.robotId) deviceRobotMap.set(device.id, device.robotId)
           }
 
           for (const entityId of ids) {
@@ -377,28 +377,28 @@ export function registerStatsRoutes({ app }: RouteContext): void {
 
             if (dimension === 'device') {
               entityLogs = timeFiltered.filter((r) => r.deviceId === entityId)
-            } else if (dimension === 'role') {
+            } else if (dimension === 'robot') {
               // 找到该角色绑定的所有设备
               const boundDevices = new Set<string>()
-              for (const [deviceId, roleId] of deviceRoleMap) {
-                if (roleId === entityId) boundDevices.add(deviceId)
+              for (const [deviceId, robotId] of deviceRobotMap) {
+                if (robotId === entityId) boundDevices.add(deviceId)
               }
               entityLogs = timeFiltered.filter((r) =>
                 boundDevices.has(r.deviceId),
               )
             } else if (dimension === 'service') {
               // 找到使用该服务的所有角色，再找到绑定的设备
-              const roles = await getRoles()
+              const robots = await getRobots()
               const boundDevices = new Set<string>()
-              for (const role of roles) {
-                const thinkIds = role.thinkServiceIds?.length
-                  ? role.thinkServiceIds
-                  : role.thinkServiceId
-                    ? [role.thinkServiceId]
+              for (const robot of robots) {
+                const thinkIds = robot.thinkServiceIds?.length
+                  ? robot.thinkServiceIds
+                  : robot.thinkServiceId
+                    ? [robot.thinkServiceId]
                     : []
                 if (thinkIds.includes(entityId)) {
-                  for (const [deviceId, roleId] of deviceRoleMap) {
-                    if (roleId === role.id) boundDevices.add(deviceId)
+                  for (const [deviceId, robotId] of deviceRobotMap) {
+                    if (robotId === robot.id) boundDevices.add(deviceId)
                   }
                 }
               }
@@ -430,30 +430,30 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         // 4. 维度明细数据
         let dimensionData: DimensionStats[] = []
         const devices = await listDeviceMetas()
-        const roles = await getRoles()
-        const deviceRoleMap = new Map<string, string>()
+        const robots = await getRobots()
+        const deviceRobotMap = new Map<string, string>()
         const deviceNameMap = new Map<string, string>()
         for (const device of devices) {
-          if (device.roleId) deviceRoleMap.set(device.id, device.roleId)
+          if (device.robotId) deviceRobotMap.set(device.id, device.robotId)
           deviceNameMap.set(device.id, device.alias || device.did || device.id)
         }
 
-        if (!dimension || dimension === 'role') {
+        if (!dimension || dimension === 'robot') {
           // 按角色统计
-          const roleLogs = new Map<string, DeviceLogRow[]>()
-          for (const role of roles) {
-            roleLogs.set(role.id, [])
+          const robotLogs = new Map<string, DeviceLogRow[]>()
+          for (const robot of robots) {
+            robotLogs.set(robot.id, [])
           }
           for (const row of timeFiltered) {
-            const roleId = deviceRoleMap.get(row.deviceId)
-            if (roleId && roleLogs.has(roleId)) {
-              roleLogs.get(roleId)!.push(row)
+            const robotId = deviceRobotMap.get(row.deviceId)
+            if (robotId && robotLogs.has(robotId)) {
+              robotLogs.get(robotId)!.push(row)
             }
           }
-          dimensionData = roles.map((role) => {
-            const rows = roleLogs.get(role.id) ?? []
+          dimensionData = robots.map((robot) => {
+            const rows = robotLogs.get(robot.id) ?? []
             const stats = calcTokenStats(rows)
-            return { id: role.id, name: role.name, ...stats }
+            return { id: robot.id, name: robot.name, ...stats }
           })
           dimensionData.sort((a, b) => b.totalTokens - a.totalTokens)
         } else if (dimension === 'device') {
@@ -501,7 +501,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
 
         // 5. 可选维度实体列表
         const entities: Record<string, DimensionEntity[]> = {
-          role: roles.map((r) => ({ id: r.id, name: r.name })),
+          robot: robots.map((r) => ({ id: r.id, name: r.name })),
           device: devices.map((d) => ({
             id: d.id,
             name: d.alias || d.did || d.id,
