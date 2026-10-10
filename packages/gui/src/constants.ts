@@ -283,7 +283,10 @@ export const PROVIDER_PRESETS: Record<
  */
 export const VOICE_PROVIDERS: Record<
   string,
-  ProviderDef & { engine: 'edge' | 'volcano' | 'openai' | 'openai-compat' }
+  ProviderDef & {
+    engine: 'edge' | 'volcano' | 'openai' | 'openai-compat'
+    voices?: string[]
+  }
 > = {
   custom: {
     name: '自定义',
@@ -298,6 +301,18 @@ export const VOICE_PROVIDERS: Record<
     mark: 'E',
     hint: '免费 · 无需密钥',
     engine: 'edge',
+    voices: [
+      'zh-CN-XiaoxiaoNeural',
+      'zh-CN-YunxiNeural',
+      'zh-CN-XiaoyiNeural',
+      'zh-CN-YunjianNeural',
+      'zh-CN-liaoning-XiaobeiNeural',
+      'zh-TW-HsiaoChenNeural',
+      'zh-TW-YunJheNeural',
+      'en-US-JennyNeural',
+      'en-US-GuyNeural',
+      'en-US-AriaNeural',
+    ],
   },
   volcano: {
     name: '火山引擎语音',
@@ -306,6 +321,12 @@ export const VOICE_PROVIDERS: Record<
     logo: `${LOBE}/volcengine.svg`,
     hint: '豆包语音合成 · Volcengine TTS',
     engine: 'volcano',
+    voices: [
+      'zh_female_cancan_mars_bigtts',
+      'zh_male_aotian_mars_bigtts',
+      'zh_female_wanwanx_mars_bigtts',
+      'zh_male_shaonian_mars_bigtts',
+    ],
   },
   openai: {
     name: 'OpenAI',
@@ -314,7 +335,10 @@ export const VOICE_PROVIDERS: Record<
     logo: `${LOBE}/openai.svg`,
     hint: 'TTS 系列 · 改地址可接兼容端点',
     baseUrl: PROVIDER_BASE_URLS.openai,
+    model: 'tts-1',
+    models: ['tts-1', 'tts-1-hd'],
     engine: 'openai',
+    voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
   },
   doubao: {
     name: '火山方舟',
@@ -323,7 +347,13 @@ export const VOICE_PROVIDERS: Record<
     logo: `${LOBE}/volcengine.svg`,
     hint: '豆包语音 (OpenAI 兼容)',
     baseUrl: PROVIDER_BASE_URLS.doubao,
+    model: 'tts-1',
     engine: 'openai-compat',
+    voices: [
+      'zh_female_cancan_mars_bigtts',
+      'zh_male_aotian_mars_bigtts',
+      'zh_female_wanwanx_mars_bigtts',
+    ],
   },
   siliconflow: {
     name: '硅基流动',
@@ -338,6 +368,10 @@ export const VOICE_PROVIDERS: Record<
       'IndexTeam/IndexTTS-2',
     ],
     engine: 'openai-compat',
+    voices: [
+      'FunAudioLLM/CosyVoice2-0.5B:alex',
+      'FunAudioLLM/CosyVoice2-0.5B:anna',
+    ],
   },
 }
 

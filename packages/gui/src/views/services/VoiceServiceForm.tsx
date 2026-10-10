@@ -67,13 +67,27 @@ export function VoiceServiceForm(props: {
           <Field
             label="供应商"
             required
-            tip="仅列出可驱动的语音引擎；OpenAI 兼容供应商改「接口地址」即可接入"
+            tip="选择供应商自动带出官方接口地址与默认模型，后续均可修改"
             halfWidth
           >
             <ProviderPicker
               providers={VOICE_PROVIDERS}
               value={voiceDraft.provider}
-              onPick={(k) => onDraft({ ...voiceDraft, provider: k })}
+              onPick={(k) => {
+                const vp = VOICE_PROVIDERS[k]
+                const prevVp = VOICE_PROVIDERS[voiceDraft.provider]
+                onDraft({
+                  ...voiceDraft,
+                  provider: k,
+                  baseUrl:
+                    vp?.baseUrl ||
+                    (k === 'openai' ? 'https://api.openai.com/v1' : ''),
+                  model:
+                    voiceDraft.model && voiceDraft.model !== prevVp?.model
+                      ? voiceDraft.model
+                      : vp?.model || '',
+                })
+              }}
             />
           </Field>
         </div>
@@ -82,14 +96,17 @@ export function VoiceServiceForm(props: {
             {(engine === 'openai' || compat) && (
               <Field
                 label="接口地址"
-                tip={
-                  compat
-                    ? '已自动带出官方 OpenAI 兼容地址，可改网关'
-                    : '支持任意 OpenAI 兼容 TTS 端点'
-                }
+                required
+                tip="已按供应商自动填充官方地址，如有代理 / 网关可自行修改"
               >
                 <input
-                  value={voiceDraft.baseUrl}
+                  value={
+                    voiceDraft.baseUrl ||
+                    p?.baseUrl ||
+                    (voiceDraft.provider === 'openai'
+                      ? 'https://api.openai.com/v1'
+                      : '')
+                  }
                   placeholder={p?.baseUrl || 'https://api.openai.com/v1'}
                   onChange={(e) =>
                     onDraft({ ...voiceDraft, baseUrl: e.target.value })
@@ -102,13 +119,13 @@ export function VoiceServiceForm(props: {
                 label={compat ? '语音模型' : '模型'}
                 tip={
                   compat
-                    ? '留空使用供应商默认语音模型'
-                    : '留空使用 tts-1，可改任意 OpenAI 兼容模型'
+                    ? '已自动带出供应商默认模型，可改任意兼容模型'
+                    : '已自动带出 tts-1，可改任意 OpenAI 兼容模型'
                 }
               >
                 <>
                   <input
-                    value={voiceDraft.model}
+                    value={voiceDraft.model || p?.model || 'tts-1'}
                     list={dlId}
                     placeholder={p?.model || 'tts-1'}
                     onChange={(e) =>
@@ -140,14 +157,27 @@ export function VoiceServiceForm(props: {
                 />
               </Field>
             )}
-            <Field label="音色 ID" tip="留空使用该引擎的默认音色">
-              <input
-                value={voiceDraft.voiceId}
-                placeholder="例如：zh-CN-XiaoxiaoNeural"
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, voiceId: e.target.value })
-                }
-              />
+            <Field
+              label="音色 ID"
+              tip="从下拉列表选择或自定义输入，留空使用该引擎的默认音色"
+            >
+              <>
+                <input
+                  value={voiceDraft.voiceId}
+                  list={`voices-${voiceDraft.provider || 'edge'}`}
+                  placeholder="例如：zh-CN-XiaoxiaoNeural"
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, voiceId: e.target.value })
+                  }
+                />
+                {!!p?.voices?.length && (
+                  <datalist id={`voices-${voiceDraft.provider || 'edge'}`}>
+                    {p.voices.map((v) => (
+                      <option key={v} value={v} />
+                    ))}
+                  </datalist>
+                )}
+              </>
             </Field>
             {engine === 'edge' && (
               <Field
