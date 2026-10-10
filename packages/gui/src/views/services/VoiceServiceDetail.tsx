@@ -89,11 +89,7 @@ export function VoiceServiceDetail(props: {
                 <div className="rr">
                   <span className="k">API Key</span>
                   <span className="v">
-                    {svc?.hasTtsToken ? (
-                      <Tag tone="accent">已配置</Tag>
-                    ) : (
-                      <Tag tone="neu">未配置</Tag>
-                    )}
+                    {svc?.hasTtsToken ? '已配置' : '未配置'}
                   </span>
                 </div>
               </div>
@@ -103,11 +99,7 @@ export function VoiceServiceDetail(props: {
               <div className="rr">
                 <span className="k">访问令牌</span>
                 <span className="v">
-                  {svc?.hasTtsToken ? (
-                    <Tag tone="accent">已配置</Tag>
-                  ) : (
-                    <Tag tone="neu">未配置</Tag>
-                  )}
+                  {svc?.hasTtsToken ? '已配置' : '未配置'}
                 </span>
               </div>
             </div>
@@ -123,11 +115,7 @@ export function VoiceServiceDetail(props: {
                 <div className="rr">
                   <span className="k">访问令牌</span>
                   <span className="v">
-                    {svc?.hasTtsToken ? (
-                      <Tag tone="accent">已配置</Tag>
-                    ) : (
-                      <Tag tone="neu">未配置</Tag>
-                    )}
+                    {svc?.hasTtsToken ? '已配置' : '未配置'}
                   </span>
                 </div>
               </div>
