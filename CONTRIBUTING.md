@@ -11,7 +11,7 @@
 
 ```bash
 npm install          # 安装全部 workspace 依赖
-npm run build-all    # 构建全部 workspace（契约 → server → gui）
+npm run build    # 构建全部 workspace（契约 → server → gui）
 npm test             # 运行单元测试
 npm run lint         # ESLint 检查
 npm run format:check # Prettier 检查

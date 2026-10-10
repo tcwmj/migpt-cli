@@ -55,7 +55,7 @@ jobs:
         run: npm test
 
       - name: Typecheck & Build (all workspaces)
-        run: npm run build-all
+        run: npm run build
 
   docker:
     name: Docker image (multi-arch)
@@ -75,7 +75,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Build workspace
-        run: npm run build-all
+        run: npm run build
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

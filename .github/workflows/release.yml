@@ -31,7 +31,7 @@ jobs:
           [ -n "$DH_USER" ] || { echo "::error::缺少仓库 Secret：DOCKERHUB_USERNAME"; exit 1; }
           [ -n "$DH_TOKEN" ] || { echo "::error::缺少仓库 Secret：DOCKERHUB_TOKEN"; exit 1; }
 
-      # 根 Dockerfile 自带 npm ci + build-all（.dockerignore 已排除 node_modules/dist），
+      # 根 Dockerfile 自带 npm ci + build（.dockerignore 已排除 node_modules/dist），
       # 构建在容器内完成，runner 无需预装 Node 或预先构建。
       - name: Resolve version & created
         id: ver

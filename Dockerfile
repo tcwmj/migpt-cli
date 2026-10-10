@@ -26,7 +26,7 @@ COPY . .
 
 # .cache 是构建期缓存（babel/nx/coverage），不进运行镜像
 RUN npm ci --no-audit --no-fund \
- && npm run build-all \
+ && npm run build \
  && npm prune --omit=dev \
  && rm -rf .cache
 

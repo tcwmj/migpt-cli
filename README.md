@@ -34,7 +34,7 @@
 
 ```bash
 npm install
-npm run build-all        # 构建全部 workspace（契约 → server → gui）
+npm run build        # 构建全部 workspace（契约 → server → gui）
 npm run dev              # 见 scripts/dev.ps1：后端 + 前端 watch 热更新
 ```
 
@@ -102,7 +102,7 @@ docker run -d --name migpt-cli --restart unless-stopped \
 | --------------------------- | ----------------------------------------------------------------------------------------- |
 | `npm run lint` / `lint:fix` | ESLint（packages + apps）                                                                 |
 | `npm run typecheck`         | 两端 + 契约类型检查                                                                       |
-| `npm run build-all`         | nx 增量构建全部 workspace                                                                 |
+| `npm run build`             | nx 增量构建全部 workspace                                                                 |
 | husky + lint-staged         | 提交前自动 lint / prettier 修复暂存文件                                                   |
 | GitHub Actions CI           | lint + format + test + build + Docker 多架构（amd64/arm64）构建与 Trivy 漏洞门禁          |
 | GitHub Actions Release      | tag（`migptgui@X.Y.Z`）触发：多架构推送 Docker Hub + GHCR、SBOM + provenance、cosign 签名 |

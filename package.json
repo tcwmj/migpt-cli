@@ -24,7 +24,7 @@
     "test": "jest",
     "clean-all": "node scripts/nx.mjs run-many --target=clean",
     "clean:cache": "node -e \"require('fs').rmSync('.cache',{recursive:true,force:true})\"",
-    "build-all": "node scripts/nx.mjs run-many --target=build",
+    "build": "node scripts/nx.mjs run-many --target=build",
     "typecheck": "node scripts/nx.mjs run-many --target=typecheck --exclude @mgc/root",
     "release": "node scripts/nx.mjs release",
     "release:dry": "node scripts/nx.mjs release --dry-run",
