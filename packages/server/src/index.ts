@@ -51,6 +51,24 @@ export function createApp(options?: ServerOptions) {
   // HTTP 压缩：>1KB 的响应自动 gzip/deflate（跳过已压缩图片和 x-no-compression 请求头）
   app.use(compression({ threshold: 1024 }))
 
+  // 本地开发判定：dev（MIGPT_DEV=1 或 NODE_ENV≠production）下放宽 CSP、关闭静态强缓存，
+  // 以支持 livereload 自动刷新；生产环境保持收紧策略。
+  const isDev =
+    process.env.MIGPT_DEV === '1' || process.env.NODE_ENV !== 'production'
+
+  // livereload 客户端从独立端口加载脚本并回连 WebSocket（跨端口来源），
+  // 若 CSP 仍为 'self' 会被浏览器拦截，导致注入的脚本无法加载、页面不自动刷新。
+  const liveReloadPort = process.env.MIGPT_LIVERELOAD_PORT || '35729'
+  const liveReloadSources = isDev
+    ? [
+        `http://localhost:${liveReloadPort}`,
+        `http://127.0.0.1:${liveReloadPort}`,
+      ]
+    : []
+  const liveReloadWsSources = isDev
+    ? [`ws://localhost:${liveReloadPort}`, `ws://127.0.0.1:${liveReloadPort}`]
+    : []
+
   // 安全响应头（helmet）：禁止 MIME 嗅探、禁止被 iframe 嵌套、不向外部泄露来源地址。
   // CSP 用兼容型白名单；不启用 helmet 默认指令集——默认含 upgrade-insecure-requests，
   // 会把本地 http 访问升级为 https 而无法打开面板。HSTS / 跨域隔离同样关闭以兼容本地 HTTP。
@@ -60,11 +78,11 @@ export function createApp(options?: ServerOptions) {
         useDefaults: false,
         directives: {
           'default-src': ["'self'"],
-          'script-src': ["'self'"],
+          'script-src': ["'self'", ...liveReloadSources],
           'style-src': ["'self'", "'unsafe-inline'"],
           'img-src': ["'self'", 'data:', 'https:'],
           'font-src': ["'self'", 'data:'],
-          'connect-src': ["'self'"],
+          'connect-src': ["'self'", ...liveReloadWsSources],
           'object-src': ["'none'"],
           'base-uri': ["'self'"],
           'frame-ancestors': ["'none'"],
@@ -90,10 +108,8 @@ export function createApp(options?: ServerOptions) {
 
   // 静态资源匿名加载（前端 SPA 先加载 JS），API 全部要求认证
   if (options?.staticPath) {
-    // 本地开发（MIGPT_DEV=1 或 NODE_ENV≠production）：禁用强缓存，
-    // 否则浏览器在 1h 内软刷新会命中旧 bundle，livereload 刷新也拉不到新代码
-    const isDev =
-      process.env.MIGPT_DEV === '1' || process.env.NODE_ENV !== 'production'
+    // dev 下禁用强缓存（isDev 见上方定义），否则浏览器在 1h 内软刷新会命中旧 bundle，
+    // livereload 刷新也拉不到新代码
     app.use(
       express.static(options.staticPath, {
         // 文件名无内容哈希，保守设 1 小时；前端构建改用哈希文件名后可提升到 1 年
