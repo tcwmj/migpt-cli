@@ -281,12 +281,25 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       const deviceCwd = path.join(devicesRoot, id)
       await saveDeviceConfig(id, config)
 
-      // 账号托管：按设备归属账号自动写入 .mi.json（minna/miiot 两段）
+      // 账号托管：按设备归属账号自动写入 .mi.json（mina/miiot 两段）
       const account = await getAccountById(meta.accountId)
       if (account?.passToken) {
+        // 直接使用 passToken 登录，绕过 userId/password 生成 passToken 的步骤
+        // mi-service-lite 的 getAccount 函数会先用 passToken 尝试登录，
+        // 如果 passToken 有效（pass.code === 0），则不需要 password
+        // 只有当 passToken 无效时才会使用 password 重新登录
         const miJson = {
-          mina: { pass: { passToken: account.passToken } },
-          miiot: { pass: { passToken: account.passToken } },
+          mina: {
+            userId: account.miUserId,
+            // 虚拟密码：mi-service-lite 要求此字段存在，但 passToken 有效时不会使用
+            password: account.miPassword || 'passToken-mode',
+            pass: { passToken: account.passToken },
+          },
+          miiot: {
+            userId: account.miUserId,
+            password: account.miPassword || 'passToken-mode',
+            pass: { passToken: account.passToken },
+          },
         }
         await saveDeviceCredentials(id, miJson)
       }

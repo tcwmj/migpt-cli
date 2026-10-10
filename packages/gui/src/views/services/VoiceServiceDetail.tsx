@@ -140,9 +140,11 @@ export function VoiceServiceDetail(props: {
                     whiteSpace: 'pre-wrap',
                   }}
                 >
-                  {tts !== undefined && tts !== null
+                  {tts && Object.keys(tts).length > 0
                     ? JSON.stringify(tts, null, 2)
-                    : '—'}
+                    : svc?.tts !== undefined
+                      ? '已配置'
+                      : '—'}
                 </span>
               </div>
             </div>

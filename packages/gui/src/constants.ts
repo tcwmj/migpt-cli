@@ -437,7 +437,12 @@ export function voiceFormFromTts<
     v.appId = tts.volcano?.appId || ''
     v.token = tts.volcano?.accessToken || ''
   } else if (provider === 'custom') {
-    v.customJson = Object.keys(tts).length ? JSON.stringify(tts, null, 2) : ''
+    if (!s) {
+      // 新建时默认填充标准 JSON 配置样例，用户只需替换值
+      v.customJson = `{\n  "edge": {\n    "trustedToken": ""\n  }\n}`
+    } else {
+      v.customJson = Object.keys(tts).length ? JSON.stringify(tts, null, 2) : ''
+    }
   } else {
     v.token = tts.openai?.apiKey || ''
     v.model = tts.openai?.model || v.model
@@ -476,6 +481,9 @@ export function buildVoiceTts(v: VoiceFormValues): {
         Array.isArray(parsed)
       ) {
         return { tts, err: '自定义 TTS 配置必须为 JSON 对象' }
+      }
+      if (Object.keys(parsed).length === 0) {
+        return { tts, err: '自定义 TTS 配置不能为空对象 {}' }
       }
       Object.assign(tts, parsed)
     } catch (e) {

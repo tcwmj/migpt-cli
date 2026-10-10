@@ -74,10 +74,23 @@
   color: var(--ink-3);
 }
 
+.form-card .fld .hint.warn,
+.rform .fld .hint.warn,
+.modal .fld .hint.warn {
+  color: var(--bad, #c0453c);
+  font-weight: var(--fw-semibold);
+}
+
 /* 半宽字段：在 .row 内占据约 50% 宽度 */
 .form-card .grp .fld.half-width {
   flex: 1 1 45%;
   min-width: 180px;
+}
+
+/* 全宽字段：强制纵向布局，用于 TTS 配置等需要独占一行的字段 */
+.form-card .grp .fld.full-width {
+  flex-direction: column !important;
+  width: 100%;
 }
 
 /* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */

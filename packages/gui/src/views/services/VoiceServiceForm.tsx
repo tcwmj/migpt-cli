@@ -81,7 +81,7 @@ export function VoiceServiceForm(props: {
                 // 切换到 custom 时，如果当前为空则填充默认样例
                 const customJson =
                   k === 'custom' && !voiceDraft.customJson.trim()
-                    ? `{\n  "edge": {\n    "trustedToken": "your-token-here"\n  }\n}`
+                    ? `{\n  "edge": {\n    "trustedToken": ""\n  }\n}`
                     : voiceDraft.customJson
                 onDraft({
                   ...voiceDraft,
@@ -239,89 +239,79 @@ export function VoiceServiceForm(props: {
           </>
         ) : (
           <div className="row">
-            <Field
-              label="TTS 配置"
-              required
-              tip="高级用法：直接填写 mi-gpt TTSConfig JSON，支持 edge/volcano/openai 等引擎配置"
-              hint={(() => {
-                if (!voiceDraft.customJson.trim()) return undefined
-                try {
-                  const parsed = JSON.parse(voiceDraft.customJson)
-                  if (
-                    typeof parsed !== 'object' ||
-                    parsed === null ||
-                    Array.isArray(parsed)
-                  ) {
-                    return 'JSON 必须为对象（{...}），不能为数字、字符串或数组'
-                  }
-                  return undefined
-                } catch (e) {
-                  return `JSON 格式错误: ${(e as Error).message}`
-                }
-              })()}
-              hintTone={(() => {
-                if (!voiceDraft.customJson.trim()) return 'warn'
-                try {
-                  const parsed = JSON.parse(voiceDraft.customJson)
-                  if (
-                    typeof parsed !== 'object' ||
-                    parsed === null ||
-                    Array.isArray(parsed)
-                  ) {
-                    return 'warn'
-                  }
-                  return undefined
-                } catch (e) {
-                  return 'warn'
-                }
-              })()}
-            >
-              <div style={{ position: 'relative' }}>
-                <textarea
-                  value={voiceDraft.customJson}
-                  onChange={(e) =>
-                    onDraft({ ...voiceDraft, customJson: e.target.value })
-                  }
-                  rows={10}
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: '13px',
-                    lineHeight: '1.5',
-                    width: '100%',
-                    paddingRight: '60px',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      const parsed = JSON.parse(voiceDraft.customJson)
-                      onDraft({
-                        ...voiceDraft,
-                        customJson: JSON.stringify(parsed, null, 2),
-                      })
-                    } catch {
-                      // ignore
-                    }
-                  }}
-                  disabled={!voiceDraft.customJson.trim()}
-                  title="格式化 JSON"
-                  style={{
-                    position: 'absolute',
-                    top: '4px',
-                    right: '4px',
-                    padding: '2px 8px',
-                    fontSize: '11px',
-                    background: 'var(--panel-2)',
-                    border: '1px solid var(--line)',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
+            <div className="fld full-width" style={{ flexDirection: 'column' }}>
+              <label>
+                TTS 配置
+                <span className="req">*</span>
+                <span
+                  className="tip"
+                  data-tip="高级用法：直接填写 mi-gpt TTSConfig JSON，支持 edge/volcano/openai 等引擎配置"
                 >
-                  格式化
-                </button>
-              </div>
-            </Field>
+                  ?
+                </span>
+              </label>
+              <textarea
+                value={voiceDraft.customJson}
+                onChange={(e) =>
+                  onDraft({ ...voiceDraft, customJson: e.target.value })
+                }
+                onBlur={() => {
+                  // 失焦即校验通过（合法 JSON 对象）时自动格式化
+                  const value = voiceDraft.customJson
+                  if (!value.trim()) return
+                  try {
+                    const parsed = JSON.parse(value)
+                    if (
+                      typeof parsed === 'object' &&
+                      parsed !== null &&
+                      !Array.isArray(parsed)
+                    ) {
+                      const formatted = JSON.stringify(parsed, null, 2)
+                      if (formatted !== value) {
+                        onDraft({ ...voiceDraft, customJson: formatted })
+                      }
+                    }
+                  } catch {
+                    // 非法 JSON：保留原值，由下方红字提示
+                  }
+                }}
+                rows={10}
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  lineHeight: '1.5',
+                }}
+              />
+              {(() => {
+                if (!voiceDraft.customJson.trim()) return null
+                try {
+                  const parsed = JSON.parse(voiceDraft.customJson)
+                  if (
+                    typeof parsed !== 'object' ||
+                    parsed === null ||
+                    Array.isArray(parsed)
+                  ) {
+                    return (
+                      <span className="hint warn">
+                        JSON 必须为对象（{'{...}'}），不能为数字、字符串或数组
+                      </span>
+                    )
+                  }
+                  if (Object.keys(parsed).length === 0) {
+                    return (
+                      <span className="hint warn">TTS 配置不能为空对象</span>
+                    )
+                  }
+                  return null
+                } catch (e) {
+                  return (
+                    <span className="hint warn">
+                      JSON 格式错误: {(e as Error).message}
+                    </span>
+                  )
+                }
+              })()}
+            </div>
           </div>
         )}
       </div>
@@ -430,7 +420,8 @@ export function VoiceServiceForm(props: {
                   return (
                     typeof parsed !== 'object' ||
                     parsed === null ||
-                    Array.isArray(parsed)
+                    Array.isArray(parsed) ||
+                    Object.keys(parsed).length === 0
                   )
                 } catch {
                   return true
