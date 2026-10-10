@@ -100,6 +100,7 @@ export const voiceServiceSchema = z.object({
   tokenLimit: num.optional(),
   limitReached: z.boolean().optional(),
   createdAt: num,
+  hasTtsToken: optBool,
 })
 export const voiceServiceListSchema = z.array(voiceServiceSchema)
 

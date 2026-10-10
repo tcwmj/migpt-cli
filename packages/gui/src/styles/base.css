@@ -74,6 +74,12 @@
   color: var(--ink-3);
 }
 
+/* 半宽字段：在 .row 内占据约 50% 宽度 */
+.form-card .grp .fld.half-width {
+  flex: 1 1 45%;
+  min-width: 180px;
+}
+
 /* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */
 .grp .fld label .req,
 .form-card .fld label .req,

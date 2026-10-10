@@ -38,6 +38,11 @@ export function ThinkServiceDetail(props: {
               <span className="k">服务名称</span>
               <span className="v">{svc?.name || '—'}</span>
             </div>
+          </div>
+        </div>
+        <div className="grp">
+          <h4>模型配置</h4>
+          <div className="row">
             <div className="rr">
               <span className="k">供应商</span>
               <span className="v">
@@ -52,10 +57,11 @@ export function ThinkServiceDetail(props: {
                 )}
               </span>
             </div>
+            <div className="rr">
+              <span className="k">接口地址</span>
+              <span className="v">{svc?.baseUrl || '—'}</span>
+            </div>
           </div>
-        </div>
-        <div className="grp">
-          <h4>模型配置</h4>
           <div className="row">
             <div className="rr">
               <span className="k">模型端点</span>
@@ -63,7 +69,7 @@ export function ThinkServiceDetail(props: {
             </div>
             <div className="rr">
               <span className="k">API Key</span>
-              <span className="v">{svc?.apiKey ? '已保存' : '未配置'}</span>
+              <span className="v">{svc?.hasApiKey ? '已配置' : '未配置'}</span>
             </div>
           </div>
           <div className="row">

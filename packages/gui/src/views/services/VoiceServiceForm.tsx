@@ -60,22 +60,23 @@ export function VoiceServiceForm(props: {
             />
           </Field>
         </div>
-        <Field
-          label="供应商"
-          required
-          tip="仅列出可驱动的语音引擎；OpenAI 兼容供应商改「接口地址」即可接入"
-        >
-          <ProviderPicker
-            providers={VOICE_PROVIDERS}
-            value={voiceDraft.provider}
-            onPick={(k) => onDraft({ ...voiceDraft, provider: k })}
-          />
-        </Field>
       </div>
       {voiceDraft.provider !== 'custom' && (
         <div className="grp">
           <h4>音色配置</h4>
           <div className="row">
+            <Field
+              label="供应商"
+              required
+              tip="仅列出可驱动的语音引擎；OpenAI 兼容供应商改「接口地址」即可接入"
+              halfWidth
+            >
+              <ProviderPicker
+                providers={VOICE_PROVIDERS}
+                value={voiceDraft.provider}
+                onPick={(k) => onDraft({ ...voiceDraft, provider: k })}
+              />
+            </Field>
             {(engine === 'openai' || compat) && (
               <Field
                 label="接口地址"
@@ -126,7 +127,11 @@ export function VoiceServiceForm(props: {
               <Field label="API Key" required>
                 <input
                   value={voiceDraft.token}
-                  placeholder="以 sk- 等开头的密钥"
+                  placeholder={
+                    currentSvc?.tts?.openai?.apiKey
+                      ? '已配置 · 留空保持不变'
+                      : '以 sk- 等开头的密钥'
+                  }
                   onChange={(e) =>
                     onDraft({ ...voiceDraft, token: e.target.value })
                   }

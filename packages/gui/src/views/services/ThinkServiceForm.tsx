@@ -142,7 +142,9 @@ export function ThinkServiceForm(props: {
             <input
               value={thinkDraft.apiKey}
               placeholder={
-                selThink ? '留空则保留原 Key' : '以 sk- / ark- 等开头的密钥'
+                currentSvc?.hasApiKey
+                  ? '已配置 · 留空保持不变'
+                  : '以 sk- / ark- 等开头的密钥'
               }
               onChange={(e) =>
                 onDraft({ ...thinkDraft, apiKey: e.target.value })

@@ -112,6 +112,8 @@ export interface VoiceService {
   /** 余额不足标记：API 返回 429/402 等错误时自动置 true，用户可手动清除 */
   limitReached?: boolean
   createdAt: number
+  /** 读接口脱敏标记：TTS 令牌（edge/volcano/openai）明文不回传，仅回传是否已配置 */
+  hasTtsToken?: boolean
 }
 
 /**
@@ -321,6 +323,7 @@ export const ENTITY_FIELDS = {
     'tokenLimit',
     'limitReached',
     'createdAt',
+    'hasTtsToken',
   ],
   speakerModel: [
     'id',

@@ -66,6 +66,12 @@ export function VoiceServiceDetail(props: {
               <span className="k">音色 ID</span>
               <span className="v">{svc?.voiceId || '默认音色'}</span>
             </div>
+            <div className="rr">
+              <span className="k">TTS 令牌</span>
+              <span className="v">
+                {svc?.hasTtsToken ? '已配置' : '未配置'}
+              </span>
+            </div>
           </div>
         </div>
         <div className="grp">

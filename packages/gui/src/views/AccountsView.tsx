@@ -141,8 +141,8 @@ export function AccountsView(props: {
                     <div className="rr">
                       <span className="k">passToken</span>
                       <span className="v">
-                        {accounts.find((a) => a.id === selAcct)?.passToken
-                          ? '已保存'
+                        {accounts.find((a) => a.id === selAcct)?.hasPassToken
+                          ? '已配置'
                           : '未配置'}
                       </span>
                     </div>
@@ -320,8 +320,8 @@ export function AccountsView(props: {
                       rows={4}
                       value={acctDraft.passToken}
                       placeholder={
-                        accounts.find((a) => a.id === selAcct)?.passToken
-                          ? '已保存 · 留空保持不变'
+                        accounts.find((a) => a.id === selAcct)?.hasPassToken
+                          ? '已配置 · 留空保持不变'
                           : '从米家 / 小爱获取的 token'
                       }
                       onChange={(e) =>

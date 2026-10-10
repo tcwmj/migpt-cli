@@ -17,6 +17,7 @@ export function Field({
   hint,
   hintTone,
   row,
+  halfWidth,
   children,
 }: {
   label?: ReactNode
@@ -26,10 +27,18 @@ export function Field({
   hint?: ReactNode
   hintTone?: 'warn'
   row?: boolean
+  halfWidth?: boolean
   children: ReactNode
 }) {
   return (
-    <div className={'fld' + (row ? ' row' : '') + (icon ? ' ic' : '')}>
+    <div
+      className={
+        'fld' +
+        (row ? ' row' : '') +
+        (icon ? ' ic' : '') +
+        (halfWidth ? ' half-width' : '')
+      }
+    >
       {label !== undefined && (
         <label>
           {label}
