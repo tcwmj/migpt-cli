@@ -334,6 +334,15 @@ export function VoiceServiceForm(props: {
       </div>
       <div className="acts">
         <span className="sp" />
+        {isBuiltin && props.onReset && currentSvc && (
+          <Button
+            variant="ghost"
+            icon="arrow-counter-clockwise"
+            onClick={() => props.onReset?.(currentSvc.id)}
+          >
+            重置
+          </Button>
+        )}
         <Button
           variant="ghost"
           onClick={() =>
@@ -357,6 +366,8 @@ export function VoiceServiceForm(props: {
               (!voiceDraft.baseUrl || !voiceDraft.token)) ||
             (engine === 'volcano' &&
               (!voiceDraft.appId || !voiceDraft.token)) ||
+            (voiceDraft.provider === 'custom' &&
+              voiceDraft.customJson.trim() === '') ||
             (voiceDraft.provider === 'custom' &&
               voiceDraft.customJson.trim() !== '' &&
               (() => {
