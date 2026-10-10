@@ -60,8 +60,10 @@ export function VoiceServiceDetail(props: {
           <h4>
             Token 用量
             {svc?.tokenLimit ? (
-              <span className="aside">
-                用量进度{' '}
+              <span
+                className="aside"
+                title={`Token 已使用 ${(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%（${(svc.tokenUsed ?? 0).toLocaleString()} / ${svc.tokenLimit.toLocaleString()}）`}
+              >
                 {(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%
               </span>
             ) : null}
@@ -93,20 +95,6 @@ export function VoiceServiceDetail(props: {
               </span>
             </div>
           </div>
-          {svc?.tokenLimit ? (
-            <div className="row">
-              <div className="rr">
-                <span className="k">用量进度</span>
-                <span className="v">
-                  <progress
-                    value={svc.tokenUsed ?? 0}
-                    max={svc.tokenLimit}
-                    style={{ width: 120 }}
-                  />
-                </span>
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
       <div className="acts">

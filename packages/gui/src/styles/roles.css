@@ -153,9 +153,9 @@
   border-radius: 2px;
   background: var(--accent);
 }
-/* 分组标题右侧附属信息（如用量进度百分比）：推到最右、常规字重弱化 */
+/* 分组标题右侧附属信息：紧贴标题、常规字重弱化；无需推到最右的场景直接用它 */
 .grp h4 .aside {
-  margin-left: auto;
+  margin-left: var(--sp-4);
   font-size: var(--fs-xs);
   font-weight: var(--fw-regular);
   color: var(--ink-3);
