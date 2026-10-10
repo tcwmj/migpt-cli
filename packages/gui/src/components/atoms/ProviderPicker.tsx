@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ProviderDef } from '../../constants.ts'
 
-/** 供应商品牌 Logo 徽标（品牌色圆角块 + 标识字符） */
+/**
+ * 供应商品牌 Logo 徽标。
+ * 优先渲染官方 Logo 图（注册表 logo 字段，取自 Simple Icons 官方品牌资源 CDN，
+ * 以品牌主色着色）；无官方 Logo 或加载失败时回退为「品牌色块 + 官方标识字符」。
+ */
 export function ProviderLogo({
   p,
   size = 22,
@@ -9,7 +13,20 @@ export function ProviderLogo({
   p?: ProviderDef
   size?: number
 }) {
+  const [imgErr, setImgErr] = useState(false)
   if (!p) return null
+  if (p.logo && !imgErr) {
+    return (
+      <img
+        className="pv-logo"
+        src={p.logo}
+        width={size}
+        height={size}
+        alt=""
+        onError={() => setImgErr(true)}
+      />
+    )
+  }
   return (
     <span
       className="pv-logo"

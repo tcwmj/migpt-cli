@@ -62,34 +62,6 @@ export function DeviceBindForm({
           ))}
         </select>
       </Field>
-      <Field
-        row
-        label="连续对话超时（秒）"
-        hint="连续对话中无响应多久自动退出唤醒模式，默认 30 秒"
-      >
-        <input
-          value={v.exitKeepAliveAfter || '30'}
-          placeholder="默认 30"
-          onChange={(e) => setV({ ...v, exitKeepAliveAfter: e.target.value })}
-        />
-      </Field>
-      <Field
-        row
-        label="会话群"
-        hint="对话记忆的上下文归属（对应旧版「会话群 chatGroup」），多台设备可共用；可在「会话群」菜单新建"
-      >
-        <select
-          value={v.roomRef || ''}
-          onChange={(e) => setV({ ...v, roomRef: e.target.value })}
-        >
-          <option value="">（保持当前）</option>
-          {rooms.map((rm) => (
-            <option key={rm.id} value={rm.id}>
-              {rm.name}
-            </option>
-          ))}
-        </select>
-      </Field>
       <div className="notice">
         <I n="warning" size={15} /> 修改后需重启设备生效。
       </div>

@@ -36,9 +36,10 @@ export function useRolesRoomsCrud(opts: {
     (id: string) => devices.filter((d) => d.roleId === id).map((d) => d.alias),
     [devices],
   )
+  /* 会话群被哪些角色引用（名称列表） */
   const roomUsage = useCallback(
-    (id: string) => devices.filter((d) => d.roomRef === id).map((d) => d.alias),
-    [devices],
+    (id: string) => roles.filter((r) => r.roomRef === id).map((r) => r.name),
+    [roles],
   )
 
   const saveRole = async (r: Role) => {

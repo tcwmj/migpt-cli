@@ -30,10 +30,6 @@ export function DeviceDetail(props: {
     : null
   const account = props.accounts.find((a) => a.id === dev?.accountId)
   const role = props.roles.find((r) => r.id === dev?.roleId)
-  const room = dev?.roomRef
-    ? props.rooms.find((x) => x.id === dev.roomRef) || null
-    : null
-  const roomText = dev?.roomRef ? (room ? room.name : dev.roomRef) : '—'
   const thinkText = (dev?.thinkServiceIds || []).length
     ? (dev?.thinkServiceIds || [])
         .map((id) => props.thinkSvcs.find((s) => s.id === id)?.name || id)
@@ -124,18 +120,6 @@ export function DeviceDetail(props: {
             <div className="rr">
               <span className="k">对话角色</span>
               <span className="v">{role?.name || '未指定'}</span>
-            </div>
-            <div className="rr">
-              <span className="k">会话群</span>
-              <span className="v">{roomText}</span>
-            </div>
-          </div>
-          <div className="row">
-            <div className="rr">
-              <span className="k">连续对话超时</span>
-              <span className="v">
-                {dev?.exitKeepAliveAfter ?? 30} 秒无响应退出
-              </span>
             </div>
           </div>
         </div>

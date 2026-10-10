@@ -17,6 +17,11 @@ export function VoiceServiceDetail(props: {
     <div className="form-card">
       <h3>
         <I n="mic" size={17} /> 语音服务详情
+        {svc?.isDefault && (
+          <Tag tone="accent" style={{ marginLeft: 8 }}>
+            默认
+          </Tag>
+        )}
         <span className="refs">
           被 {props.usageVoice(props.selVoice)} 台设备引用 ·
           支持热切「把声音换成…」

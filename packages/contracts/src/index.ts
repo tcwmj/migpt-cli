@@ -33,9 +33,10 @@ export interface Role {
   callAIKeywords: string[]
   wakeUpKeywords: string[]
   exitKeywords: string[]
-  /** 检测1/检测2：说出继续词保持对话、停止词结束对话（已并入唤醒/退出关键词真实生效） */
-  checkContinueKeywords?: string[]
-  checkNotContinueKeywords?: string[]
+  /** 连续对话 · 播放状态检测间隔（毫秒，默认 1000；调小可降低回复间停顿感） */
+  checkInterval?: number
+  /** 连续对话 · 下发 TTS 指令后多久开始检测播放状态（毫秒，默认 3000；不宜低于 1 秒） */
+  checkTTSStatusAfter?: number
   onEnterAI: string[]
   onExitAI: string[]
   onAIAsking: string[]
@@ -43,11 +44,13 @@ export interface Role {
   onAIError: string[]
   /** 连续对话无响应自动退出时间（秒，默认 30） */
   exitKeepAliveAfter?: number
-  /** 有序思考服务列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
+  /** 会话群引用（Room 实体 id）：对话记忆上下文归属 */
+  roomRef?: string
+  /** @deprecated 已迁移至 DeviceMeta.thinkServiceIds；保留仅兼容旧数据读取 */
   thinkServiceIds?: string[]
   /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
   thinkServiceId?: string
-  /** 该角色默认引用的语音服务（设备未覆盖时生效） */
+  /** @deprecated 已迁移至 DeviceMeta.voiceId；保留仅兼容旧数据读取 */
   voiceId?: string
 }
 
@@ -135,15 +138,13 @@ export interface DeviceMeta {
   thinkServiceIds?: string[]
   /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
   thinkServiceId?: string
-  /** 该设备默认引用的语音服务（未指定时回退到角色或全局默认） */
+  /** 引用的语音服务（未指定时回退到全局默认） */
   voiceId?: string
-  /** 连续对话超时（秒）：无响应多久自动退出唤醒模式，默认 30 */
-  exitKeepAliveAfter?: number
-  /** 会话群引用（Room 实体 id）；多设备可共用同一会话群 */
+  /** @deprecated 已迁移至 Role.roomRef；保留仅兼容旧数据读取 */
   roomRef?: string
-  /** 会话群名称（已迁移至 Room 实体，保留仅兼容旧数据；编译时优先 roomRef） */
+  /** @deprecated 已迁移至 Room 实体，保留仅兼容旧数据读取 */
   roomName?: string
-  /** 会话群描述（已迁移至 Room 实体，保留仅兼容旧数据） */
+  /** @deprecated 已迁移至 Room 实体，保留仅兼容旧数据读取 */
   roomDescription?: string
   ttsSecret: string
   createdAt: number
@@ -190,10 +191,11 @@ export interface PulledDevice {
 /**
  * 绑定链来源标注：
  * - account / role  来自设备显式绑定
- * - think / voice   依次回退：设备覆盖 → 继承人设 → 全局默认
+ * - think / voice   依次回退：设备指定 → 角色旧字段兼容 → 全局默认
+ * - room            依次回退：角色指定 → 设备旧字段兼容
  */
 export interface BindingRow {
-  key: 'account' | 'role' | 'think' | 'voice'
+  key: 'account' | 'role' | 'think' | 'voice' | 'room'
   label: string
   name: string
   detail?: string
@@ -206,6 +208,7 @@ export interface DeviceBindings {
   role?: Role
   think?: ThinkService
   voice?: VoiceService
+  room?: Room
   rows: BindingRow[]
 }
 
@@ -213,8 +216,8 @@ export const ROLE_DEFAULTS = {
   callAIKeywords: ['请', '你', '傻妞'],
   wakeUpKeywords: ['打开', '进入', '召唤'],
   exitKeywords: ['关闭', '退出', '再见'],
-  checkContinueKeywords: [],
-  checkNotContinueKeywords: [],
+  checkInterval: 1000,
+  checkTTSStatusAfter: 3000,
   exitKeepAliveAfter: 30,
   onEnterAI: ['你好，我是傻妞，很高兴认识你'],
   onExitAI: ['傻妞已退出'],
@@ -273,14 +276,15 @@ export const ENTITY_FIELDS = {
     'callAIKeywords',
     'wakeUpKeywords',
     'exitKeywords',
-    'checkContinueKeywords',
-    'checkNotContinueKeywords',
+    'checkInterval',
+    'checkTTSStatusAfter',
     'onEnterAI',
     'onExitAI',
     'onAIAsking',
     'onAIReplied',
     'onAIError',
     'exitKeepAliveAfter',
+    'roomRef',
     'thinkServiceIds',
     'thinkServiceId',
     'voiceId',
@@ -342,7 +346,6 @@ export const ENTITY_FIELDS = {
     'thinkServiceIds',
     'thinkServiceId',
     'voiceId',
-    'exitKeepAliveAfter',
     'roomRef',
     'roomName',
     'roomDescription',

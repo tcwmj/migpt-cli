@@ -1,21 +1,52 @@
-import type { Role } from '../../apis.ts'
+import Select from 'react-select/creatable'
+import type { Role, Room } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
+import { multiSelectStyles } from '../../components/atoms/selectStyles.ts'
 
-/** 关键词字段：输入框文本与「、」分隔的字符串数组互转 */
+/** 关键词字段：多值输入框（回车添加、点 x 删除单个值） */
 function KeywordField(props: {
   label: string
   tip: string
   value?: string[]
   onChange: (next: string[]) => void
 }) {
+  const options = (props.value || []).map((k) => ({ value: k, label: k }))
+  return (
+    <Field label={props.label} tip={props.tip}>
+      <Select
+        isMulti
+        isClearable
+        options={options}
+        value={options}
+        placeholder="输入后回车添加…"
+        noOptionsMessage={() => '暂无关键词'}
+        formatCreateLabel={(input) => `添加「${input}」`}
+        onChange={(vals) => props.onChange((vals || []).map((v) => v.value))}
+        styles={multiSelectStyles}
+      />
+    </Field>
+  )
+}
+
+/** 毫秒数值字段：显示千分符，仅允许数字 */
+function MsField(props: {
+  label: string
+  tip: string
+  value?: number
+  def: number
+  onChange: (n: number) => void
+}) {
+  const fmt = (n: number) => n.toLocaleString('en-US')
   return (
     <Field label={props.label} tip={props.tip}>
       <input
-        value={(props.value || []).join('、')}
-        onChange={(e) =>
-          props.onChange(e.target.value.split(/[、,，]/).filter(Boolean))
-        }
+        inputMode="numeric"
+        value={fmt(props.value ?? props.def)}
+        onChange={(e) => {
+          const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0
+          props.onChange(n)
+        }}
       />
     </Field>
   )
@@ -25,6 +56,7 @@ export function RoleEditForm(props: {
   draft: Role
   creating: boolean
   usage: string[]
+  rooms: Room[]
   setF: (k: keyof Role, v: unknown) => void
   onCancel: () => void
   onSave: () => void
@@ -72,6 +104,63 @@ export function RoleEditForm(props: {
             />
           </Field>
         </div>
+        <div className="row">
+          <Field
+            label="会话群"
+            tip="对话记忆的上下文归属；多台设备共用同一角色时共享对话记忆"
+          >
+            <select
+              value={draft.roomRef || ''}
+              onChange={(e) => setF('roomRef', e.target.value)}
+            >
+              <option value="">未设置</option>
+              {props.rooms.map((rm) => (
+                <option key={rm.id} value={rm.id}>
+                  {rm.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </div>
+      <div className="grp">
+        <h4>回复提示</h4>
+        <div className="row">
+          <KeywordField
+            label="进入思考"
+            tip="进入连续对话时播报，留空即关闭该提示"
+            value={draft.onEnterAI}
+            onChange={(next) => setF('onEnterAI', next)}
+          />
+          <KeywordField
+            label="退出思考"
+            tip="退出连续对话时播报，留空即关闭"
+            value={draft.onExitAI}
+            onChange={(next) => setF('onExitAI', next)}
+          />
+        </div>
+        <div className="row">
+          <KeywordField
+            label="思考中"
+            tip="AI 开始回答前的过渡语，留空即关闭"
+            value={draft.onAIAsking}
+            onChange={(next) => setF('onAIAsking', next)}
+          />
+          <KeywordField
+            label="思考中断"
+            tip="AI 回答异常时播报，留空即关闭"
+            value={draft.onAIError}
+            onChange={(next) => setF('onAIError', next)}
+          />
+        </div>
+        <div className="row">
+          <KeywordField
+            label="回答完毕"
+            tip="AI 回答结束后的收尾语，留空即关闭"
+            value={draft.onAIReplied}
+            onChange={(next) => setF('onAIReplied', next)}
+          />
+        </div>
       </div>
       <div className="grp">
         <h4>单次对话</h4>
@@ -101,74 +190,37 @@ export function RoleEditForm(props: {
           />
         </div>
         <div className="row">
+          <MsField
+            label="继续对话检测"
+            tip="连续对话时，播放状态检测间隔。调小此值可以降低小爱回复之间的停顿感，请酌情调节"
+            value={draft.checkInterval}
+            def={1000}
+            onChange={(n) => setF('checkInterval', n)}
+          />
+          <MsField
+            label="停止对话检测"
+            tip="连续对话时，下发 TTS 指令多长时间后开始检测设备播放状态。最好不要低于 1 秒。"
+            value={draft.checkTTSStatusAfter}
+            def={3000}
+            onChange={(n) => setF('checkTTSStatusAfter', n)}
+          />
+        </div>
+        <div className="row">
           <Field
             label="自动退出时间"
-            tip="连续对话中无响应超过该秒数自动退出，默认 30 秒"
+            tip="连续对话时，无响应多久后自动退出（秒）"
           >
             <input
+              inputMode="numeric"
               value={String(draft.exitKeepAliveAfter ?? 30)}
-              placeholder="默认 30"
               onChange={(e) =>
                 setF(
                   'exitKeepAliveAfter',
-                  parseInt(e.target.value || '30', 10) || 30,
+                  parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 30,
                 )
               }
             />
           </Field>
-        </div>
-        <div className="row">
-          <KeywordField
-            label="继续对话检测"
-            tip="说出继续词可保持连续对话；超时退出后再说出可重新进入"
-            value={draft.checkContinueKeywords}
-            onChange={(next) => setF('checkContinueKeywords', next)}
-          />
-          <KeywordField
-            label="停止对话检测"
-            tip="说出停止词立即结束连续对话，等效于退出关键词"
-            value={draft.checkNotContinueKeywords}
-            onChange={(next) => setF('checkNotContinueKeywords', next)}
-          />
-        </div>
-      </div>
-      <div className="grp">
-        <h4>提示语</h4>
-        <div className="row">
-          <KeywordField
-            label="进入 AI"
-            tip="进入连续对话时播报，留空即关闭该提示"
-            value={draft.onEnterAI}
-            onChange={(next) => setF('onEnterAI', next)}
-          />
-          <KeywordField
-            label="退出 AI"
-            tip="退出连续对话时播报，留空即关闭"
-            value={draft.onExitAI}
-            onChange={(next) => setF('onExitAI', next)}
-          />
-        </div>
-        <div className="row">
-          <KeywordField
-            label="AI 思考中"
-            tip="AI 开始回答前的过渡语，留空即关闭"
-            value={draft.onAIAsking}
-            onChange={(next) => setF('onAIAsking', next)}
-          />
-          <KeywordField
-            label="AI 回答完毕"
-            tip="AI 回答结束后的收尾语，留空即关闭"
-            value={draft.onAIReplied}
-            onChange={(next) => setF('onAIReplied', next)}
-          />
-        </div>
-        <div className="row">
-          <KeywordField
-            label="AI 出错"
-            tip="AI 回答异常时播报，留空即关闭"
-            value={draft.onAIError}
-            onChange={(next) => setF('onAIError', next)}
-          />
         </div>
       </div>
       <div className="acts">

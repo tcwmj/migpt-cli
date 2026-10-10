@@ -132,14 +132,12 @@ export function useServicesCrud(opts: {
   }
 
   const delThink = async (id: string) => {
-    const roleRefs = roles.filter((r) =>
-      (
-        r.thinkServiceIds ?? (r.thinkServiceId ? [r.thinkServiceId] : [])
-      ).includes(id),
+    const devRefs = devices.filter((d) =>
+      (d.thinkServiceIds || []).includes(id),
     )
-    if (roleRefs.length) {
+    if (devRefs.length) {
       showToast(
-        `该思考服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`,
+        `该思考服务正被设备「${devRefs.map((d) => d.alias).join('、')}」引用，请先解除引用`,
       )
       return
     }
@@ -203,10 +201,10 @@ export function useServicesCrud(opts: {
       showToast('内置语音服务不可删除')
       return
     }
-    const roleRefs = roles.filter((r) => r.voiceId === id)
-    if (roleRefs.length) {
+    const devRefs = devices.filter((d) => d.voiceId === id)
+    if (devRefs.length) {
       showToast(
-        `该语音服务正被对话角色「${roleRefs.map((r) => r.name).join('、')}」引用，请先解除引用`,
+        `该语音服务正被设备「${devRefs.map((d) => d.alias).join('、')}」引用，请先解除引用`,
       )
       return
     }
@@ -255,30 +253,15 @@ export function useServicesCrud(opts: {
     ? (voiceSvcs.find((s) => s.id === selVoice) ?? null)
     : null
 
-  /* 服务被引用数（设备直接引用 + 通过角色间接引用） */
+  /* 服务被引用数（设备直接引用） */
   const usageThink = useCallback(
-    (id: string) => {
-      const roleIds = new Set(
-        roles
-          .filter((r) =>
-            (
-              r.thinkServiceIds ?? (r.thinkServiceId ? [r.thinkServiceId] : [])
-            ).includes(id),
-          )
-          .map((r) => r.id),
-      )
-      return devices.filter((d) => d.roleId && roleIds.has(d.roleId)).length
-    },
-    [devices, roles],
+    (id: string) =>
+      devices.filter((d) => (d.thinkServiceIds || []).includes(id)).length,
+    [devices],
   )
   const usageVoice = useCallback(
-    (id: string) => {
-      const roleIds = new Set(
-        roles.filter((r) => r.voiceId === id).map((r) => r.id),
-      )
-      return devices.filter((d) => d.roleId && roleIds.has(d.roleId)).length
-    },
-    [devices, roles],
+    (id: string) => devices.filter((d) => d.voiceId === id).length,
+    [devices],
   )
 
   /* 统一「左列表 + 右详情/新建」：进入页面后默认选中第一个 */

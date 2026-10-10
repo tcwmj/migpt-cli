@@ -14,6 +14,7 @@ import {
   getRoles,
   getThinkServices,
   getVoiceServices,
+  getRooms,
   getRoomByRef,
   getSpeakerModelByRef,
   PROVIDER_BASE_URLS,
@@ -162,25 +163,24 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
         password: account?.miPassword || '',
         switchSpeakerKeywords: ['把声音换成'],
         callAIKeywords: role?.callAIKeywords || ROLE_DEFAULTS.callAIKeywords,
-        // 检测1（继续对话）并入唤醒关键词：连续对话中说出继续词保持对话、超时后说出仍可重新进入
         wakeUpKeywords: mergeKW(
           role?.wakeUpKeywords,
-          role?.checkContinueKeywords,
           ROLE_DEFAULTS.wakeUpKeywords,
         ),
-        // 检测2（停止对话）并入退出关键词：连续对话中说出停止词立即结束
-        exitKeywords: mergeKW(
-          role?.exitKeywords,
-          role?.checkNotContinueKeywords,
-          ROLE_DEFAULTS.exitKeywords,
-        ),
+        exitKeywords: mergeKW(role?.exitKeywords, ROLE_DEFAULTS.exitKeywords),
         onEnterAI: role?.onEnterAI || ROLE_DEFAULTS.onEnterAI,
         onExitAI: role?.onExitAI || ROLE_DEFAULTS.onExitAI,
         onAIAsking: role?.onAIAsking || ROLE_DEFAULTS.onAIAsking,
         onAIReplied: role?.onAIReplied || ROLE_DEFAULTS.onAIReplied,
         onAIError: role?.onAIError || ROLE_DEFAULTS.onAIError,
+        // 连续对话检测参数：两个检测字段存毫秒（checkTTSStatusAfter 编译转秒），自动退出时间存秒
         exitKeepAliveAfter:
           role?.exitKeepAliveAfter ?? ROLE_DEFAULTS.exitKeepAliveAfter,
+        checkInterval: role?.checkInterval ?? ROLE_DEFAULTS.checkInterval,
+        checkTTSStatusAfter: Math.round(
+          (role?.checkTTSStatusAfter ?? ROLE_DEFAULTS.checkTTSStatusAfter) /
+            1000,
+        ),
       },
     },
     env: {
@@ -191,11 +191,11 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
   }
 }
 
-/** 解析一台设备的完整绑定链（账号/角色/思考服务/语音服务 + 来源标注） */
+/** 解析一台设备的完整绑定链（账号/角色/思考服务/语音服务/会话群 + 来源标注） */
 export async function resolveBindings(
   meta: DeviceMeta,
 ): Promise<DeviceBindings> {
-  // 单次并行读取全部关联集合：原实现 accounts 读两次、思考/语音列表各读多次
+  // 单次并行读取全部关联集合
   const [accounts, roles, thinks, voices] = await Promise.all([
     getAccounts(),
     getRoles(),
@@ -205,10 +205,10 @@ export async function resolveBindings(
   const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
   const role = meta.roleId ? roles.find((r) => r.id === meta.roleId) : undefined
 
-  // 思考服务：角色列表（failover）→ 角色单选兼容 → 全局默认
+  // 思考服务：设备列表（failover）→ 角色旧字段兼容 → 全局默认
   let think: (typeof thinks)[0] | undefined
-  let thinkSource: 'role' | 'global' = 'role'
-  const thinkIds = role?.thinkServiceIds ?? []
+  let thinkSource: 'device' | 'global' = 'device'
+  const thinkIds = meta.thinkServiceIds ?? role?.thinkServiceIds ?? []
   if (thinkIds.length > 0) {
     // 按顺序跳过 limitReached 的服务
     for (const sid of thinkIds) {
@@ -223,25 +223,34 @@ export async function resolveBindings(
       think = thinks.find((t) => t.id === thinkIds[0])
     }
   }
-  // 无列表时保留 role.thinkServiceId 兼容旧数据
-  if (!think && role?.thinkServiceId) {
-    think = thinks.find((t) => t.id === role.thinkServiceId)
+  // 无列表时保留 thinkServiceId 兼容旧数据
+  if (!think) {
+    const legacyId = meta.thinkServiceId ?? role?.thinkServiceId
+    if (legacyId) think = thinks.find((t) => t.id === legacyId)
   }
   if (!think) {
     think = thinks.find((t) => t.isDefault) ?? thinks[0]
     thinkSource = 'global'
   }
 
-  // 语音服务：角色指定 → 全局默认
+  // 语音服务：设备指定 → 角色旧字段兼容 → 全局默认
   let voice: (typeof voices)[0] | undefined
-  let voiceSource: 'role' | 'global' = 'role'
-  if (role?.voiceId) {
-    voice = voices.find((v) => v.id === role.voiceId)
+  let voiceSource: 'device' | 'global' = 'device'
+  const voiceId = meta.voiceId ?? role?.voiceId
+  if (voiceId) {
+    voice = voices.find((v) => v.id === voiceId)
   }
   if (!voice) {
     voice = voices.find((v) => v.isDefault) ?? voices[0]
     voiceSource = 'global'
   }
+
+  // 会话群：角色指定 → 设备旧字段兼容（'' 视为未设置，用 || 回退）
+  const rooms = await getRooms()
+  const roomRef = role?.roomRef || meta.roomRef || meta.roomName
+  const room = roomRef
+    ? rooms.find((r) => r.id === roomRef || r.name === roomRef)
+    : undefined
 
   const rows = [
     {
@@ -266,7 +275,7 @@ export async function resolveBindings(
       name: think?.name || '未配置',
       detail: think ? `${think.provider} · ${think.model}` : undefined,
       source: thinkSource,
-      sourceLabel: thinkSource === 'role' ? '角色绑定' : '全局默认',
+      sourceLabel: thinkSource === 'device' ? '设备绑定' : '全局默认',
     },
     {
       key: 'voice' as const,
@@ -278,11 +287,19 @@ export async function resolveBindings(
           : `${voice.provider} · ${voice.voiceId || '默认音色'}`
         : undefined,
       source: voiceSource,
-      sourceLabel: voiceSource === 'role' ? '角色绑定' : '全局默认',
+      sourceLabel: voiceSource === 'device' ? '设备绑定' : '全局默认',
+    },
+    {
+      key: 'room' as const,
+      label: '会话群',
+      name: room?.name || '未设置',
+      detail: room?.description,
+      source: role?.roomRef ? ('role' as const) : ('device' as const),
+      sourceLabel: role?.roomRef ? '角色绑定' : '设备指定',
     },
   ]
 
-  return { account, role, think, voice, rows }
+  return { account, role, think, voice, room, rows }
 }
 
 /**
@@ -294,13 +311,12 @@ export async function buildRunConfig(
   meta: DeviceMeta,
   existingConfig?: GuiConfig,
 ): Promise<{ config: GuiConfig; bindings: DeviceBindings }> {
-  // 并行取绑定链 / 型号 / 会话群（三者互不依赖，串行 await 会叠加三次读盘）
-  const [bindings, model, room] = await Promise.all([
+  // 并行取绑定链 / 型号（两者互不依赖）
+  const [bindings, model] = await Promise.all([
     resolveBindings(meta),
     getSpeakerModelByRef(meta.speakerModel),
-    getRoomByRef(meta.roomRef || meta.roomName),
   ])
-  const { account, role, think, voice } = bindings
+  const { account, role, think, voice, room } = bindings
   const config = buildConfigFromRole(role, account)
 
   // 保留已有设备的 GUI 字段（publicURL / ttsProvider / speakerModel 等）
@@ -342,8 +358,6 @@ export async function buildRunConfig(
     // 注意：无 playingCommand 不代表不支持连续对话（官方多数型号依赖 Mina 检测播放状态，
     // playingCommand 仅作 MiOT 备选指令，异常时才需补充）——故此处不做强制禁用
   }
-  // 连续对话超时（无响应自动退出唤醒模式，默认 30 秒）
-  config.config.speaker.exitKeepAliveAfter = meta.exitKeepAliveAfter ?? 30
   // 会话群（room）：对话记忆上下文归属（独立 Room 实体，多设备共用；旧字段仅兼容）
   if (room) {
     config.config.room = {

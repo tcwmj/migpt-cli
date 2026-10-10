@@ -38,8 +38,6 @@ export function useDevicesCrud(opts: {
     thinkServiceIds: d.thinkServiceIds || [],
     voiceId: d.voiceId || '',
     ttsSecret: d.ttsSecret || '',
-    exitKeepAliveAfter: String(d.exitKeepAliveAfter ?? 30),
-    roomRef: d.roomRef || '',
   })
   const blankDraft = (): DevDraft => ({
     alias: '',
@@ -50,8 +48,6 @@ export function useDevicesCrud(opts: {
     thinkServiceIds: [],
     voiceId: '',
     ttsSecret: '',
-    exitKeepAliveAfter: '30',
-    roomRef: '',
   })
 
   /* 设备页：左列表选中 → 右侧详情/新建（与其他页 split 一致） */
@@ -81,9 +77,6 @@ export function useDevicesCrud(opts: {
               ? devDraft.thinkServiceIds
               : undefined,
             voiceId: devDraft.voiceId || undefined,
-            exitKeepAliveAfter:
-              parseInt(devDraft.exitKeepAliveAfter || '30', 10) || 30,
-            roomRef: devDraft.roomRef || undefined,
             ttsSecret: devDraft.ttsSecret || undefined,
           },
         })

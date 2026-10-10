@@ -52,8 +52,6 @@ export type DevDraft = {
   thinkServiceIds: string[]
   voiceId: string
   ttsSecret: string
-  exitKeepAliveAfter: string
-  roomRef: string
 }
 export type DevPullState = {
   loading: boolean

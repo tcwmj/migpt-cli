@@ -8,7 +8,7 @@ import {
 } from '../store.js'
 import type { Room } from '../types.js'
 import { pick, ROOM_FIELDS } from './shared.js'
-import { createCrudRouter, deviceRefs } from './crud.js'
+import { createCrudRouter, roleRefs } from './crud.js'
 
 export const registerRoomRoutes = createCrudRouter<Room>({
   path: 'rooms',
@@ -38,6 +38,6 @@ export const registerRoomRoutes = createCrudRouter<Room>({
       id: list[idx].id,
     }
   },
-  refRules: [deviceRefs('roomRef')],
-  refMessage: '该会话群正被设备引用，无法删除；请先解绑引用该会话群的设备',
+  refRules: [roleRefs('roomRef')],
+  refMessage: '该会话群正被对话角色引用，无法删除；请先解绑引用该会话群的角色',
 })

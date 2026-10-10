@@ -223,8 +223,6 @@ export function App() {
                   thinkServiceIds: [],
                   voiceId: '',
                   ttsSecret: '',
-                  exitKeepAliveAfter: '30',
-                  roomRef: '',
                 })
                 setView('devices')
               }}
@@ -301,6 +299,7 @@ export function App() {
             <RolesView
               roles={rr.filterRoles}
               allRoles={roles}
+              rooms={rooms}
               roleUsage={rr.roleUsage}
               onSave={rr.saveRole}
               onCreate={rr.createRole}
@@ -445,7 +444,7 @@ export function App() {
         />
       )}
 
-      <Toast msg={toast} leaving={leaving} />
+      <Toast toast={toast} leaving={leaving} />
     </div>
   )
 }

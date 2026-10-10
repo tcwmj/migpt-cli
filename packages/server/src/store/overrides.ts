@@ -118,7 +118,13 @@ export function mergeBuiltinVoices(
     const patch = patches?.[d.id]
     return patch ? { ...base, ...patch, id: base.id, builtin: true } : base
   })
-  return [...builtins, ...customs]
+  const all = [...builtins, ...customs]
+  // 兜底为默认：全局无显式默认时，把首个内置语音设为默认（保持「总有默认」语义）
+  if (!all.some((v) => v.isDefault)) {
+    const first = all.find((v) => v.builtin)
+    if (first) first.isDefault = true
+  }
+  return all
 }
 
 // ── 落盘：用户自建实体写文件，内置项差异写覆盖 ──

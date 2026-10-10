@@ -36,7 +36,14 @@ export function VoiceServiceList(props: {
                     (s.voiceId ? ' · ' + s.voiceId : '')}
               </span>
             </span>
-            {s.builtin ? <Tag>内置</Tag> : s.isDefault ? <Tag>默认</Tag> : null}
+            {s.builtin ? (
+              <>
+                <Tag>内置</Tag>
+                {s.isDefault && <Tag tone="accent">默认</Tag>}
+              </>
+            ) : s.isDefault ? (
+              <Tag>默认</Tag>
+            ) : null}
           </div>
         )
       })}

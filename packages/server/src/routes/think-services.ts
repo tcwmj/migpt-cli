@@ -4,12 +4,12 @@ import {
   getThinkServices,
   saveThinkServices,
   thinkServiceListSchema,
-  getRoles,
+  listDeviceMetas,
 } from '../store.js'
 import { redactThinkService, redactThinkServices } from '../redact.js'
 import type { ThinkService } from '../types.js'
 import { pick, THINK_FIELDS } from './shared.js'
-import { createCrudRouter, roleRefs, type RefRule } from './crud.js'
+import { createCrudRouter, deviceRefs, type RefRule } from './crud.js'
 
 export const registerThinkServiceRoutes = createCrudRouter<ThinkService>({
   path: 'think-services',
@@ -54,16 +54,16 @@ export const registerThinkServiceRoutes = createCrudRouter<ThinkService>({
   },
   respond: redactThinkService,
   refRules: [
-    roleRefs('thinkServiceId'),
+    deviceRefs('thinkServiceId'),
     {
-      key: 'roles',
+      key: 'devices',
       find: async (id) => {
-        const roles = await getRoles()
-        return roles
-          .filter((r) => r.thinkServiceIds?.includes(id))
-          .map((r) => r.name)
+        const metas = await listDeviceMetas()
+        return metas
+          .filter((m) => m.thinkServiceIds?.includes(id))
+          .map((m) => m.alias)
       },
     } satisfies RefRule,
   ],
-  refMessage: '该思考服务正被其他实体引用，无法删除',
+  refMessage: '该思考服务正被设备引用，无法删除',
 })

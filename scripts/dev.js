@@ -160,16 +160,53 @@ function restartServer() {
   }, 3000)
 }
 
-try {
-  fs.watch(serverDist, { recursive: false }, () => {
-    if (stopping) return
-    // 防抖：tsc 会连续写多个文件，静默一段时间后再重启
-    clearTimeout(restartTimer)
-    restartTimer = setTimeout(restartServer, 600)
-  })
-} catch (e) {
-  console.error('  [watch] dist 监听失败，需手动重启后端：', e.message)
+// ── 监听 server dist 变化并自动重启 ──
+// 触发重启的统一入口（防抖）
+function scheduleRestart() {
+  if (stopping) return
+  clearTimeout(restartTimer)
+  restartTimer = setTimeout(restartServer, 600)
 }
+
+// 1) fs.watch：Windows/macOS 支持 recursive，可捕获 routes/、store/ 等子目录变化；
+//    Linux 不支持 recursive，退化为仅监听顶层（兜底靠轮询）。
+const recursive = process.platform === 'win32' || process.platform === 'darwin'
+try {
+  const watcher = fs.watch(serverDist, { recursive }, scheduleRestart)
+  watcher.on('error', (e) =>
+    console.error('  [watch] dist 监听出错：', e.message),
+  )
+} catch (e) {
+  console.error('  [watch] dist 监听失败，启用轮询兜底：', e.message)
+}
+
+// 2) 轮询兜底：每 2s 扫描 dist 下所有 .js 的最大 mtime，
+//    若 fs.watch 漏报（Windows 子目录写入偶发不触发），仍能保证重启。
+let lastPollMtime = 0
+function scanMaxMtime(dir) {
+  let max = 0
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name)
+    const st = fs.statSync(full)
+    if (st.isDirectory()) max = Math.max(max, scanMaxMtime(full))
+    else if (name.endsWith('.js')) max = Math.max(max, st.mtimeMs)
+  }
+  return max
+}
+try {
+  lastPollMtime = scanMaxMtime(serverDist)
+} catch {}
+setInterval(() => {
+  if (stopping) return
+  try {
+    const m = scanMaxMtime(serverDist)
+    if (m > lastPollMtime) {
+      lastPollMtime = m
+      scheduleRestart()
+    }
+  } catch {}
+}, 2000).unref()
+
 startServer()
 
 // ── 优雅退出：Ctrl+C 清理后台 ──

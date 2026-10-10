@@ -39,8 +39,6 @@ export function initModalValues(modal: ModalState): Record<string, string> {
     init.accountId = (p.accountId as string) || ''
     init.roleId = (p.roleId as string) || ''
     init.speakerModel = (p.speakerModel as string) || ''
-    init.exitKeepAliveAfter = String((p.exitKeepAliveAfter as number) ?? 30)
-    init.roomRef = (p.roomRef as string) || ''
   }
   return init
 }
@@ -97,8 +95,6 @@ export function buildModalPayload(
       roleId: v.roleId || undefined,
       accountId: v.accountId || undefined,
       speakerModel: v.speakerModel || undefined,
-      exitKeepAliveAfter: parseInt(v.exitKeepAliveAfter || '30', 10) || 30,
-      roomRef: v.roomRef || undefined,
     }
   }
   return { out }

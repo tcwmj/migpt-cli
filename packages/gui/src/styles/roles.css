@@ -351,15 +351,19 @@
   vertical-align: 1px;
   flex-shrink: 0;
 }
+.grp .fld label .tip:hover {
+  z-index: var(--z-popover);
+}
 .grp .fld label .tip::after {
   content: attr(data-tip);
   position: absolute;
-  left: 50%;
+  /* 左对齐向右伸展：居中定位在靠近左边界时会被编辑区域裁剪 */
+  left: 0;
   bottom: calc(100% + 8px);
   width: max-content;
   max-width: 300px;
   white-space: normal;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateY(4px);
   background: var(--ink-1);
   color: #fff;
   padding: var(--sp-3) var(--sp-5);
@@ -380,7 +384,7 @@
 .grp .fld label .tip:hover::after {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 /* 双列 row：label 与输入框沿用统一的 100px 对齐规格 */
 .grp .row {

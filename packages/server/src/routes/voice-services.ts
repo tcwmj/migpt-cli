@@ -8,7 +8,7 @@ import {
 } from '../store.js'
 import type { VoiceService } from '../types.js'
 import { API_PREFIX, fail, pick, VOICE_FIELDS } from './shared.js'
-import { createCrudRouter, roleRefs } from './crud.js'
+import { createCrudRouter, deviceRefs } from './crud.js'
 
 export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
   path: 'voice-services',
@@ -71,8 +71,8 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
     }
   },
   deleteGuard: (target) => (target.builtin ? '内建语音服务不可删除' : null),
-  refRules: [roleRefs('voiceId')],
-  refMessage: '该语音服务正被其他实体引用，无法删除',
+  refRules: [deviceRefs('voiceId')],
+  refMessage: '该语音服务正被设备引用，无法删除',
   extra: ({ app }) => {
     // 重置内置语音服务为默认（仅 builtin 可用）
     app.post(`${API_PREFIX}/voice-services/:id/reset`, async (req, res) => {

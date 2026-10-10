@@ -1,6 +1,6 @@
 /* ══ RolesView ══ */
 import { useEffect, useState } from 'react'
-import { type Role } from '../apis.ts'
+import { type Role, type Room } from '../apis.ts'
 import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import { RoleDetail } from './roles/RoleDetail.tsx'
 import { RoleEditForm } from './roles/RoleEditForm.tsx'
@@ -9,6 +9,7 @@ import { RoleList } from './roles/RoleList.tsx'
 export function RolesView(props: {
   roles: Role[]
   allRoles: Role[]
+  rooms: Room[]
   roleUsage: (id: string) => string[]
   onSave: (r: Role) => void
   onCreate: (r: Partial<Role>) => Promise<Role | null> | void
@@ -26,9 +27,10 @@ export function RolesView(props: {
     callAIKeywords: [],
     wakeUpKeywords: ['小爱同学'],
     exitKeywords: [],
-    checkContinueKeywords: [],
-    checkNotContinueKeywords: [],
+    checkInterval: 1000,
+    checkTTSStatusAfter: 3000,
     exitKeepAliveAfter: 30,
+    roomRef: '',
     onEnterAI: [],
     onExitAI: [],
     onAIAsking: [],
@@ -119,6 +121,7 @@ export function RolesView(props: {
             key={'role-r-' + sel.id}
             role={sel}
             usage={usage}
+            rooms={props.rooms}
             onEdit={() => setEdit(true)}
             onDelete={() => props.onDelete(sel.id)}
           />
@@ -129,6 +132,7 @@ export function RolesView(props: {
             draft={draft}
             creating={creating}
             usage={usage}
+            rooms={props.rooms}
             setF={setF}
             onCancel={cancelEdit}
             onSave={doSave}

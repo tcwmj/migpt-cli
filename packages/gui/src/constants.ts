@@ -58,10 +58,12 @@ export const SEARCH_HINT: Record<View, string> = {
 export interface ProviderDef {
   /** 展示名称 */
   name: string
-  /** 品牌色（Logo 徽标背景） */
+  /** 品牌色（Logo 徽标背景；有官方 logo 图时作为 fallback 字标底色） */
   color: string
-  /** Logo 徽标字符（1–2 位，取品牌首字母/标识） */
+  /** 字标（无官方 logo 图或加载失败时显示，1–2 位品牌标识） */
   mark: string
+  /** 官方品牌 Logo 图（首选）；取自 Simple Icons 官方 CDN，失败回退为字标 */
+  logo?: string
   /** 选择卡片下方的补充说明 */
   hint?: string
   /** 供应商选择卡片的警示角标（如接口兼容性提示） */
@@ -75,8 +77,16 @@ export interface ProviderDef {
 }
 
 /**
+ * 供应商品牌 Logo CDN（LobeHub AI 图标库 + Simple Icons 兜底）。
+ * 优先 LobeHub（AI 品牌全覆盖），个别仅 Simple Icons 收录的走后者。
+ */
+const LOBE = 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg/icons'
+const SI = 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons'
+
+/**
  * 思考服务供应商注册表（自定义 + 国内外主流厂商，均提供 OpenAI 兼容端点）。
  * baseUrl 单一事实源取自 @migptgui/contracts 的 PROVIDER_BASE_URLS。
+ * logo 字段为官方品牌 Logo SVG（LobeHub / Simple Icons CDN）；无资源的品牌回退为字标。
  */
 export const THINK_PROVIDERS: Record<string, ProviderDef> = {
   custom: {
@@ -88,23 +98,26 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     model: '',
   },
   doubao: {
-    name: '豆包',
-    color: '#3250ea',
-    mark: '豆',
-    hint: '火山方舟 · Ark',
+    name: '火山方舟',
+    color: '#3863f1',
+    mark: '火山',
+    logo: `${LOBE}/volcengine.svg`,
+    hint: '豆包系列大模型',
     baseUrl: PROVIDER_BASE_URLS.doubao,
-    model: 'doubao-1-5-lite-32k',
+    model: 'doubao-seed-2-0-lite',
     models: [
-      'doubao-1-5-lite-32k',
-      'doubao-1-5-pro-32k',
+      'doubao-seed-2-1-pro',
+      'doubao-seed-2-0-lite',
       'doubao-seed-1-6',
-      'doubao-seed-1-8',
+      'doubao-1-5-pro-32k',
+      'doubao-1-5-lite-32k',
     ],
   },
   openai: {
     name: 'OpenAI',
-    color: '#0f0f0f',
+    color: '#000000',
     mark: '◎',
+    logo: `${LOBE}/openai.svg`,
     hint: 'GPT 系列',
     baseUrl: PROVIDER_BASE_URLS.openai,
     model: 'gpt-4o-mini',
@@ -114,6 +127,7 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     name: 'DeepSeek',
     color: '#4d6bfe',
     mark: 'D',
+    logo: `${LOBE}/deepseek.svg`,
     hint: '深度求索',
     baseUrl: PROVIDER_BASE_URLS.deepseek,
     model: 'deepseek-chat',
@@ -122,16 +136,18 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
   qwen: {
     name: '通义千问',
     color: '#615ced',
-    mark: 'Q',
-    hint: '阿里云百炼',
+    mark: '通义',
+    logo: `${LOBE}/qwen.svg`,
+    hint: '阿里云百炼 · Qwen',
     baseUrl: PROVIDER_BASE_URLS.qwen,
     model: 'qwen-plus',
     models: ['qwen-plus', 'qwen-turbo', 'qwen-max', 'qwen3-coder-plus'],
   },
   zhipu: {
-    name: '智谱 AI',
-    color: '#1677ff',
-    mark: '智',
+    name: '智谱AI',
+    color: '#2954e3',
+    mark: '智谱',
+    logo: `${LOBE}/zhipu.svg`,
     hint: 'GLM 系列',
     baseUrl: PROVIDER_BASE_URLS.zhipu,
     model: 'glm-4-flash',
@@ -141,23 +157,30 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     name: 'Kimi',
     color: '#111111',
     mark: 'K',
-    hint: '月之暗面',
+    logo: `${SI}/moonshotai.svg`,
+    hint: '月之暗面 · Moonshot',
     baseUrl: PROVIDER_BASE_URLS.moonshot,
     model: 'moonshot-v1-8k',
     models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'kimi-latest'],
   },
   minimax: {
     name: 'MiniMax',
-    color: '#f5551e',
+    color: '#f55022',
     mark: 'M',
-    hint: 'ABAB 系列',
+    logo: `${LOBE}/minimax.svg`,
+    hint: 'ABAB / M2 系列',
     baseUrl: PROVIDER_BASE_URLS.minimax,
-    model: 'MiniMax-Text-01',
-    models: ['MiniMax-Text-01', 'abab6.5s-chat', 'MiniMax-M1'],
+    model: 'MiniMax-M2',
+    models: [
+      'MiniMax-M2',
+      'MiniMax-M2.1-highspeed',
+      'MiniMax-Text-01',
+      'abab6.5s-chat',
+    ],
   },
   siliconflow: {
     name: '硅基流动',
-    color: '#4f46e5',
+    color: '#6b56ff',
     mark: '硅',
     hint: '聚合多家开源模型',
     baseUrl: PROVIDER_BASE_URLS.siliconflow,
@@ -179,9 +202,10 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
   },
   yi: {
     name: '零一万物',
-    color: '#00a98f',
-    mark: 'Yi',
-    hint: '万知',
+    color: '#0066ff',
+    mark: '01',
+    logo: `${LOBE}/yi.svg`,
+    hint: '01.AI · 万知',
     baseUrl: PROVIDER_BASE_URLS.yi,
     model: 'yi-large',
     models: ['yi-large', 'yi-medium', 'yi-lightning'],
@@ -190,6 +214,7 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     name: 'Groq',
     color: '#f55036',
     mark: 'G',
+    logo: `${LOBE}/groq.svg`,
     hint: '超低延迟推理',
     baseUrl: PROVIDER_BASE_URLS.groq,
     model: 'llama-3.3-70b-versatile',
@@ -199,15 +224,17 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     name: 'Cerebras',
     color: '#00b3a4',
     mark: 'C',
+    logo: `${LOBE}/cerebras.svg`,
     hint: '晶圆级高速推理',
     baseUrl: PROVIDER_BASE_URLS.cerebras,
     model: 'llama-3.3-70b',
     models: ['llama-3.3-70b', 'llama3.1-8b'],
   },
   mistral: {
-    name: 'Mistral',
-    color: '#fa520f',
-    mark: 'MI',
+    name: 'Mistral AI',
+    color: '#ff7000',
+    mark: 'M',
+    logo: `${LOBE}/mistral.svg`,
     hint: '欧洲大模型',
     baseUrl: PROVIDER_BASE_URLS.mistral,
     model: 'mistral-large-latest',
@@ -217,6 +244,7 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     name: 'Anthropic',
     color: '#d97757',
     mark: 'A',
+    logo: `${LOBE}/anthropic.svg`,
     hint: 'Claude 系列',
     badge: '需兼容网关',
     baseUrl: PROVIDER_BASE_URLS.anthropic,
@@ -226,6 +254,7 @@ export const THINK_PROVIDERS: Record<string, ProviderDef> = {
     name: 'Google Gemini',
     color: '#4285f4',
     mark: 'G',
+    logo: `${LOBE}/gemini.svg`,
     hint: 'Gemini 系列',
     badge: '需兼容网关',
     baseUrl: PROVIDER_BASE_URLS.gemini,
@@ -271,31 +300,34 @@ export const VOICE_PROVIDERS: Record<
     engine: 'edge',
   },
   volcano: {
-    name: '火山语音',
-    color: '#3250ea',
-    mark: '豆',
-    hint: '豆包语音合成',
+    name: '火山引擎语音',
+    color: '#3863f1',
+    mark: '火山',
+    logo: `${LOBE}/volcengine.svg`,
+    hint: '豆包语音合成 · Volcengine TTS',
     engine: 'volcano',
   },
   openai: {
     name: 'OpenAI',
-    color: '#0f0f0f',
+    color: '#000000',
     mark: '◎',
+    logo: `${LOBE}/openai.svg`,
     hint: 'TTS 系列 · 改地址可接兼容端点',
     baseUrl: PROVIDER_BASE_URLS.openai,
     engine: 'openai',
   },
   doubao: {
-    name: '豆包语音',
-    color: '#3250ea',
-    mark: '豆',
-    hint: 'OpenAI 兼容语音接口',
+    name: '火山方舟',
+    color: '#3863f1',
+    mark: '火山',
+    logo: `${LOBE}/volcengine.svg`,
+    hint: '豆包语音 (OpenAI 兼容)',
     baseUrl: PROVIDER_BASE_URLS.doubao,
     engine: 'openai-compat',
   },
   siliconflow: {
     name: '硅基流动',
-    color: '#4f46e5',
+    color: '#6b56ff',
     mark: '硅',
     hint: 'OpenAI 兼容 · 聚合 CosyVoice 等',
     baseUrl: PROVIDER_BASE_URLS.siliconflow,

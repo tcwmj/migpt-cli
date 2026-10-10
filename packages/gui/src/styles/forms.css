@@ -155,19 +155,29 @@
   margin-top: var(--sp-1);
 }
 
-/* ── 供应商品牌 Logo 徽标（品牌色圆角块 + 标识字符） ── */
+/* ── 供应商品牌 Logo 徽标：官方 logo 图（img）或品牌色块+字标（span） ── */
 .pv-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
   border-radius: 8px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* 字标回退：品牌色块 + 白色标识字符 */
+span.pv-logo {
   color: #fff;
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   letter-spacing: 0;
-  line-height: 1;
-  user-select: none;
+}
+
+/* 官方 logo 图：无背景色，保持品牌原色 */
+img.pv-logo {
+  object-fit: contain;
+  background: transparent;
 }
 
 /* 带 Logo 的供应商徽标（列表 / 详情行内展示） */

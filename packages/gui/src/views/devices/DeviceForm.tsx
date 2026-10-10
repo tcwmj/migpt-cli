@@ -10,6 +10,7 @@ import type {
 } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
+import { multiSelectStyles } from '../../components/atoms/selectStyles.ts'
 import type { DevDraft, DevPullState } from '../drafts.ts'
 
 export function DeviceForm(props: {
@@ -126,30 +127,7 @@ export function DeviceForm(props: {
                     thinkServiceIds: vals.map((v) => v.value),
                   })
                 }
-                styles={{
-                  control: (base) => ({
-                    ...base,
-                    minHeight: 36,
-                    borderColor: 'var(--line)',
-                    boxShadow: 'none',
-                    '&:hover': { borderColor: 'var(--accent)' },
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: '#e5e7eb',
-                    borderRadius: 10,
-                  }),
-                  multiValueLabel: (base) => ({
-                    ...base,
-                    fontSize: 13,
-                    padding: '2px 6px',
-                  }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    borderRadius: 10,
-                    ':hover': { backgroundColor: '#d1d5db' },
-                  }),
-                }}
+                styles={multiSelectStyles}
               />
             </Field>
           </div>
@@ -192,38 +170,6 @@ export function DeviceForm(props: {
                 </option>
               ))}
             </select>
-          </Field>
-          <Field label="会话群" tip="对话记忆的上下文归属，多台设备可共用">
-            <select
-              value={devDraft.roomRef}
-              onChange={(e) =>
-                props.onDraft({ ...devDraft, roomRef: e.target.value })
-              }
-            >
-              <option value="">未指定</option>
-              {props.rooms.map((rm) => (
-                <option key={rm.id} value={rm.id}>
-                  {rm.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <div className="row">
-          <Field
-            label="连续对话超时（秒）"
-            tip="无响应多久自动退出唤醒模式，默认 30 秒"
-          >
-            <input
-              value={devDraft.exitKeepAliveAfter || '30'}
-              placeholder="默认 30"
-              onChange={(e) =>
-                props.onDraft({
-                  ...devDraft,
-                  exitKeepAliveAfter: e.target.value,
-                })
-              }
-            />
           </Field>
         </div>
       </div>

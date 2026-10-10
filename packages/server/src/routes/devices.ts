@@ -70,7 +70,6 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       thinkServiceIds?: string[]
       thinkServiceId?: string
       voiceId?: string
-      exitKeepAliveAfter?: number
       roomRef?: string
       roomName?: string
       roomDescription?: string
@@ -104,7 +103,6 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       thinkServiceIds: body.thinkServiceIds,
       thinkServiceId: body.thinkServiceId,
       voiceId: body.voiceId,
-      exitKeepAliveAfter: body.exitKeepAliveAfter,
       roomRef: body.roomRef,
       roomName: body.roomName,
       roomDescription: body.roomDescription,
@@ -190,7 +188,6 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         body.meta.thinkServiceIds !== undefined ||
         body.meta.thinkServiceId !== undefined ||
         body.meta.voiceId !== undefined ||
-        body.meta.exitKeepAliveAfter !== undefined ||
         body.meta.roomRef !== undefined ||
         body.meta.roomName !== undefined ||
         body.meta.roomDescription !== undefined

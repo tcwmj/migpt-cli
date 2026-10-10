@@ -167,12 +167,6 @@ export function Drawer(props: {
                 </span>
               </div>
               <div className="kr">
-                <span className="k">对话超时</span>
-                <span className="vv">
-                  {m.exitKeepAliveAfter ?? 30} 秒无响应退出
-                </span>
-              </div>
-              <div className="kr">
                 <span className="k">会话群</span>
                 <span className="vv">
                   {(() => {
