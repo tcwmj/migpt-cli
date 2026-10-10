@@ -465,10 +465,16 @@ export function buildVoiceTts(v: VoiceFormValues): {
       return { tts, err: '火山语音需填写 App ID 与访问令牌' }
     tts.volcano = { appId: v.appId, accessToken: v.token }
   } else if (v.provider === 'custom') {
+    if (!v.customJson.trim()) {
+      return { tts, err: '自定义 TTS 配置不能为空' }
+    }
     try {
-      Object.assign(tts, JSON.parse(v.customJson || '{}'))
-    } catch {
-      return { tts, err: '自定义 TTS 配置不是合法 JSON' }
+      Object.assign(tts, JSON.parse(v.customJson))
+    } catch (e) {
+      return {
+        tts,
+        err: `自定义 TTS 配置不是合法 JSON: ${(e as Error).message}`,
+      }
     }
   } else {
     const name = VOICE_PROVIDERS[v.provider]?.name || '语音'

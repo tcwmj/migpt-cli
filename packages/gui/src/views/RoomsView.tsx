@@ -29,6 +29,10 @@ export function RoomsView(props: {
   })
   const [edit, setEdit] = useState(false)
   const [creating, setCreating] = useState(false)
+  // 刷新/首屏时列表数据异步到达，useState 初值为空 → 数据就绪后补选第一项（与 RolesView 一致）
+  useEffect(() => {
+    setSelId((s) => s || props.rooms[0]?.id || null)
+  }, [props.rooms])
   useEffect(() => {
     setDraft({ name: sel?.name || '', description: sel?.description || '' })
     setEdit(false)

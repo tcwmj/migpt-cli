@@ -234,20 +234,20 @@ export function VoiceServiceForm(props: {
         ) : (
           <div className="row">
             <Field
-              label="TTS 配置（JSON）"
+              label="TTS 配置"
               required
-              tip="高级用法：直接填写 mi-gpt TTSConfig JSON"
+              tip="高级用法：直接填写 mi-gpt TTSConfig JSON，支持 edge/volcano/openai 等引擎配置"
               hint={(() => {
-                if (!voiceDraft.customJson.trim()) return undefined
+                if (!voiceDraft.customJson.trim()) return '请输入 JSON 配置'
                 try {
                   JSON.parse(voiceDraft.customJson)
                   return undefined
                 } catch (e) {
-                  return 'JSON 格式错误，请检查语法'
+                  return `JSON 格式错误: ${(e as Error).message}`
                 }
               })()}
               hintTone={(() => {
-                if (!voiceDraft.customJson.trim()) return undefined
+                if (!voiceDraft.customJson.trim()) return 'warn'
                 try {
                   JSON.parse(voiceDraft.customJson)
                   return undefined
@@ -258,12 +258,16 @@ export function VoiceServiceForm(props: {
             >
               <textarea
                 value={voiceDraft.customJson}
-                placeholder='{"edge":{"trustedToken":"…"}}'
+                placeholder={`{\n  "edge": {\n    "trustedToken": "your-token-here"\n  }\n}`}
                 onChange={(e) =>
                   onDraft({ ...voiceDraft, customJson: e.target.value })
                 }
-                rows={5}
-                style={{ fontFamily: 'monospace' }}
+                rows={8}
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  lineHeight: '1.5',
+                }}
               />
             </Field>
           </div>
