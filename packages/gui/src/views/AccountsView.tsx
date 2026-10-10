@@ -310,6 +310,7 @@ export function AccountsView(props: {
                 <div className="row">
                   <Field
                     label="passToken"
+                    required
                     tip={
                       selAcct
                         ? '留空则保留原凭据'
@@ -349,7 +350,12 @@ export function AccountsView(props: {
                   variant="primary"
                   icon="check"
                   onClick={onSave}
-                  disabled={!acctDraft.name || !acctDraft.miUserId}
+                  disabled={
+                    !acctDraft.name ||
+                    !acctDraft.miUserId ||
+                    (!acctDraft.passToken &&
+                      !accounts.find((a) => a.id === selAcct)?.hasPassToken)
+                  }
                 >
                   保存
                 </Button>

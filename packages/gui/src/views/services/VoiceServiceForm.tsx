@@ -61,22 +61,24 @@ export function VoiceServiceForm(props: {
           </Field>
         </div>
       </div>
-      {voiceDraft.provider !== 'custom' && (
-        <div className="grp">
-          <h4>音色配置</h4>
+      <div className="grp">
+        <h4>引擎配置</h4>
+        <div className="row">
+          <Field
+            label="供应商"
+            required
+            tip="仅列出可驱动的语音引擎；OpenAI 兼容供应商改「接口地址」即可接入"
+            halfWidth
+          >
+            <ProviderPicker
+              providers={VOICE_PROVIDERS}
+              value={voiceDraft.provider}
+              onPick={(k) => onDraft({ ...voiceDraft, provider: k })}
+            />
+          </Field>
+        </div>
+        {voiceDraft.provider !== 'custom' ? (
           <div className="row">
-            <Field
-              label="供应商"
-              required
-              tip="仅列出可驱动的语音引擎；OpenAI 兼容供应商改「接口地址」即可接入"
-              halfWidth
-            >
-              <ProviderPicker
-                providers={VOICE_PROVIDERS}
-                value={voiceDraft.provider}
-                onPick={(k) => onDraft({ ...voiceDraft, provider: k })}
-              />
-            </Field>
             {(engine === 'openai' || compat) && (
               <Field
                 label="接口地址"
@@ -128,7 +130,7 @@ export function VoiceServiceForm(props: {
                 <input
                   value={voiceDraft.token}
                   placeholder={
-                    currentSvc?.tts?.openai?.apiKey
+                    currentSvc?.hasTtsToken
                       ? '已配置 · 留空保持不变'
                       : '以 sk- 等开头的密钥'
                   }
@@ -154,7 +156,11 @@ export function VoiceServiceForm(props: {
               >
                 <input
                   value={voiceDraft.token}
-                  placeholder="留空由 Edge 自动获取"
+                  placeholder={
+                    currentSvc?.hasTtsToken
+                      ? '已配置 · 留空保持不变'
+                      : '留空由 Edge 自动获取'
+                  }
                   onChange={(e) =>
                     onDraft({ ...voiceDraft, token: e.target.value })
                   }
@@ -176,7 +182,11 @@ export function VoiceServiceForm(props: {
               <Field label="访问令牌" required>
                 <input
                   value={voiceDraft.token}
-                  placeholder="火山引擎 Access Token"
+                  placeholder={
+                    currentSvc?.hasTtsToken
+                      ? '已配置 · 留空保持不变'
+                      : '火山引擎 Access Token'
+                  }
                   onChange={(e) =>
                     onDraft({ ...voiceDraft, token: e.target.value })
                   }
@@ -184,11 +194,7 @@ export function VoiceServiceForm(props: {
               </Field>
             )}
           </div>
-        </div>
-      )}
-      {voiceDraft.provider === 'custom' && (
-        <div className="grp">
-          <h4>音色配置</h4>
+        ) : (
           <div className="row">
             <Field
               label="TTS 配置（JSON）"
@@ -204,8 +210,8 @@ export function VoiceServiceForm(props: {
               />
             </Field>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       <div className="grp">
         <h4>Token 管理</h4>
         <div className="row">

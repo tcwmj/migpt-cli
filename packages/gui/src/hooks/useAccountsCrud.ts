@@ -34,8 +34,15 @@ export function useAccountsCrud(opts: {
 
   const saveAcct = async () => {
     if (!acctDraft) return
+    const hasExistingToken = selAcct
+      ? accounts.find((a) => a.id === selAcct)?.hasPassToken
+      : false
     if (!acctDraft.name || !acctDraft.miUserId) {
       showToast('账号名称与小米 ID 必填')
+      return
+    }
+    if (!acctDraft.passToken && !hasExistingToken) {
+      showToast('passToken 必填')
       return
     }
     try {

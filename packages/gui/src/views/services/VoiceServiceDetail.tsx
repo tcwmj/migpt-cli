@@ -45,6 +45,11 @@ export function VoiceServiceDetail(props: {
               <span className="k">服务名称</span>
               <span className="v">{svc?.name || '—'}</span>
             </div>
+          </div>
+        </div>
+        <div className="grp">
+          <h4>引擎配置</h4>
+          <div className="row">
             <div className="rr">
               <span className="k">供应商</span>
               <span className="v">
@@ -57,15 +62,12 @@ export function VoiceServiceDetail(props: {
                 )}
               </span>
             </div>
-          </div>
-        </div>
-        <div className="grp">
-          <h4>音色</h4>
-          <div className="row">
             <div className="rr">
               <span className="k">音色 ID</span>
               <span className="v">{svc?.voiceId || '默认音色'}</span>
             </div>
+          </div>
+          <div className="row">
             <div className="rr">
               <span className="k">TTS 令牌</span>
               <span className="v">
