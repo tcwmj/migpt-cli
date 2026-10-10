@@ -59,6 +59,7 @@ import {
 import { getOverrides, type Overrides } from './overrides.js'
 import { listDeviceMetas } from './entities.js'
 import { getDataVersion } from './migrations.js'
+import { assertSafeId } from '../errors.js'
 
 export const BACKUP_FORMAT = 'migptgui-backup'
 export const BACKUP_FORMAT_VERSION = 1
@@ -89,7 +90,7 @@ export interface BackupBundle {
 }
 
 /** 覆盖补丁中需抹除的敏感键（深层清理，避免内置语音的 tts 令牌随包外泄） */
-const SECRET_KEYS = new Set([
+export const SECRET_KEYS = new Set([
   'passToken',
   'miPassword',
   'apiKey',
@@ -279,10 +280,10 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
   await Promise.all(
     devices.map((m) =>
       writeJsonChecked(
-        path.join(devicesRoot, m.id, 'meta.json'),
+        path.join(devicesRoot, assertSafeId(m.id), 'meta.json'),
         m,
         deviceMetaSchema,
-        `设备 ${m.id}`,
+        `设备 ${assertSafeId(m.id)}`,
       ),
     ),
   )

@@ -1,4 +1,5 @@
 /* ══ HomeView ══ */
+import { useEffect, useState } from 'react'
 import { I } from '../icons.tsx'
 import { Button, Tag } from '../components/atoms/index.ts'
 import type {
@@ -28,8 +29,6 @@ import catImg from '../assets/avatar-cat.jpg'
 import closeImg from '../assets/speaker-close.jpg'
 
 export function HomeView(props: {
-  bannerIdx: number
-  onBanner: (i: number) => void
   accounts: Account[]
   devices: DeviceRow[]
   roles: Role[]
@@ -47,8 +46,6 @@ export function HomeView(props: {
   onStartWizard: () => void
 }) {
   const {
-    bannerIdx,
-    onBanner,
     accounts,
     devices,
     roles,
@@ -65,6 +62,12 @@ export function HomeView(props: {
     onOpenVoice,
     onStartWizard,
   } = props
+  // banner 轮播状态仅首页使用，下沉到本组件局部，避免 5s 定时触发整棵 App 子树重渲染
+  const [bannerIdx, setBannerIdx] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setBannerIdx((i) => (i + 1) % 5), 5000)
+    return () => clearInterval(t)
+  }, [])
   return (
     <section data-view="home" className="on">
       <div className="hero banner">
@@ -86,7 +89,7 @@ export function HomeView(props: {
             <span
               key={i}
               className={i === bannerIdx ? 'on' : ''}
-              onClick={() => onBanner(i)}
+              onClick={() => setBannerIdx(i)}
             />
           ))}
         </div>

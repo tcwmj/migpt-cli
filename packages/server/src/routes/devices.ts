@@ -33,6 +33,7 @@ import {
   fail,
   type RouteContext,
 } from './shared.js'
+import { assertSafeId } from '../errors.js'
 
 const dAudio = createDebug('@migptgui/server:audio')
 
@@ -117,6 +118,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   })
 
   app.get(`${API_PREFIX}/devices/:id`, async (req, res) => {
+    assertSafeId(req.params.id)
     const meta = await getDeviceMeta(req.params.id)
     if (!meta) {
       fail(res, 404, '设备不存在')
@@ -134,7 +136,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   })
 
   app.put(`${API_PREFIX}/devices/:id`, async (req, res) => {
-    const id = req.params.id
+    const id = assertSafeId(req.params.id)
     const meta = await getDeviceMeta(id)
     if (!meta) {
       fail(res, 404, '设备不存在')
@@ -203,15 +205,16 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   })
 
   app.delete(`${API_PREFIX}/devices/:id`, async (req, res) => {
-    await stop(req.params.id)
-    await removeDevice(req.params.id)
-    clearDeviceLog(req.params.id)
+    const id = assertSafeId(req.params.id)
+    await stop(id)
+    await removeDevice(id)
+    clearDeviceLog(id)
     ok(res)
   })
 
   // ── 启动/停止 ─────────────────────────────────────────────────
   app.post(`${API_PREFIX}/devices/:id/start`, async (req, res) => {
-    const id = req.params.id
+    const id = assertSafeId(req.params.id)
     const meta = await getDeviceMeta(id)
     if (!meta) {
       fail(res, 404, '设备不存在')
@@ -252,11 +255,12 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   })
 
   app.post(`${API_PREFIX}/devices/:id/stop`, async (req, res) => {
-    await stop(req.params.id)
+    await stop(assertSafeId(req.params.id))
     ok(res)
   })
 
   app.get(`${API_PREFIX}/devices/:id/logs`, async (req, res) => {
+    assertSafeId(req.params.id)
     const limit = Number(req.query.limit) || 100
     const buf = logBuffers.get(req.params.id) || []
     res.json({ logs: buf.slice(-limit) })

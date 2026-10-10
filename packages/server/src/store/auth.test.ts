@@ -3,7 +3,6 @@ import {
   hashPassword,
   invalidateAuthCache,
   resolveAuth,
-  safeEqual,
   usingDefaultAuth,
   verifyPassword,
 } from './auth.js'
@@ -17,24 +16,6 @@ afterEach(() => {
   if (savedUser === undefined) delete process.env.AUTH_USER
   else process.env.AUTH_USER = savedUser
   invalidateAuthCache()
-})
-
-describe('safeEqual', () => {
-  test('相同字符串为 true', () => {
-    expect(safeEqual('admin', 'admin')).toBe(true)
-  })
-
-  test('内容不同（等长）为 false', () => {
-    expect(safeEqual('admin', 'admiN')).toBe(false)
-  })
-
-  test('长度不同为 false 且不抛错', () => {
-    expect(safeEqual('a', 'aaaaaaaa')).toBe(false)
-  })
-
-  test('空串相等为 true', () => {
-    expect(safeEqual('', '')).toBe(true)
-  })
 })
 
 describe('hashPassword / verifyPassword', () => {

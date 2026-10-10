@@ -49,7 +49,8 @@ LABEL org.opencontainers.image.title="migpt-server" \
       org.opencontainers.image.created="${CREATED}"
 
 EXPOSE 36597
-VOLUME /root/.migptgui
+VOLUME /home/node/.migptgui
+USER node
 ENTRYPOINT ["migpt-server"]
 
 ###### 运行阶段结束 ######

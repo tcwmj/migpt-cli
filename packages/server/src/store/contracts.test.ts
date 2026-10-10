@@ -23,6 +23,15 @@ import {
   THINK_FIELDS,
   VOICE_FIELDS,
 } from '../routes/shared.js'
+import {
+  redactAccount,
+  redactThinkService,
+  redactDeviceMeta,
+  redactSettings,
+  redactVoiceService,
+  redactGuiConfig,
+} from '../redact.js'
+import * as backupNs from './backup.js'
 
 const sorted = (fields: readonly string[]) => [...fields].sort()
 const schemaKeys = (schema: { shape: Record<string, unknown> }) =>
@@ -62,6 +71,89 @@ describe('契约 ↔ 路由写白名单一致性', () => {
     for (const [whitelist, fields] of pairs) {
       const unknown = whitelist.filter((f) => !fields.includes(f))
       expect(unknown).toEqual([])
+    }
+  })
+})
+
+// ── 脱敏一致性：防止新增凭据字段漏脱敏、明文回传 ──
+// 任意 redact* 函数的输出都不得包含凭据明文；SECRET_KEYS 必须覆盖关键凭据字段。
+
+const SECRET = 'SUPER_SECRET_VALUE_12345'
+
+describe('响应脱敏一致性', () => {
+  test('账号凭据（passToken / miPassword）不回传明文', () => {
+    const out = JSON.stringify(
+      redactAccount({
+        id: 'a',
+        name: 'x',
+        miUserId: 'u',
+        passToken: SECRET,
+        miPassword: SECRET,
+      } as never),
+    )
+    expect(out).not.toContain(SECRET)
+  })
+
+  test('思考服务 apiKey 不回传明文', () => {
+    const out = JSON.stringify(
+      redactThinkService({ id: 't', name: 'x', apiKey: SECRET } as never),
+    )
+    expect(out).not.toContain(SECRET)
+  })
+
+  test('设备 ttsSecret 不回传明文', () => {
+    const out = JSON.stringify(
+      redactDeviceMeta({ id: 'd', alias: 'x', ttsSecret: SECRET } as never),
+    )
+    expect(out).not.toContain(SECRET)
+  })
+
+  test('旧版 settings passToken 不回传明文', () => {
+    const out = JSON.stringify(
+      redactSettings({ miUserId: 'u', passToken: SECRET } as never),
+    )
+    expect(out).not.toContain(SECRET)
+  })
+
+  test('语音服务 TTS 令牌（edge/volcano/openai）不回传明文', () => {
+    const out = JSON.stringify(
+      redactVoiceService({
+        id: 'v',
+        name: 'x',
+        tts: {
+          edge: { trustedToken: SECRET },
+          volcano: { accessToken: SECRET },
+          openai: { apiKey: SECRET },
+        },
+      } as never),
+    )
+    expect(out).not.toContain(SECRET)
+  })
+
+  test('设备运行时配置（OPENAI_API_KEY / speaker.password / TTS 令牌）不回传明文', () => {
+    const out = JSON.stringify(
+      redactGuiConfig({
+        env: { OPENAI_API_KEY: SECRET },
+        config: { speaker: { password: SECRET } },
+        tts: { edge: { trustedToken: SECRET } },
+      } as never),
+    )
+    expect(out).not.toContain(SECRET)
+  })
+
+  test('关键凭据字段均被脱敏体系覆盖（防止新增凭据字段漏脱敏）', () => {
+    // 与备份导出脱敏（SECRET_KEYS）对应的凭据字段集：任一 redact* 函数都必须抹除这些字段。
+    const secretKeys = [
+      'passToken',
+      'miPassword',
+      'apiKey',
+      'ttsSecret',
+      'trustedToken',
+      'accessToken',
+      'password',
+    ]
+    for (const key of secretKeys) {
+      expect(backupNs.SECRET_KEYS.has(key)).toBe(true)
     }
   })
 })

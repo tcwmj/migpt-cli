@@ -40,6 +40,8 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
       res.cookie(SESSION_COOKIE, createSession(user), {
         httpOnly: true,
         sameSite: 'strict',
+        // 经 TLS 反向代理时自动加 secure，防 Cookie 在明文链路被截获重放
+        secure: req.secure,
         path: '/',
         maxAge: SESSION_TTL_MS,
       })
@@ -51,7 +53,7 @@ export function registerAuthRoutes({ app, options }: RouteContext): void {
 
   app.post(`${API_PREFIX}/logout`, (req, res) => {
     destroySession(req.cookies?.[SESSION_COOKIE])
-    res.clearCookie(SESSION_COOKIE, { path: '/' })
+    res.clearCookie(SESSION_COOKIE, { path: '/', secure: req.secure })
     ok(res)
   })
 

@@ -1,7 +1,7 @@
 // ── 统计 API：Token 用量、对话次数、多维度聚合 ──────────────
 import type { RouteContext } from './shared.js'
 import { API_PREFIX, ok, fail } from './shared.js'
-import { logRows, type LogRow } from '../logger.js'
+import { logRows, logger, type LogRow } from '../logger.js'
 import {
   getThinkServices,
   getVoiceServices,
@@ -103,6 +103,16 @@ function calcDateRange(range: Range): { start: Date; end: Date } {
   return { start, end }
 }
 
+/** 解析 yyyyMMdd 格式日期字符串 */
+function parseDateKey(key: string): Date | null {
+  if (!/^\d{8}$/.test(key)) return null
+  const y = Number(key.slice(0, 4))
+  const m = Number(key.slice(4, 6)) - 1
+  const d = Number(key.slice(6, 8))
+  const date = new Date(y, m, d)
+  return isNaN(date.getTime()) ? null : date
+}
+
 // ── 辅助函数 ────────────────────────────────────────────────
 
 function parseLogTime(timeStr: string): Date | null {
@@ -111,11 +121,17 @@ function parseLogTime(timeStr: string): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-function getDateKey(d: Date, period: 'day' | 'month' | 'year'): string {
+function getDateKey(
+  d: Date,
+  period: 'hour' | 'day' | 'month' | 'year',
+): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
+  const hour = String(d.getHours()).padStart(2, '0')
   switch (period) {
+    case 'hour':
+      return `${y}-${m}-${day} ${hour}:00`
     case 'day':
       return `${y}-${m}-${day}`
     case 'month':
@@ -446,7 +462,8 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         groupPeriod,
       })
     } catch (e) {
-      fail(res, 500, `统计查询失败: ${String(e)}`)
+      logger.error({ err: e }, '统计查询失败')
+      fail(res, 500, '统计查询失败')
     }
   })
 }

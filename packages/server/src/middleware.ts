@@ -2,6 +2,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { nanoid } from 'nanoid'
 import { logger } from './logger.js'
+import { BadRequestError } from './errors.js'
 
 /** 带请求 ID 的 Request（requestId 中间件首个挂载，后续处理链可直接读取） */
 export type RequestWithId = Request & { id: string }
@@ -51,6 +52,12 @@ export function errorHandler() {
   ): void => {
     if (res.headersSent) {
       next(err)
+      return
+    }
+    if (err instanceof BadRequestError) {
+      res
+        .status(400)
+        .json({ error: err.message || '非法的请求参数', reqId: reqIdOf(req) })
       return
     }
     const reqId = reqIdOf(req)

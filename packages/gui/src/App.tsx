@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { type View } from './constants.ts'
 import {
   AccountsView,
@@ -13,7 +13,6 @@ import { LogsView } from './views/LogsView.tsx'
 import { SysLogsView } from './views/SysLogsView.tsx'
 import { RoomsView } from './views/RoomsView.tsx'
 import { RolesView } from './views/RolesView.tsx'
-import { StatsView } from './views/StatsView.tsx'
 import { Drawer } from './components/Drawer.tsx'
 import { ModalShell } from './components/ModalShell.tsx'
 import { Wizard } from './components/Wizard.tsx'
@@ -34,6 +33,11 @@ import { useToast } from './hooks/useToast.ts'
 import { useWizard } from './hooks/useWizard.ts'
 import { useHashRouter, useNav } from './hooks/useHashRouter.ts'
 import type { ModalState } from './ui-types.ts'
+
+// 统计页（recharts 等重依赖）路由级懒加载：首屏不加载，访问时才拉取对应 chunk
+const StatsView = lazy(() =>
+  import('./views/StatsView.tsx').then((m) => ({ default: m.StatsView })),
+)
 
 export function App() {
   const { toast, leaving, showToast } = useToast()
@@ -71,12 +75,6 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('migpt-side-off', sideOff ? '1' : '0')
   }, [sideOff])
-
-  const [bannerIdx, setBannerIdx] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setBannerIdx((i) => (i + 1) % 5), 5000)
-    return () => clearInterval(t)
-  }, [])
 
   const [modal, setModal] = useState<ModalState | null>(null)
 
@@ -164,8 +162,6 @@ export function App() {
 
           {view === 'home' && (
             <HomeView
-              bannerIdx={bannerIdx}
-              onBanner={setBannerIdx}
               accounts={accounts}
               devices={devices}
               roles={roles}
@@ -289,6 +285,7 @@ export function App() {
               rooms={rr.filterRooms}
               allRooms={rooms}
               devices={devices}
+              roles={roles}
               onSave={rr.saveRoom}
               onCreate={rr.createRoom}
               onDelete={rr.delRoom}
@@ -312,7 +309,11 @@ export function App() {
             <SysLogsView query={query} onToast={showToast} />
           )}
 
-          {view === 'stats' && <StatsView onNavigate={setView} />}
+          {view === 'stats' && (
+            <Suspense fallback={<LoadingPanel />}>
+              <StatsView onNavigate={setView} />
+            </Suspense>
+          )}
 
           {(view === 'settings' || view === 'think' || view === 'voice') && (
             <ServicesView

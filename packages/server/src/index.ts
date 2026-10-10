@@ -39,6 +39,9 @@ export function runServer(options?: ServerOptions) {
 
   const app = express()
   app.disable('x-powered-by')
+  // 部署在反向代理（如 nginx/Caddy）之后时，据此从 X-Forwarded-* 取真实客户端 IP 与 TLS 状态，
+  // 使 express-rate-limit 按真实客户端限流、会话 Cookie 在 HTTPS 下自动加 secure。
+  app.set('trust proxy', 1)
 
   // 请求 ID：最先挂载，贯穿后续所有中间件与路由（响应头 X-Request-Id + 日志关联）
   app.use(requestId())
@@ -149,7 +152,6 @@ export function runServer(options?: ServerOptions) {
     server = app.listen(port, () => {
       logger.info({ port }, '服务已启动')
       logger.info(`登录认证：${isAuth ? '已启用' : '未启用'}`)
-      logger.info('秘密路径：已启用')
       // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
       if (isAuth && !options?.users && usingDefaultAuth()) {
         logger.warn(

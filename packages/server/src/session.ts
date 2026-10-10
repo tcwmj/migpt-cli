@@ -6,7 +6,7 @@
 //   · 修改登录凭据时纪元 +1（见 bumpSessionEpoch），全部旧令牌立即失效——
 //     等价于原「清空会话表」的安全语义；密钥文件删除同样使全部令牌失效
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto'
-import { writeFileSync } from 'node:fs'
+import writeFileAtomic from 'write-file-atomic'
 import { root } from './paths.js'
 import { readJsonSync } from './store/json.js'
 
@@ -37,12 +37,10 @@ function loadSecret(): { key: string; epoch: number } {
 }
 
 function persistSecret(): void {
-  try {
-    writeFileSync(secretFile, JSON.stringify(_secret), 'utf8')
-  } catch {
-    // 数据目录不可写时退化为进程内密钥：会话在本次进程生命周期内仍有效，
-    // 仅「改密码使全部令牌失效」在重启后才彻底生效
-  }
+  // 原子写：临时文件 + rename，避免进程崩溃在 rename 前留下半截 session.secret
+  // 导致全部已签发令牌失效。写失败（数据目录不可写）时退化为进程内密钥：
+  // 会话在本次进程生命周期内仍有效，仅「改密码使全部令牌失效」在重启后才彻底生效。
+  writeFileAtomic(secretFile, JSON.stringify(_secret)).catch(() => {})
 }
 
 /** 修改登录凭据后必须调用：纪元 +1 使全部已签发令牌立即失效 */

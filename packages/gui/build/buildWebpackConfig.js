@@ -121,6 +121,20 @@ export default function buildWebpackConfig(mode) {
     base.devtool = false
     base.optimization = {
       minimizer: [new TerserJSPlugin(), new OptimizeCSSAssetsPlugin()],
+      // 拆分第三方依赖（react / recharts / react-select 等）为独立 vendor chunk，
+      // 与业务代码分离缓存；配合路由级 React.lazy，recharts 仅在访问统计页时才加载。
+      runtimeChunk: 'single',
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            priority: -10,
+          },
+        },
+      },
     }
   }
   base.plugins.push(new webpack.DefinePlugin(definePluginObj))

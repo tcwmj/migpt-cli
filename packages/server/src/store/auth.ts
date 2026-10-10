@@ -3,12 +3,7 @@
 // auth.json 只落 scrypt 密码哈希（RFC 7914 标准原语 + PHC 格式串），不存明文；
 // 密码经 HTTP POST 提交，传输安全由 TLS（或本地回环/可信网络边界）保证，
 // 公网部署请套 HTTPS 反向代理——不自造私有密码传输协议。
-import {
-  createHash,
-  randomBytes,
-  scryptSync,
-  timingSafeEqual,
-} from 'node:crypto'
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 import { authFile } from '../paths.js'
 import { readJsonSync } from './json.js'
 import { writeJsonChecked, authSchema } from './schemas.js'
@@ -41,11 +36,16 @@ export function verifyPassword(hash: string, input: string): boolean {
   if (parts.length !== 6 || parts[0] !== 'scrypt') return false
   const expected = Buffer.from(parts[5], 'hex')
   if (!expected.length) return false
-  const actual = scryptSync(input, Buffer.from(parts[4], 'hex'), expected.length, {
-    N: Number(parts[1]),
-    r: Number(parts[2]),
-    p: Number(parts[3]),
-  })
+  const actual = scryptSync(
+    input,
+    Buffer.from(parts[4], 'hex'),
+    expected.length,
+    {
+      N: Number(parts[1]),
+      r: Number(parts[2]),
+      p: Number(parts[3]),
+    },
+  )
   return timingSafeEqual(expected, actual)
 }
 
@@ -75,11 +75,13 @@ export async function saveAuthCredentials(
 function _resolveAuthUncached(): Record<string, string> {
   const env = getEnv()
   // 环境变量 / 默认密码仅存在于进程内存，auth.json 泄露不影响
-  if (env.AUTH_PASSWORD) return { [env.AUTH_USER]: hashPassword(env.AUTH_PASSWORD) }
-  const file = readJsonSync<{ user?: string; password?: string; passwordHash?: string }>(
-    authFile,
-    {},
-  )
+  if (env.AUTH_PASSWORD)
+    return { [env.AUTH_USER]: hashPassword(env.AUTH_PASSWORD) }
+  const file = readJsonSync<{
+    user?: string
+    password?: string
+    passwordHash?: string
+  }>(authFile, {})
   const user = file.user || 'admin'
   // passwordHash 为 auth.json 的 scrypt 哈希字段；
   // password 为旧版明文字段，读到时惰性迁移为哈希格式覆盖写回
@@ -122,14 +124,4 @@ export function usingDefaultAuth(): boolean {
     {},
   )
   return !file.passwordHash && !file.password
-}
-
-/**
- * 恒定时间字符串比较：先哈希再比较，长度差异与内容差异均不通过时间泄露。
- * 用于认证凭据校验，避免逐字符短路比较被计时侧信道利用。
- */
-export function safeEqual(a: string, b: string): boolean {
-  const ha = createHash('sha256').update(a).digest()
-  const hb = createHash('sha256').update(b).digest()
-  return timingSafeEqual(ha, hb)
 }
