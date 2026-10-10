@@ -90,10 +90,8 @@ export function VoiceServiceForm(props: {
               }}
             />
           </Field>
-        </div>
-        {voiceDraft.provider !== 'custom' ? (
-          <div className="row">
-            {(engine === 'openai' || compat) && (
+          {(engine === 'openai' || compat) &&
+            voiceDraft.provider !== 'custom' && (
               <Field
                 label="接口地址"
                 required
@@ -114,116 +112,123 @@ export function VoiceServiceForm(props: {
                 />
               </Field>
             )}
-            {(engine === 'openai' || compat) && (
+        </div>
+        {voiceDraft.provider !== 'custom' ? (
+          <>
+            <div className="row">
+              {(engine === 'openai' || compat) && (
+                <Field
+                  label="语音模型"
+                  tip={
+                    compat
+                      ? '已自动带出供应商默认模型，可改任意兼容模型'
+                      : '已自动带出 tts-1，可改任意 OpenAI 兼容模型'
+                  }
+                >
+                  <>
+                    <input
+                      value={voiceDraft.model || p?.model || 'tts-1'}
+                      list={dlId}
+                      placeholder={p?.model || 'tts-1'}
+                      onChange={(e) =>
+                        onDraft({ ...voiceDraft, model: e.target.value })
+                      }
+                    />
+                    {!!p?.models?.length && (
+                      <datalist id={dlId}>
+                        {p.models.map((m) => (
+                          <option key={m} value={m} />
+                        ))}
+                      </datalist>
+                    )}
+                  </>
+                </Field>
+              )}
+              {(engine === 'openai' || compat) && (
+                <Field label="API Key" required>
+                  <input
+                    value={voiceDraft.token}
+                    placeholder={
+                      currentSvc?.hasTtsToken
+                        ? '已配置 · 留空保持不变'
+                        : '以 sk- 等开头的密钥'
+                    }
+                    onChange={(e) =>
+                      onDraft({ ...voiceDraft, token: e.target.value })
+                    }
+                  />
+                </Field>
+              )}
+              {engine === 'edge' && (
+                <Field
+                  label="访问令牌"
+                  tip="Edge 大声朗读为免费服务，一般无需填写"
+                >
+                  <input
+                    value={voiceDraft.token}
+                    placeholder={
+                      currentSvc?.hasTtsToken
+                        ? '已配置 · 留空保持不变'
+                        : '留空由 Edge 自动获取'
+                    }
+                    onChange={(e) =>
+                      onDraft({ ...voiceDraft, token: e.target.value })
+                    }
+                  />
+                </Field>
+              )}
+              {engine === 'volcano' && (
+                <Field label="App ID" required>
+                  <input
+                    value={voiceDraft.appId}
+                    placeholder="火山引擎语音合成 App ID"
+                    onChange={(e) =>
+                      onDraft({ ...voiceDraft, appId: e.target.value })
+                    }
+                  />
+                </Field>
+              )}
+              {engine === 'volcano' && (
+                <Field label="访问令牌" required>
+                  <input
+                    value={voiceDraft.token}
+                    placeholder={
+                      currentSvc?.hasTtsToken
+                        ? '已配置 · 留空保持不变'
+                        : '火山引擎 Access Token'
+                    }
+                    onChange={(e) =>
+                      onDraft({ ...voiceDraft, token: e.target.value })
+                    }
+                  />
+                </Field>
+              )}
+            </div>
+            <div className="row">
               <Field
-                label={compat ? '语音模型' : '模型'}
-                tip={
-                  compat
-                    ? '已自动带出供应商默认模型，可改任意兼容模型'
-                    : '已自动带出 tts-1，可改任意 OpenAI 兼容模型'
-                }
+                label="音色 ID"
+                tip="从下拉列表选择或自定义输入，留空使用该引擎的默认音色"
               >
                 <>
                   <input
-                    value={voiceDraft.model || p?.model || 'tts-1'}
-                    list={dlId}
-                    placeholder={p?.model || 'tts-1'}
+                    value={voiceDraft.voiceId}
+                    list={`voices-${voiceDraft.provider || 'edge'}`}
+                    placeholder="例如：zh-CN-XiaoxiaoNeural"
                     onChange={(e) =>
-                      onDraft({ ...voiceDraft, model: e.target.value })
+                      onDraft({ ...voiceDraft, voiceId: e.target.value })
                     }
                   />
-                  {!!p?.models?.length && (
-                    <datalist id={dlId}>
-                      {p.models.map((m) => (
-                        <option key={m} value={m} />
+                  {!!p?.voices?.length && (
+                    <datalist id={`voices-${voiceDraft.provider || 'edge'}`}>
+                      {p.voices.map((v) => (
+                        <option key={v} value={v} />
                       ))}
                     </datalist>
                   )}
                 </>
               </Field>
-            )}
-            {(engine === 'openai' || compat) && (
-              <Field label="API Key" required>
-                <input
-                  value={voiceDraft.token}
-                  placeholder={
-                    currentSvc?.hasTtsToken
-                      ? '已配置 · 留空保持不变'
-                      : '以 sk- 等开头的密钥'
-                  }
-                  onChange={(e) =>
-                    onDraft({ ...voiceDraft, token: e.target.value })
-                  }
-                />
-              </Field>
-            )}
-            <Field
-              label="音色 ID"
-              tip="从下拉列表选择或自定义输入，留空使用该引擎的默认音色"
-            >
-              <>
-                <input
-                  value={voiceDraft.voiceId}
-                  list={`voices-${voiceDraft.provider || 'edge'}`}
-                  placeholder="例如：zh-CN-XiaoxiaoNeural"
-                  onChange={(e) =>
-                    onDraft({ ...voiceDraft, voiceId: e.target.value })
-                  }
-                />
-                {!!p?.voices?.length && (
-                  <datalist id={`voices-${voiceDraft.provider || 'edge'}`}>
-                    {p.voices.map((v) => (
-                      <option key={v} value={v} />
-                    ))}
-                  </datalist>
-                )}
-              </>
-            </Field>
-            {engine === 'edge' && (
-              <Field
-                label="访问令牌"
-                tip="Edge 大声朗读为免费服务，一般无需填写"
-              >
-                <input
-                  value={voiceDraft.token}
-                  placeholder={
-                    currentSvc?.hasTtsToken
-                      ? '已配置 · 留空保持不变'
-                      : '留空由 Edge 自动获取'
-                  }
-                  onChange={(e) =>
-                    onDraft({ ...voiceDraft, token: e.target.value })
-                  }
-                />
-              </Field>
-            )}
-            {engine === 'volcano' && (
-              <Field label="App ID" required>
-                <input
-                  value={voiceDraft.appId}
-                  placeholder="火山引擎语音合成 App ID"
-                  onChange={(e) =>
-                    onDraft({ ...voiceDraft, appId: e.target.value })
-                  }
-                />
-              </Field>
-            )}
-            {engine === 'volcano' && (
-              <Field label="访问令牌" required>
-                <input
-                  value={voiceDraft.token}
-                  placeholder={
-                    currentSvc?.hasTtsToken
-                      ? '已配置 · 留空保持不变'
-                      : '火山引擎 Access Token'
-                  }
-                  onChange={(e) =>
-                    onDraft({ ...voiceDraft, token: e.target.value })
-                  }
-                />
-              </Field>
-            )}
-          </div>
+            </div>
+          </>
         ) : (
           <div className="row">
             <Field
