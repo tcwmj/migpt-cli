@@ -270,10 +270,10 @@ export const resetSpeakerModel = (id: string) =>
     headers: headers(false),
   }).then((r) => j<SpeakerModel>(r))
 
-// ── 会话群（对话记忆上下文归属，多设备共用）───────────────────────
-/** 会话群（extends 共享契约；deviceCount 为前端聚合展示字段） */
+// ── 会话群（对话记忆上下文归属，多角色共用）───────────────────────
+/** 会话群（extends 共享契约；roleCount 为前端聚合展示字段） */
 export interface Room extends ContractRoom {
-  deviceCount?: number
+  roleCount?: number
 }
 
 export const getRooms = () =>
@@ -457,7 +457,7 @@ export async function testTts(ttsConfig: TTSConfig) {
 }
 
 // ── 统计接口 ────────────────────────────────────────────────
-export type StatsDimension = 'device' | 'service'
+export type StatsDimension = 'role' | 'device' | 'service'
 
 export interface TokenStats {
   inputTokens: number
@@ -495,7 +495,64 @@ export interface DeviceHealth {
   totalTokens: number
 }
 
+export interface StatsResponse {
+  totals: TokenStats
+  filtered: TokenStats
+  timeline: TimeSeriesPoint[]
+  entityTimelines: Record<string, TimeSeriesPoint[]>
+  dimensionData: (TokenStats & { id: string; name: string })[]
+  entities: Record<string, DimensionEntity[]>
+  serviceHealth: ServiceHealth[]
+  deviceHealth: DeviceHealth[]
+}
+
 export const DIMENSION_LABELS: Record<string, string> = {
+  role: '对话角色',
   device: '设备服务',
   service: '模型服务',
+}
+
+/**
+ * 获取统计数据
+ * @param params 查询参数
+ * @param params.range 预设时间范围（与 from/to 互斥）
+ * @param params.from 开始日期 yyyyMMdd（与 range 互斥）
+ * @param params.to 结束日期 yyyyMMdd（与 range 互斥）
+ * @param params.dimension 维度类型（可选）
+ * @param params.ids 实体 ID 列表（可选，配合 dimension 使用）
+ */
+export async function getStats(params: {
+  range?: string
+  from?: string
+  to?: string
+  dimension?: StatsDimension
+  ids?: string[]
+}): Promise<StatsResponse> {
+  const searchParams = new URLSearchParams()
+
+  if (params.range) {
+    searchParams.set('range', params.range)
+  } else if (params.from && params.to) {
+    searchParams.set('from', params.from)
+    searchParams.set('to', params.to)
+  } else {
+    searchParams.set('range', 'today')
+  }
+
+  if (params.dimension) {
+    searchParams.set('dimension', params.dimension)
+  }
+
+  if (params.ids && params.ids.length > 0) {
+    searchParams.set('ids', params.ids.join(','))
+  }
+
+  const response = await fetch(api(`/stats?${searchParams.toString()}`), {
+    headers: headers(false),
+  })
+  if (!response.ok) {
+    throw new Error(`获取统计数据失败: ${response.statusText}`)
+  }
+
+  return response.json()
 }

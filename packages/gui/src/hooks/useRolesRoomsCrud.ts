@@ -89,7 +89,7 @@ export function useRolesRoomsCrud(opts: {
   const saveRoom = async (r: Room) => {
     try {
       await api.updateRoom(r.id, r)
-      showToast('会话群已保存，关联设备重启后生效')
+      showToast('会话群已保存，关联角色重启后生效')
       refreshAll()
     } catch (e) {
       showToast(errText(e))
@@ -109,7 +109,7 @@ export function useRolesRoomsCrud(opts: {
   const delRoom = async (id: string) => {
     const used = roomUsage(id)
     if (used.length) {
-      showToast(`该会话群正被设备「${used.join('、')}」引用，请先解除设备绑定`)
+      showToast(`该会话群正被角色「${used.join('、')}」引用，请先解除角色绑定`)
       return
     }
     const r = rooms.find((x) => x.id === id)

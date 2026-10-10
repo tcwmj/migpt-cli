@@ -240,9 +240,19 @@ async function getFilteredDeviceIds(
 }
 
 /** 根据时段自动选择分组粒度 */
-function getAutoGroupPeriod(range: Range): 'day' | 'month' | 'year' {
-  if (range === 'today') return 'day'
-  if (range === 'last_1d') return 'day'
+function getAutoGroupPeriod(
+  range: Range,
+  daysDiff?: number,
+): 'hour' | 'day' | 'month' | 'year' {
+  // 当天或1天范围使用小时粒度
+  if (range === 'today' || range === 'last_1d') return 'hour'
+  // 根据天数自动选择
+  if (daysDiff !== undefined) {
+    if (daysDiff <= 1) return 'hour'
+    if (daysDiff <= 90) return 'day'
+    if (daysDiff <= 730) return 'month'
+    return 'year'
+  }
   if (range === 'last_3d') return 'day'
   if (range === 'last_7d') return 'day'
   if (range === 'last_30d') return 'day'
@@ -258,26 +268,68 @@ export function registerStatsRoutes({ app }: RouteContext): void {
    * GET /api/v1/stats
    * 统一统计接口
    * 参数：
-   *   range: today|this_month|this_year|last_1d|last_3d|last_7d|last_30d
+   *   range: today|this_month|this_year|last_1d|last_3d|last_7d|last_30d（与 from/to 互斥）
+   *   from: 开始日期 yyyyMMdd（与 range 互斥）
+   *   to: 结束日期 yyyyMMdd（与 range 互斥）
    *   dimension: role|device|service（可选）
    *   ids: 逗号分隔的实体 ID（可选，配合 dimension 使用）
    * 返回：
    *   totals: 总览（不受过滤影响）
    *   filtered: 过滤后的统计
    *   timeline: 时间线数据
+   *   entityTimelines: 每个实体的时间线数据
    *   dimensionData: 维度明细数据
    *   entities: 可选维度实体列表
    *   serviceHealth: 服务健康状态
    */
   app.get(`${API_PREFIX}/stats`, async (req, res) => {
     try {
-      const range = (req.query.range as Range) || 'today'
+      const range = (req.query.range as Range) || undefined
+      const fromKey = req.query.from as string | undefined
+      const toKey = req.query.to as string | undefined
       const dimension = req.query.dimension as string | undefined
       const idsStr = req.query.ids as string | undefined
       const ids = idsStr ? idsStr.split(',').filter(Boolean) : undefined
 
       const allLogs = collectAILogs()
-      const { start, end } = calcDateRange(range)
+
+      // 计算时间范围
+      let start: Date
+      let end: Date
+      let daysDiff: number | undefined
+
+      if (fromKey && toKey) {
+        const fromDate = parseDateKey(fromKey)
+        const toDate = parseDateKey(toKey)
+        if (!fromDate || !toDate) {
+          fail(res, 400, '日期格式错误，应为 yyyyMMdd')
+          return
+        }
+        start = new Date(
+          fromDate.getFullYear(),
+          fromDate.getMonth(),
+          fromDate.getDate(),
+          0,
+          0,
+          0,
+        )
+        end = new Date(
+          toDate.getFullYear(),
+          toDate.getMonth(),
+          toDate.getDate(),
+          23,
+          59,
+          59,
+          999,
+        )
+        daysDiff = Math.ceil(
+          (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+        )
+      } else {
+        const rangeResult = calcDateRange(range || 'today')
+        start = rangeResult.start
+        end = rangeResult.end
+      }
 
       // 1. 总览（全部数据，不受过滤影响）
       const totals = calcTokenStats(allLogs)
@@ -292,7 +344,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
       const filteredStats = calcTokenStats(filtered)
 
       // 3. 时间线
-      const groupPeriod = getAutoGroupPeriod(range)
+      const groupPeriod = getAutoGroupPeriod(range || 'today', daysDiff)
       const groups = new Map<string, DeviceLogRow[]>()
       for (const row of filtered) {
         const d = parseLogTime(row.time)
@@ -308,6 +360,70 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         timeline.push({ date, ...stats })
       }
       timeline.sort((a, b) => a.date.localeCompare(b.date))
+
+      // 3.1 每个实体的时间线数据
+      const entityTimelines: Record<string, TimeSeriesPoint[]> = {}
+      if (dimension && ids && ids.length > 0) {
+        const devices = await listDeviceMetas()
+        const deviceRoleMap = new Map<string, string>()
+        for (const device of devices) {
+          if (device.roleId) deviceRoleMap.set(device.id, device.roleId)
+        }
+
+        for (const entityId of ids) {
+          let entityLogs: DeviceLogRow[] = []
+
+          if (dimension === 'device') {
+            entityLogs = timeFiltered.filter((r) => r.deviceId === entityId)
+          } else if (dimension === 'role') {
+            // 找到该角色绑定的所有设备
+            const boundDevices = new Set<string>()
+            for (const [deviceId, roleId] of deviceRoleMap) {
+              if (roleId === entityId) boundDevices.add(deviceId)
+            }
+            entityLogs = timeFiltered.filter((r) =>
+              boundDevices.has(r.deviceId),
+            )
+          } else if (dimension === 'service') {
+            // 找到使用该服务的所有角色，再找到绑定的设备
+            const roles = await getRoles()
+            const boundDevices = new Set<string>()
+            for (const role of roles) {
+              const thinkIds = role.thinkServiceIds?.length
+                ? role.thinkServiceIds
+                : role.thinkServiceId
+                  ? [role.thinkServiceId]
+                  : []
+              if (thinkIds.includes(entityId)) {
+                for (const [deviceId, roleId] of deviceRoleMap) {
+                  if (roleId === role.id) boundDevices.add(deviceId)
+                }
+              }
+            }
+            entityLogs = timeFiltered.filter((r) =>
+              boundDevices.has(r.deviceId),
+            )
+          }
+
+          // 按时间分组
+          const entityGroups = new Map<string, DeviceLogRow[]>()
+          for (const row of entityLogs) {
+            const d = parseLogTime(row.time)
+            if (!d) continue
+            const key = getDateKey(d, groupPeriod)
+            if (!entityGroups.has(key)) entityGroups.set(key, [])
+            entityGroups.get(key)!.push(row)
+          }
+
+          const entityTimeline: TimeSeriesPoint[] = []
+          for (const [date, rows] of entityGroups) {
+            const stats = calcTokenStats(rows)
+            entityTimeline.push({ date, ...stats })
+          }
+          entityTimeline.sort((a, b) => a.date.localeCompare(b.date))
+          entityTimelines[entityId] = entityTimeline
+        }
+      }
 
       // 4. 维度明细数据
       let dimensionData: DimensionStats[] = []
@@ -454,6 +570,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         totals,
         filtered: filteredStats,
         timeline,
+        entityTimelines,
         dimensionData,
         entities,
         serviceHealth,

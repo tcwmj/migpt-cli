@@ -1,6 +1,6 @@
 /* ══ RoomsView ══ */
 import { useEffect, useState } from 'react'
-import { type DeviceRow, type Room } from '../apis.ts'
+import { type DeviceRow, type Role, type Room } from '../apis.ts'
 import { I } from '../icons.tsx'
 import {
   Button,
@@ -14,6 +14,7 @@ export function RoomsView(props: {
   rooms: Room[]
   allRooms: Room[]
   devices: DeviceRow[]
+  roles: Role[]
   onSave: (r: Room) => void
   onCreate: (r: Partial<Room>) => Promise<Room | null> | void
   onDelete: (id: string) => void
@@ -83,7 +84,7 @@ export function RoomsView(props: {
       <div className="split">
         <aside className="slist">
           {props.rooms.map((r) => {
-            const used = props.devices.filter((d) => d.roomRef === r.id).length
+            const used = props.roles.filter((d) => d.roomRef === r.id).length
             return (
               <div
                 key={r.id}
@@ -101,7 +102,7 @@ export function RoomsView(props: {
                   <span>{r.description || '无描述'}</span>
                 </span>
                 {used ? (
-                  <Tag tone="accent">{used} 台共用</Tag>
+                  <Tag tone="accent">{used} 个角色</Tag>
                 ) : (
                   <Tag tone="neu">未关联</Tag>
                 )}
@@ -124,7 +125,7 @@ export function RoomsView(props: {
             <EmptyState
               icon="users"
               title="还没有会话群"
-              desc="会话群是对话记忆的上下文归属，多台设备可共用同一会话群；创建后在「设备服务」中关联。"
+              desc="会话群是对话记忆的上下文归属，多个角色可共用同一会话群；创建后在「对话角色」中关联。"
               action={
                 <Button variant="primary" icon="plus" onClick={startCreate}>
                   新建
@@ -139,8 +140,8 @@ export function RoomsView(props: {
               </h3>
               <div className="desc">
                 {creating
-                  ? '创建后可到「设备服务」中为音箱关联此会话群。'
-                  : '修改会话群信息；关联设备重启后生效。'}
+                  ? '创建后可到「对话角色」中为角色关联此会话群。'
+                  : '修改会话群信息；关联角色重启后生效。'}
               </div>
               <div className="grp">
                 <h4>基本信息</h4>
@@ -185,11 +186,11 @@ export function RoomsView(props: {
               <h3>
                 <I n="users" size={17} /> 会话群详情
                 <span className="refs">
-                  多台设备共用同一会话群，共享对话记忆；变更后需重启关联设备生效。
+                  多个角色共用同一会话群，共享对话记忆；变更后需重启关联角色生效。
                 </span>
               </h3>
               <div className="desc">
-                对话记忆的上下文归属；被设备引用后删除前需先解绑。
+                对话记忆的上下文归属；被角色引用后删除前需先解绑。
               </div>
               <div className="ro">
                 <div className="grp">
@@ -206,17 +207,17 @@ export function RoomsView(props: {
                   </div>
                 </div>
                 <div className="grp">
-                  <h4>关联设备</h4>
+                  <h4>关联角色</h4>
                   <div className="row">
                     <div className="rr">
-                      <span className="k">关联设备</span>
+                      <span className="k">关联角色</span>
                       <span className="v">
                         {(() => {
-                          const used = props.devices.filter(
+                          const used = props.roles.filter(
                             (d) => d.roomRef === sel.id,
                           )
                           return used.length
-                            ? used.map((d) => d.alias).join('、')
+                            ? used.map((d) => d.name).join('、')
                             : '未关联'
                         })()}
                       </span>

@@ -116,7 +116,7 @@ export interface VoiceService {
 
 /**
  * 会话群：对话记忆的上下文归属（对应旧版 chatGroup / room）。
- * 独立实体，多台设备可共用同一会话群；被设备引用时禁止删除。
+ * 独立实体，多个角色可共用同一会话群；被角色引用时禁止删除。
  */
 export interface Room {
   id: string
