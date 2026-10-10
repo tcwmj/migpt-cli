@@ -37,18 +37,30 @@ jest.mock('../paths.js', () => {
 })
 
 import * as paths from '../paths.js'
-import type { SpeakerModel, VoiceService } from '../types.js'
+import type { Role, Room, SpeakerModel, VoiceService } from '../types.js'
 import { BUILTIN_MODELS } from './builtins.js'
-import { getSpeakerModels, getVoiceServices } from './entities.js'
+import {
+  getRoles,
+  getRooms,
+  getSpeakerModels,
+  getVoiceServices,
+} from './entities.js'
 import {
   getOverrides,
   mergeBuiltinModels,
+  mergeBuiltinRoles,
+  mergeBuiltinRooms,
   mergeBuiltinVoices,
+  saveRoles,
+  saveRooms,
   saveSpeakerModels,
   saveVoiceServices,
   resetBuiltinModel,
+  resetBuiltinRole,
+  resetBuiltinRoom,
   resetBuiltinVoice,
   splitBuiltinEntities,
+  splitBuiltinRolesRooms,
 } from './overrides.js'
 
 const write = async (file: string, data: unknown) => {
@@ -251,5 +263,173 @@ describe('一次性迁移：内置 / 用户数据分离', () => {
     await splitBuiltinEntities()
     await splitBuiltinEntities()
     expect(await getOverrides()).toEqual({})
+  })
+})
+
+describe('内置会话群 / 内置角色（傻妞）', () => {
+  test('未迁移时空文件也恒含内置项，内置在前、自建在后', async () => {
+    await write(paths.roomsFile, [
+      { id: 'c-room', name: '我的群', createdAt: 7 },
+    ])
+    await write(paths.rolesFile, [])
+    const rooms = await getRooms()
+    expect(rooms[0].id).toBe('dQd66FVw')
+    expect(rooms[0].builtin).toBe(true)
+    expect(rooms[0].name).toBe('傻妞会话群')
+    expect(rooms.map((r) => r.id)).toEqual(['dQd66FVw', 'c-room'])
+    const roles = await getRoles()
+    expect(roles.map((r) => r.id)).toEqual(['IgKuWadm'])
+    expect(roles[0].name).toBe('傻妞')
+    expect(roles[0].builtin).toBe(true)
+  })
+
+  test('编辑内置会话群仅落覆盖，可写文件保持空', async () => {
+    const list = await getRooms()
+    list.find((r) => r.id === 'dQd66FVw')!.description = '改过的描述'
+    await saveRooms(list)
+
+    expect(await read<Room[]>(paths.roomsFile)).toEqual([])
+    expect((await getOverrides()).rooms?.['dQd66FVw']).toEqual({
+      description: '改过的描述',
+    })
+    expect(
+      (await getRooms()).find((r) => r.id === 'dQd66FVw')?.description,
+    ).toBe('改过的描述')
+  })
+
+  test('编辑内置角色仅落覆盖；重置回归代码默认，不波及自建', async () => {
+    const list = await getRoles()
+    list.find((r) => r.id === 'IgKuWadm')!.profile = '改过的人设'
+    list.push({
+      id: 'c-role',
+      name: '自建角色',
+      profile: 'p',
+      callAIKeywords: [],
+      wakeUpKeywords: [],
+      exitKeywords: [],
+      checkInterval: 1000,
+      checkTTSStatusAfter: 3000,
+      onEnterAI: [],
+      onExitAI: [],
+      onAIAsking: [],
+      onAIReplied: [],
+      onAIError: [],
+      exitKeepAliveAfter: 30,
+      createdAt: 1 as never,
+    } as Role)
+    await saveRoles(list)
+
+    expect((await read<Role[]>(paths.rolesFile)).map((r) => r.id)).toEqual([
+      'c-role',
+    ])
+    expect((await getOverrides()).roles?.['IgKuWadm']).toEqual({
+      profile: '改过的人设',
+    })
+
+    const def = await resetBuiltinRole('IgKuWadm')
+    expect(def?.profile).toBe(
+      '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。',
+    )
+    expect((await getOverrides()).roles).toBeUndefined()
+    // 自建角色仍在
+    expect((await getRoles()).some((r) => r.id === 'c-role')).toBe(true)
+  })
+
+  test('重置非内置会话群/角色返回 undefined', async () => {
+    expect(await resetBuiltinRoom('nope')).toBeUndefined()
+    expect(await resetBuiltinRole('nope')).toBeUndefined()
+  })
+
+  test('自建项伪造 builtin:true 归零（房间与角色）', () => {
+    const fakeRoom: Room = {
+      id: 'evil-r',
+      name: '伪装',
+      builtin: true,
+      createdAt: 1,
+    }
+    expect(
+      mergeBuiltinRooms([fakeRoom]).find((r) => r.id === 'evil-r')!.builtin,
+    ).toBe(false)
+    const fakeRole = {
+      id: 'evil-role',
+      name: '伪装',
+      profile: 'p',
+      callAIKeywords: [],
+      wakeUpKeywords: [],
+      exitKeywords: [],
+      checkInterval: 1,
+      checkTTSStatusAfter: 1,
+      onEnterAI: [],
+      onExitAI: [],
+      onAIAsking: [],
+      onAIReplied: [],
+      onAIError: [],
+      exitKeepAliveAfter: 1,
+      builtin: true,
+    } as unknown as Role
+    expect(
+      mergeBuiltinRoles([fakeRole]).find((r) => r.id === 'evil-role')!.builtin,
+    ).toBe(false)
+  })
+
+  test('v5 迁移：内置项移出文件、改动存覆盖，幂等', async () => {
+    await write(paths.roomsFile, [
+      {
+        id: 'dQd66FVw',
+        name: '傻妞会话群',
+        description: '改过的描述',
+        createdAt: 1791214020470,
+      },
+      { id: 'c-room', name: '自建群', createdAt: 8 },
+    ])
+    await write(paths.rolesFile, [
+      {
+        id: 'IgKuWadm',
+        name: '改名后的傻妞',
+        profile: '新的人设',
+        callAIKeywords: ['请', '你', '傻妞'],
+        wakeUpKeywords: ['打开', '进入', '召唤'],
+        exitKeywords: ['关闭', '退出', '再见'],
+        checkInterval: 1000,
+        checkTTSStatusAfter: 3000,
+        onEnterAI: ['你好，我是傻妞，很高兴认识你'],
+        onExitAI: ['傻妞已退出'],
+        onAIAsking: ['让我先想想', '请稍等'],
+        onAIReplied: ['我说完了', '还有其他问题吗'],
+        onAIError: ['啊哦，出错了，请稍后再试吧'],
+        exitKeepAliveAfter: 30,
+        masterName: '主人',
+        masterProfile:
+          '性别：男\n性格：善良正直\n其他：总是舍己为人，是傻妞的主人。',
+        roomRef: 'dQd66FVw',
+      },
+    ])
+
+    await splitBuiltinRolesRooms()
+
+    expect((await read<Room[]>(paths.roomsFile)).map((r) => r.id)).toEqual([
+      'c-room',
+    ])
+    expect(await read<Role[]>(paths.rolesFile)).toEqual([])
+    const ov = await getOverrides()
+    expect(ov.rooms?.['dQd66FVw']).toEqual({ description: '改过的描述' })
+    expect(ov.roles?.['IgKuWadm']).toEqual({
+      name: '改名后的傻妞',
+      profile: '新的人设',
+    })
+
+    // 幂等：再跑一次不产生额外覆盖、不清空自建
+    await splitBuiltinRolesRooms()
+    expect((await read<Room[]>(paths.roomsFile)).map((r) => r.id)).toEqual([
+      'c-room',
+    ])
+    expect((await getOverrides()).rooms).toEqual(ov.rooms)
+    expect((await getOverrides()).roles).toEqual(ov.roles)
+
+    // 重置会话群回归代码默认
+    await resetBuiltinRoom('dQd66FVw')
+    expect(
+      (await getRooms()).find((r) => r.id === 'dQd66FVw')?.description,
+    ).toBe('家庭日常闲聊')
   })
 })

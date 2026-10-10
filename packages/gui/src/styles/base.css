@@ -106,6 +106,9 @@
   font-size: var(--fs-xs);
   background: var(--ok-soft);
   color: var(--ok-ink);
+  /* 标签永远单行：窄列表中「内置」等短词不得折行撑高卡片 */
+  white-space: nowrap;
+  flex: none;
 }
 
 .tag svg {

@@ -323,6 +323,7 @@ export function App() {
               onSave={rr.saveRoom}
               onCreate={rr.createRoom}
               onDelete={rr.delRoom}
+              onReset={rr.resetRoom}
               onNavigate={handleNavigate}
             />
           )}
@@ -337,6 +338,7 @@ export function App() {
               onSave={rr.saveRole}
               onCreate={rr.createRole}
               onDelete={rr.delRole}
+              onReset={rr.resetRole}
               onNavigate={handleNavigate}
             />
           )}

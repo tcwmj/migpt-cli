@@ -15,6 +15,7 @@ export function RolesView(props: {
   onSave: (r: Role) => void
   onCreate: (r: Partial<Role>) => Promise<Role | null> | void
   onDelete: (id: string) => void
+  onReset: (id: string) => void
   onNavigate?: (view: string, id: string) => void
 }) {
   const [selId, setSelId] = useState<string | null>(props.roles[0]?.id || null)
@@ -127,6 +128,7 @@ export function RolesView(props: {
             devices={props.devices}
             onEdit={() => setEdit(true)}
             onDelete={() => props.onDelete(sel.id)}
+            onReset={() => props.onReset(sel.id)}
             onNavigate={props.onNavigate}
           />
         )}

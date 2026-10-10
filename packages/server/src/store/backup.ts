@@ -58,7 +58,12 @@ import {
   voiceServiceSchema,
   writeJsonChecked,
 } from './schemas.js'
-import { getOverrides, type Overrides } from './overrides.js'
+import {
+  getOverrides,
+  splitBuiltinEntities,
+  splitBuiltinRolesRooms,
+  type Overrides,
+} from './overrides.js'
 import { listDeviceMetas } from './entities.js'
 import { getDataVersion } from './migrations.js'
 import { assertSafeId } from '../errors.js'
@@ -299,6 +304,12 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
       ),
     ),
   )
+
+  // 旧版包可能把内置实体直接混在实体文件里：导入后跑一次「内置/自建分离」，
+  // 把这些内置项转为覆盖补丁（合并进刚导入的 overrides），避免读取层
+  // 按内置 id 过滤时静默丢失用户对内置项的改动。迁移幂等，新包为无操作。
+  await splitBuiltinEntities()
+  await splitBuiltinRolesRooms()
 
   logger.info(
     `导入备份：账号 ${accounts.length}、角色 ${(d.roles ?? []).length}、思考服务 ${thinkServices.length}、` +

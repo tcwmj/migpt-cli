@@ -27,7 +27,7 @@ const NAV_ICON: Record<View, string> = {
   syslogs: 'terminal',
   think: 'bolt',
   voice: 'mic',
-  rooms: 'users',
+  rooms: 'chats',
   models: 'gear',
   settings: 'gear',
   profile: 'gear',

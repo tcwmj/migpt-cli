@@ -18,6 +18,7 @@ export function RoomsView(props: {
   onSave: (r: Room) => void
   onCreate: (r: Partial<Room>) => Promise<Room | null> | void
   onDelete: (id: string) => void
+  onReset: (id: string) => void
   onNavigate?: (view: string, id: string) => void
 }) {
   const [selId, setSelId] = useState<string | null>(props.rooms[0]?.id || null)
@@ -96,13 +97,15 @@ export function RoomsView(props: {
                 }}
               >
                 <span className="ic">
-                  <I n="users" />
+                  <I n="chats" />
                 </span>
                 <span className="txt">
                   <b>{r.name}</b>
                   <span>{r.description || '无描述'}</span>
                 </span>
-                {used ? (
+                {r.builtin ? (
+                  <Tag>内置</Tag>
+                ) : used ? (
                   <Tag tone="accent">{used} 个角色</Tag>
                 ) : (
                   <Tag tone="neu">未关联</Tag>
@@ -124,7 +127,7 @@ export function RoomsView(props: {
         >
           {props.rooms.length === 0 && !creating ? (
             <EmptyState
-              icon="users"
+              icon="chats"
               title="还没有会话群"
               desc="会话群是对话记忆的上下文归属，多个角色可共用同一会话群；创建后在「对话角色」中关联。"
               action={
@@ -136,7 +139,7 @@ export function RoomsView(props: {
           ) : edit ? (
             <div className="form-card">
               <h3>
-                <I n="users" size={17} />{' '}
+                <I n="chats" size={17} />{' '}
                 {creating ? '新建会话群' : '编辑会话群'}
               </h3>
               <div className="desc">
@@ -185,7 +188,7 @@ export function RoomsView(props: {
           ) : sel ? (
             <div className="form-card">
               <h3>
-                <I n="users" size={17} /> 会话群详情
+                <I n="chats" size={17} /> 会话群详情
                 <span className="refs">
                   多个角色共用同一会话群，共享对话记忆；变更后需重启关联角色生效。
                 </span>
@@ -243,10 +246,21 @@ export function RoomsView(props: {
               </div>
               <div className="acts">
                 <span className="sp" />
+                {sel.builtin && (
+                  <Button
+                    icon="arrow-counter-clockwise"
+                    onClick={() => props.onReset(sel.id)}
+                    title="恢复为系统内置默认配置"
+                  >
+                    重置
+                  </Button>
+                )}
                 <Button
                   variant="danger"
                   icon="trash"
+                  disabled={!!sel.builtin}
                   onClick={() => props.onDelete(sel.id)}
+                  title={sel.builtin ? '系统内置会话群不可删除' : ''}
                 >
                   删除
                 </Button>

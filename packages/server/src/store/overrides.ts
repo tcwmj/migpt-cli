@@ -1,20 +1,25 @@
 // ── 内置实体的用户覆盖（内置只读，用户改动分离存放）────────────────
-// 设计：内置型号 / 内置语音的「定义」只在代码里（./builtins.js，随版本升级自动修正），
-// 可写文件 speakerModels.json / voiceServices.json 只存用户自建实体；
-// 用户对内建项的修改以「补丁」形式写入 overrides.json，读取时叠加到代码默认值上。
+// 设计：内置型号 / 内置语音 / 内置会话群 / 内置角色的「定义」只在代码里（./builtins.js，
+// 随版本升级自动修正），可写文件 speakerModels.json / voiceServices.json / rooms.json /
+// roles.json 只存用户自建实体；用户对内置项的修改以「补丁」形式写入 overrides.json，
+// 读取时叠加到代码默认值上。
 // 好处：内置定义不会被用户数据覆盖而失联（恢复默认 = 删除补丁，代码默认即刻回归），
 // 用户自建实体与覆盖互不干扰，任何一次「重置」都不会波及其他数据。
 import {
   overridesFile,
+  rolesFile,
+  roomsFile,
   speakerModelsFile,
   voiceServicesFile,
 } from '../paths.js'
-import type { SpeakerModel, VoiceService } from '../types.js'
+import type { Role, Room, SpeakerModel, VoiceService } from '../types.js'
 import { logger } from '../logger.js'
 import { readJson } from './json.js'
 import {
   overridesSchema,
   readJsonChecked,
+  roleListSchema,
+  roomListSchema,
   speakerModelListSchema,
   voiceServiceListSchema,
   writeJsonChecked,
@@ -22,10 +27,16 @@ import {
 import {
   BUILTIN_CREATED_AT,
   BUILTIN_MODELS,
+  BUILTIN_ROLES,
+  BUILTIN_ROOMS,
   BUILTIN_VOICE_SERVICES,
   builtinModelDefault,
+  builtinRoleDefault,
+  builtinRoomDefault,
   builtinVoiceDefault,
   isBuiltinModel,
+  isBuiltinRole,
+  isBuiltinRoom,
   isBuiltinVoice,
 } from './builtins.js'
 
@@ -50,10 +61,35 @@ const VOICE_OVERRIDE_FIELDS: readonly (keyof VoiceService)[] = [
   'tts',
 ]
 
+/** 内置会话群可被用户覆盖的字段（id/builtin/createdAt 由框架固定，不参与覆盖） */
+const ROOM_OVERRIDE_FIELDS: readonly (keyof Room)[] = ['name', 'description']
+
+/** 内置角色可被用户覆盖的字段（id/builtin 由框架固定；role 无 createdAt） */
+const ROLE_OVERRIDE_FIELDS: readonly (keyof Role)[] = [
+  'name',
+  'profile',
+  'masterName',
+  'masterProfile',
+  'callAIKeywords',
+  'wakeUpKeywords',
+  'exitKeywords',
+  'checkInterval',
+  'checkTTSStatusAfter',
+  'onEnterAI',
+  'onExitAI',
+  'onAIAsking',
+  'onAIReplied',
+  'onAIError',
+  'exitKeepAliveAfter',
+  'roomRef',
+]
+
 /** 内置实体的用户覆盖补丁：按实体 id 存「与代码默认值不同的字段」 */
 export interface Overrides {
   models?: Record<string, Partial<SpeakerModel>>
   voices?: Record<string, Partial<VoiceService>>
+  rooms?: Record<string, Partial<Room>>
+  roles?: Record<string, Partial<Role>>
 }
 
 export async function getOverrides(): Promise<Overrides> {
@@ -65,6 +101,8 @@ function prune(ov: Overrides): Overrides {
   const out: Overrides = {}
   if (ov.models && Object.keys(ov.models).length) out.models = ov.models
   if (ov.voices && Object.keys(ov.voices).length) out.voices = ov.voices
+  if (ov.rooms && Object.keys(ov.rooms).length) out.rooms = ov.rooms
+  if (ov.roles && Object.keys(ov.roles).length) out.roles = ov.roles
   return out
 }
 
@@ -128,6 +166,37 @@ export function mergeBuiltinVoices(
   return all
 }
 
+export function mergeBuiltinRooms(
+  custom: Room[],
+  patches?: Record<string, Partial<Room>>,
+): Room[] {
+  // 同 mergeBuiltinModels：自建项的 builtin 标记一律归 false，内置身份只认代码注册表 id
+  const customs = custom
+    .filter((r) => !isBuiltinRoom(r.id))
+    .map((r) => (r.builtin ? { ...r, builtin: false } : r))
+  const builtins = BUILTIN_ROOMS.map((d) => {
+    const base: Room = { ...d, createdAt: BUILTIN_CREATED_AT }
+    const patch = patches?.[d.id]
+    return patch ? { ...base, ...patch, id: base.id, builtin: true } : base
+  })
+  return [...builtins, ...customs]
+}
+
+export function mergeBuiltinRoles(
+  custom: Role[],
+  patches?: Record<string, Partial<Role>>,
+): Role[] {
+  // Role 无 createdAt；同上——内置身份只认代码注册表 id，自建项伪造标记归零
+  const customs = custom
+    .filter((r) => !isBuiltinRole(r.id))
+    .map((r) => (r.builtin ? { ...r, builtin: false } : r))
+  const builtins = BUILTIN_ROLES.map((d) => {
+    const patch = patches?.[d.id]
+    return patch ? { ...d, ...patch, id: d.id, builtin: true } : { ...d }
+  })
+  return [...builtins, ...customs]
+}
+
 // ── 落盘：用户自建实体写文件，内置项差异写覆盖 ──
 export async function saveSpeakerModels(list: SpeakerModel[]): Promise<void> {
   await writeJsonChecked(
@@ -167,6 +236,44 @@ export async function saveVoiceServices(list: VoiceService[]): Promise<void> {
   await persist(prev, { ...prev, voices })
 }
 
+export async function saveRooms(list: Room[]): Promise<void> {
+  await writeJsonChecked(
+    roomsFile,
+    list.filter((r) => !isBuiltinRoom(r.id)),
+    roomListSchema,
+    '会话群',
+  )
+  const prev = await getOverrides()
+  const rooms: Record<string, Partial<Room>> = {}
+  for (const r of list) {
+    if (!isBuiltinRoom(r.id)) continue
+    const def = builtinRoomDefault(r.id)
+    if (!def) continue
+    const patch = diffFields(r, def, ROOM_OVERRIDE_FIELDS)
+    if (patch) rooms[r.id] = patch
+  }
+  await persist(prev, { ...prev, rooms })
+}
+
+export async function saveRoles(list: Role[]): Promise<void> {
+  await writeJsonChecked(
+    rolesFile,
+    list.filter((r) => !isBuiltinRole(r.id)),
+    roleListSchema,
+    '角色',
+  )
+  const prev = await getOverrides()
+  const roles: Record<string, Partial<Role>> = {}
+  for (const r of list) {
+    if (!isBuiltinRole(r.id)) continue
+    const def = builtinRoleDefault(r.id)
+    if (!def) continue
+    const patch = diffFields(r, def, ROLE_OVERRIDE_FIELDS)
+    if (patch) roles[r.id] = patch
+  }
+  await persist(prev, { ...prev, roles })
+}
+
 // ── 重置：删除覆盖补丁，代码默认值即刻回归（不触碰任何自建实体）──
 export async function resetBuiltinModel(
   id: string,
@@ -196,8 +303,32 @@ export async function resetBuiltinVoice(
   return def
 }
 
+export async function resetBuiltinRoom(id: string): Promise<Room | undefined> {
+  const def = builtinRoomDefault(id)
+  if (!def) return undefined
+  const prev = await getOverrides()
+  if (prev.rooms?.[id]) {
+    const rooms = { ...prev.rooms }
+    delete rooms[id]
+    await persist(prev, { ...prev, rooms })
+  }
+  return def
+}
+
+export async function resetBuiltinRole(id: string): Promise<Role | undefined> {
+  const def = builtinRoleDefault(id)
+  if (!def) return undefined
+  const prev = await getOverrides()
+  if (prev.roles?.[id]) {
+    const roles = { ...prev.roles }
+    delete roles[id]
+    await persist(prev, { ...prev, roles })
+  }
+  return def
+}
+
 /**
- * 一次性迁移：把可写文件中的内置项剥离到 overrides.json，
+ * 一次性迁移 v2：把型号/语音可写文件中的内置项剥离到 overrides.json，
  * 可写文件仅保留用户自建项。用户对内置项的既有改动以补丁形式保留。
  */
 export async function splitBuiltinEntities(): Promise<void> {
@@ -254,8 +385,57 @@ export async function splitBuiltinEntities(): Promise<void> {
       '语音服务',
     ),
   ])
-  await persist(prev, { models, voices })
+  await persist(prev, { ...prev, models, voices })
   logger.info(
     `内置/用户数据分离：保留自建型号 ${customModels.length} 个、自建语音 ${customVoices.length} 个`,
+  )
+}
+
+/**
+ * 一次性迁移 v4：把会话群/角色可写文件中的内置项（傻妞会话群 / 傻妞角色）
+ * 剥离到 overrides.json，可写文件仅保留用户自建项。
+ * 内置定义取自迁移时的用户数据原值（含原 id），既有差异即刻成为补丁基线，
+ * 用户对内置项保留原数据的编辑不会再落为无意义补丁。
+ */
+export async function splitBuiltinRolesRooms(): Promise<void> {
+  const [rawRooms, rawRoles, prev] = await Promise.all([
+    readJson<Room[]>(roomsFile, []),
+    readJson<Role[]>(rolesFile, []),
+    getOverrides(),
+  ])
+  const rooms: Record<string, Partial<Room>> = { ...(prev.rooms ?? {}) }
+  const roles: Record<string, Partial<Role>> = { ...(prev.roles ?? {}) }
+
+  const customRooms: Room[] = []
+  for (const r of rawRooms) {
+    if (!isBuiltinRoom(r.id)) {
+      customRooms.push(r.builtin ? { ...r, builtin: false } : r)
+      continue
+    }
+    const def = builtinRoomDefault(r.id)
+    if (!def) continue
+    const patch = diffFields(r, def, ROOM_OVERRIDE_FIELDS)
+    if (patch) rooms[r.id] = patch
+  }
+
+  const customRoles: Role[] = []
+  for (const r of rawRoles) {
+    if (!isBuiltinRole(r.id)) {
+      customRoles.push(r.builtin ? { ...r, builtin: false } : r)
+      continue
+    }
+    const def = builtinRoleDefault(r.id)
+    if (!def) continue
+    const patch = diffFields(r, def, ROLE_OVERRIDE_FIELDS)
+    if (patch) roles[r.id] = patch
+  }
+
+  await Promise.all([
+    writeJsonChecked(roomsFile, customRooms, roomListSchema, '会话群'),
+    writeJsonChecked(rolesFile, customRoles, roleListSchema, '角色'),
+  ])
+  await persist(prev, { ...prev, rooms, roles })
+  logger.info(
+    `内置/用户数据分离（会话群/角色）：保留自建会话群 ${customRooms.length} 个、自建角色 ${customRoles.length} 个`,
   )
 }

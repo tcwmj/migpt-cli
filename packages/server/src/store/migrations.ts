@@ -24,10 +24,14 @@ import {
   getVoiceServices,
   listDeviceMetas,
   saveDeviceMeta,
-  saveRoles,
   saveThinkServices,
 } from './entities.js'
-import { saveVoiceServices, splitBuiltinEntities } from './overrides.js'
+import {
+  saveRoles,
+  saveVoiceServices,
+  splitBuiltinEntities,
+  splitBuiltinRolesRooms,
+} from './overrides.js'
 
 export interface Migration {
   /** 目标版本号（从 1 起连续递增，不允许空洞） */
@@ -39,7 +43,7 @@ export interface Migration {
 }
 
 /** 当前数据结构版本：新增迁移时同步 +1 */
-export const DATA_VERSION = 4
+export const DATA_VERSION = 5
 
 /** 迁移：旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
 export async function migrateRooms(): Promise<void> {
@@ -155,8 +159,20 @@ export async function migrateTokenUsageFailover(): Promise<void> {
  * 会在读取阶段就被过滤掉（parseEntityList 逐条跳过），迁移读不到目标。
  */
 export async function migrateRoleRequired(): Promise<void> {
-  // ── 1. 角色：回填数值字段（读原始 JSON，绕过 schema 过滤）──────────
+  // ── 1. 角色：回填数值字段 + 防御性补齐（读原始 JSON，绕过 schema 过滤）──
+  // 注意：新 roleSchema 收紧后，缺数值字段的旧角色会在 getRoles() 阶段被跳过，
+  // 导致 v3 的 thinkServiceId → thinkServiceIds 转换漏做——此处对原始数据补做。
   const rawRoles = await readJson<Record<string, unknown>[]>(rolesFile, [])
+  const ARRAY_FIELDS = [
+    'callAIKeywords',
+    'wakeUpKeywords',
+    'exitKeywords',
+    'onEnterAI',
+    'onExitAI',
+    'onAIAsking',
+    'onAIReplied',
+    'onAIError',
+  ] as const
   let rolesChanged = false
   for (const role of rawRoles) {
     if (role.checkInterval == null) {
@@ -169,6 +185,23 @@ export async function migrateRoleRequired(): Promise<void> {
     }
     if (role.exitKeepAliveAfter == null) {
       role.exitKeepAliveAfter = 30
+      rolesChanged = true
+    }
+    // 补齐缺失的字符串数组字段（极旧数据可能没有）
+    for (const f of ARRAY_FIELDS) {
+      if (!Array.isArray(role[f])) {
+        role[f] = []
+        rolesChanged = true
+      }
+    }
+    if (typeof role.profile !== 'string') {
+      role.profile = ''
+      rolesChanged = true
+    }
+    // 补做 v3 的 thinkServiceId → thinkServiceIds 转换（旧角色可能被 v3 跳过）
+    if (role.thinkServiceId && !role.thinkServiceIds) {
+      role.thinkServiceIds = [role.thinkServiceId]
+      delete role.thinkServiceId
       rolesChanged = true
     }
   }
@@ -222,6 +255,12 @@ export const migrations: Migration[] = [
     description:
       '对话角色必填：角色数值字段回填历史默认、设备无角色时归属首个角色',
     up: migrateRoleRequired,
+  },
+  {
+    version: 5,
+    description:
+      '内置/用户数据分离（会话群/角色）：内置会话群与内置角色移出可写文件，用户改动存入 overrides.json',
+    up: splitBuiltinRolesRooms,
   },
 ]
 

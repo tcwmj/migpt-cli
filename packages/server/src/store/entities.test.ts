@@ -217,6 +217,9 @@ describe('实体列表读取', () => {
         onAIError: [],
       },
     ])
-    expect((await getRoles()).map((r) => r.name)).toEqual(['傻妞'])
+    // 内置角色（傻妞）在前，自建角色在后
+    const roles = await getRoles()
+    expect(roles.some((r) => r.id === 'r1')).toBe(true)
+    expect(roles.some((r) => r.builtin)).toBe(true)
   })
 })

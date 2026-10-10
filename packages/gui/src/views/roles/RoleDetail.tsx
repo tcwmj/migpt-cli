@@ -1,6 +1,6 @@
 import type { Role, Room, DeviceRow } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { Button } from '../../components/atoms/index.ts'
+import { Button, Tag } from '../../components/atoms/index.ts'
 
 export function RoleDetail(props: {
   role: Role
@@ -9,6 +9,7 @@ export function RoleDetail(props: {
   devices: DeviceRow[]
   onEdit: () => void
   onDelete: () => void
+  onReset: () => void
   onNavigate?: (view: string, id: string) => void
 }) {
   const { role } = props
@@ -23,6 +24,7 @@ export function RoleDetail(props: {
     <div className="rform rview">
       <h3>
         <I n="chat" size={17} /> 角色详情
+        {role.builtin && <Tag>内置</Tag>}
         <span className="refs">
           本角色被 {props.usage.length} 台设备引用
           {props.usage.length ? '（' + props.usage.join(' · ') + '）' : ''}
@@ -190,7 +192,22 @@ export function RoleDetail(props: {
       </div>
       <div className="acts">
         <span className="sp" />
-        <Button variant="danger" icon="trash" onClick={props.onDelete}>
+        {role.builtin && (
+          <Button
+            icon="arrow-counter-clockwise"
+            onClick={props.onReset}
+            title="恢复为系统内置默认配置"
+          >
+            重置
+          </Button>
+        )}
+        <Button
+          variant="danger"
+          icon="trash"
+          disabled={!!role.builtin}
+          onClick={props.onDelete}
+          title={role.builtin ? '系统内置角色不可删除' : ''}
+        >
           删除
         </Button>
         <Button variant="primary" icon="pencil" onClick={props.onEdit}>

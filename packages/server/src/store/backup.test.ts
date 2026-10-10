@@ -78,6 +78,7 @@ const device = (id: string, alias: string, ttsSecret?: string): DeviceMeta => ({
   id,
   alias,
   did: `D-${id}`,
+  roleId: 'role-1',
   ttsSecret: ttsSecret ?? '',
   createdAt: 3,
 })

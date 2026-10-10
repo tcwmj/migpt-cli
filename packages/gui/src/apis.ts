@@ -190,6 +190,13 @@ export const deleteRole = (id: string) =>
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
+/** 重置内置角色为系统默认值（仅 builtin 可用） */
+export const resetRole = (id: string) =>
+  fetch(api(`/roles/${id}/reset`), {
+    method: 'POST',
+    headers: headers(false),
+  }).then((r) => j<Role>(r))
+
 // ── 思考服务 ─────────────────────────────────────────────────
 export const getThinkServices = () =>
   fetch(api('/think-services'), { headers: headers(false) }).then((r) =>
@@ -298,6 +305,13 @@ export const deleteRoom = (id: string) =>
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
+
+/** 重置内置会话群为系统默认值（仅 builtin 可用） */
+export const resetRoom = (id: string) =>
+  fetch(api(`/rooms/${id}/reset`), {
+    method: 'POST',
+    headers: headers(false),
+  }).then((r) => j<Room>(r))
 
 // ── 设备管理 ─────────────────────────────────────────────────
 export const listDevices = () =>

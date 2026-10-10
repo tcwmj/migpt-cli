@@ -34,9 +34,7 @@ import {
   parseEntity,
   readJsonChecked,
   readJsonListChecked,
-  roleListSchema,
   roleSchema,
-  roomListSchema,
   roomSchema,
   settingsSchema,
   speakerModelSchema,
@@ -48,6 +46,8 @@ import {
 import {
   getOverrides,
   mergeBuiltinModels,
+  mergeBuiltinRoles,
+  mergeBuiltinRooms,
   mergeBuiltinVoices,
 } from './overrides.js'
 import type { GuiConfig } from '@migptgui/options'
@@ -116,8 +116,13 @@ export async function getAccountById(
   return accounts[0]
 }
 
+// 角色：内置角色源自代码 + 用户覆盖补丁，其后拼接用户自建角色。
 export async function getRoles(): Promise<Role[]> {
-  return readJsonListChecked(rolesFile, roleSchema, '角色')
+  const [custom, ov] = await Promise.all([
+    readJsonListChecked(rolesFile, roleSchema, '角色'),
+    getOverrides(),
+  ])
+  return mergeBuiltinRoles(custom, ov.roles)
 }
 
 export async function getThinkServices(): Promise<ThinkService[]> {
@@ -142,8 +147,13 @@ export async function getSpeakerModels(): Promise<SpeakerModel[]> {
   return mergeBuiltinModels(custom, ov.models)
 }
 
+// 会话群：内置会话群源自代码 + 用户覆盖补丁，其后拼接用户自建会话群。
 export async function getRooms(): Promise<Room[]> {
-  return readJsonListChecked(roomsFile, roomSchema, '会话群')
+  const [custom, ov] = await Promise.all([
+    readJsonListChecked(roomsFile, roomSchema, '会话群'),
+    getOverrides(),
+  ])
+  return mergeBuiltinRooms(custom, ov.rooms)
 }
 
 export async function getDeviceMeta(
@@ -193,13 +203,7 @@ export async function saveAccounts(list: Account[]): Promise<void> {
   await writeJsonChecked(accountsFile, list, accountListSchema, '账号')
 }
 
-export async function saveRoles(list: Role[]): Promise<void> {
-  await writeJsonChecked(rolesFile, list, roleListSchema, '角色')
-}
-
-export async function saveRooms(list: Room[]): Promise<void> {
-  await writeJsonChecked(roomsFile, list, roomListSchema, '会话群')
-}
+// saveRoles / saveRooms（内置项剥离 + 覆盖补丁）见 ./overrides.js
 
 export async function saveThinkServices(list: ThinkService[]): Promise<void> {
   await writeJsonChecked(

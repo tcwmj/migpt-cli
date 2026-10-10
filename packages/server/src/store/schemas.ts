@@ -60,6 +60,7 @@ export const roleSchema = z.object({
   onAIError: strArr,
   exitKeepAliveAfter: num,
   roomRef: optStr,
+  builtin: optBool,
   thinkServiceId: optStr,
   thinkServiceIds: z.array(str).optional(),
   voiceId: optStr,
@@ -121,6 +122,7 @@ export const roomSchema = z.object({
   id: str.min(1),
   name: str.min(1),
   description: optStr,
+  builtin: optBool,
   createdAt: num,
 })
 export const roomListSchema = z.array(roomSchema)
@@ -130,6 +132,8 @@ export const deviceMetaSchema = z.object({
   alias: str,
   did: str,
   speakerModel: optStr,
+  // 必填：设备须绑定对话角色（内置角色保证任何环境至少有一个可选角色）。
+  // 旧数据由迁移 v4 回填后即满足；迁移在启动期先于任何读取执行。
   roleId: str.min(1),
   accountId: optStr,
   thinkServiceIds: z.array(str).optional(),
@@ -147,6 +151,8 @@ export const deviceMetaSchema = z.object({
 export const overridesSchema = z.object({
   models: z.record(z.any()).optional(),
   voices: z.record(z.any()).optional(),
+  rooms: z.record(z.any()).optional(),
+  roles: z.record(z.any()).optional(),
 })
 
 // 登录凭据：passwordHash 为 scrypt 哈希（PHC 格式）；

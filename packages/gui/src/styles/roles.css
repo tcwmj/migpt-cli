@@ -65,6 +65,46 @@
   background: var(--accent-soft);
 }
 
+/* 角色列表图标位与文字区：与会话群/设备/账号列表（.slist .li）同风格 */
+.rlist .r .ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-m);
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--panel-2);
+  color: var(--ink-2);
+}
+
+.rlist .r.on .ic {
+  background: var(--accent);
+  color: #fff;
+}
+
+.rlist .r .txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.rlist .r .txt b {
+  font-size: var(--fs-md);
+  display: block;
+  line-height: var(--lh-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rlist .r .txt > span {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
 .rlist .r img,
 .pavatar {
   width: 36px;
@@ -78,11 +118,6 @@
   font-size: var(--fs-md);
   display: block;
   line-height: var(--lh-base);
-}
-
-.rlist .r span {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
 }
 
 .rlist .r .chk {

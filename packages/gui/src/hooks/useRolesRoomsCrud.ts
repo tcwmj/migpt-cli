@@ -63,6 +63,11 @@ export function useRolesRoomsCrud(opts: {
     }
   }
   const delRole = async (id: string) => {
+    const target = roles.find((x) => x.id === id)
+    if (target?.builtin) {
+      showToast('系统内置角色不可删除')
+      return
+    }
     const used = roleUsage(id)
     if (used.length) {
       showToast(
@@ -78,6 +83,26 @@ export function useRolesRoomsCrud(opts: {
         try {
           await api.deleteRole(id)
           showToast('角色已删除')
+          refreshAll()
+        } catch (e) {
+          showToast(errText(e))
+        }
+      },
+    })
+  }
+
+  /** 重置内置角色为系统默认值（仅 builtin 项显示入口；二次确认后恢复内置默认配置） */
+  const resetRole = (id: string) => {
+    const target = roles.find((x) => x.id === id)
+    if (!target?.builtin) return
+    setConfirm({
+      title: '重置角色默认值',
+      msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
+      danger: false,
+      onOk: async () => {
+        try {
+          await api.resetRole(id)
+          showToast('已恢复为系统内置默认配置')
           refreshAll()
         } catch (e) {
           showToast(errText(e))
@@ -107,6 +132,11 @@ export function useRolesRoomsCrud(opts: {
     }
   }
   const delRoom = async (id: string) => {
+    const target = rooms.find((x) => x.id === id)
+    if (target?.builtin) {
+      showToast('系统内置会话群不可删除')
+      return
+    }
     const used = roomUsage(id)
     if (used.length) {
       showToast(`该会话群正被角色「${used.join('、')}」引用，请先解除角色绑定`)
@@ -128,6 +158,26 @@ export function useRolesRoomsCrud(opts: {
     })
   }
 
+  /** 重置内置会话群为系统默认值（仅 builtin 项显示入口；二次确认后恢复内置默认配置） */
+  const resetRoom = (id: string) => {
+    const target = rooms.find((x) => x.id === id)
+    if (!target?.builtin) return
+    setConfirm({
+      title: '重置会话群默认值',
+      msg: `确定将「${target.name}」恢复为系统内置默认配置吗？你的修改将被覆盖。`,
+      danger: false,
+      onOk: async () => {
+        try {
+          await api.resetRoom(id)
+          showToast('已恢复为系统内置默认配置')
+          refreshAll()
+        } catch (e) {
+          showToast(errText(e))
+        }
+      },
+    })
+  }
+
   return {
     filterRoles,
     filterRooms,
@@ -136,8 +186,10 @@ export function useRolesRoomsCrud(opts: {
     saveRole,
     createRole,
     delRole,
+    resetRole,
     saveRoom,
     createRoom,
     delRoom,
+    resetRoom,
   }
 }

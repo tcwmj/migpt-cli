@@ -1,8 +1,8 @@
 // ── 内置实体定义（代码为准，只读）────────────────────────────────
-// 内置型号 / 内置语音是系统自带、不可删除的实体；它们的「定义」放在代码里，
-// 用户的修改以补丁形式写入 overrides.json（见 ./overrides.js）。
+// 内置型号 / 内置语音 / 内置会话群 / 内置角色是系统自带、不可删除的实体；
+// 它们的「定义」放在代码里，用户的修改以补丁形式写入 overrides.json（见 ./overrides.js）。
 // 这样内置定义可随版本升级自动修正，而用户自建实体始终独立存放、不受「重置默认」影响。
-import type { SpeakerModel, VoiceService } from '../types.js'
+import type { Role, Room, SpeakerModel, VoiceService } from '../types.js'
 
 /**
  * 系统内置音箱型号（禁删禁编辑定义；用户改动存覆盖补丁）。
@@ -242,6 +242,48 @@ export const BUILTIN_VOICE_SERVICES: Omit<VoiceService, 'createdAt'>[] = [
 ]
 
 /**
+ * 系统内置会话群（永不可删；可编辑、可重置默认）。
+ * id 与迁移前用户数据的原 id 一致（dQd66FVw），保证既有角色 roomRef 引用不失效。
+ */
+export const BUILTIN_ROOMS: Omit<Room, 'createdAt'>[] = [
+  {
+    id: 'dQd66FVw',
+    name: '傻妞会话群',
+    description: '家庭日常闲聊',
+    builtin: true,
+  },
+]
+
+/**
+ * 系统内置对话角色（永不可删；可编辑、可重置默认）。
+ * 数据取自迁移前用户保存的角色「傻妞」（id IgKuWadm），保留原 id
+ * 以兼容设备 roleId 引用；旧数据中的死键（checkNotContinueKeywords 等契约外字段）不纳入定义。
+ */
+export const BUILTIN_ROLES: Role[] = [
+  {
+    id: 'IgKuWadm',
+    name: '傻妞',
+    profile: '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。',
+    masterName: '主人',
+    masterProfile:
+      '性别：男\n性格：善良正直\n其他：总是舍己为人，是傻妞的主人。',
+    callAIKeywords: ['请', '你', '傻妞'],
+    wakeUpKeywords: ['打开', '进入', '召唤'],
+    exitKeywords: ['关闭', '退出', '再见'],
+    checkInterval: 1000,
+    checkTTSStatusAfter: 3000,
+    onEnterAI: ['你好，我是傻妞，很高兴认识你'],
+    onExitAI: ['傻妞已退出'],
+    onAIAsking: ['让我先想想', '请稍等'],
+    onAIReplied: ['我说完了', '还有其他问题吗'],
+    onAIError: ['啊哦，出错了，请稍后再试吧'],
+    exitKeepAliveAfter: 30,
+    roomRef: 'dQd66FVw',
+    builtin: true,
+  },
+]
+
+/**
  * 内置实体的固定创建时间：内置项源自代码、无独立持久化时间戳，
  * 统一取 0 以稳定排序（列表按「内置在前、自建在后」呈现）。
  */
@@ -249,9 +291,13 @@ export const BUILTIN_CREATED_AT = 0
 
 const BUILTIN_MODEL_IDS = new Set(BUILTIN_MODELS.map((m) => m.id))
 const BUILTIN_VOICE_IDS = new Set(BUILTIN_VOICE_SERVICES.map((v) => v.id))
+const BUILTIN_ROOM_IDS = new Set(BUILTIN_ROOMS.map((r) => r.id))
+const BUILTIN_ROLE_IDS = new Set(BUILTIN_ROLES.map((r) => r.id))
 
 export const isBuiltinModel = (id: string): boolean => BUILTIN_MODEL_IDS.has(id)
 export const isBuiltinVoice = (id: string): boolean => BUILTIN_VOICE_IDS.has(id)
+export const isBuiltinRoom = (id: string): boolean => BUILTIN_ROOM_IDS.has(id)
+export const isBuiltinRole = (id: string): boolean => BUILTIN_ROLE_IDS.has(id)
 
 /** 内置型号的完整默认实体（补齐 createdAt）；非内置返回 undefined */
 export function builtinModelDefault(id: string): SpeakerModel | undefined {
@@ -263,4 +309,16 @@ export function builtinModelDefault(id: string): SpeakerModel | undefined {
 export function builtinVoiceDefault(id: string): VoiceService | undefined {
   const def = BUILTIN_VOICE_SERVICES.find((v) => v.id === id)
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
+}
+
+/** 内置会话群的完整默认实体（补齐 createdAt）；非内置返回 undefined */
+export function builtinRoomDefault(id: string): Room | undefined {
+  const def = BUILTIN_ROOMS.find((r) => r.id === id)
+  return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
+}
+
+/** 内置角色的完整默认实体（Role 无 createdAt，直接返回定义副本）；非内置返回 undefined */
+export function builtinRoleDefault(id: string): Role | undefined {
+  const def = BUILTIN_ROLES.find((r) => r.id === id)
+  return def ? { ...def } : undefined
 }

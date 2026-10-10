@@ -46,6 +46,8 @@ export interface Role {
   exitKeepAliveAfter: number
   /** 会话群引用（Room 实体 id）：对话记忆上下文归属 */
   roomRef?: string
+  /** 内置标记：系统内置角色不可删除（可编辑、可重置默认值） */
+  builtin?: boolean
   /** @deprecated 已迁移至 DeviceMeta.thinkServiceIds；保留仅兼容旧数据读取 */
   thinkServiceIds?: string[]
   /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
@@ -122,6 +124,8 @@ export interface Room {
   name: string
   /** 会话群描述 */
   description?: string
+  /** 内置标记：系统内置会话群不可删除（可编辑、可重置默认值） */
+  builtin?: boolean
   createdAt: number
 }
 
@@ -270,6 +274,7 @@ export const ENTITY_FIELDS = {
     'onAIError',
     'exitKeepAliveAfter',
     'roomRef',
+    'builtin',
     'thinkServiceIds',
     'thinkServiceId',
     'voiceId',
@@ -319,7 +324,7 @@ export const ENTITY_FIELDS = {
     'builtin',
     'createdAt',
   ],
-  room: ['id', 'name', 'description', 'createdAt'],
+  room: ['id', 'name', 'description', 'builtin', 'createdAt'],
   deviceMeta: [
     'id',
     'alias',
