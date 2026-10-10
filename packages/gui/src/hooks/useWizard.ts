@@ -20,6 +20,8 @@ export function useWizard(opts: {
       did: '',
       model: '',
       roleId: '',
+      thinkServiceIds: [],
+      voiceId: '',
     })
   const closeWizard = () => setWizard(null)
   const setDraft = (p: Partial<WizardDraft>) =>
@@ -51,13 +53,28 @@ export function useWizard(opts: {
   }
   const finish = async () => {
     if (!wizard) return
+    // 设备服务与角色必填：避免提交后由后端 400 拒绝
+    if (!wizard.roleId) {
+      showToast('请选择一个对话角色')
+      return
+    }
+    if (!wizard.thinkServiceIds.length) {
+      showToast('请至少选择一个思考服务')
+      return
+    }
+    if (!wizard.voiceId) {
+      showToast('请选择一个语音服务')
+      return
+    }
     try {
       const created = await api.createDevice({
         alias: wizard.alias,
         did: wizard.did,
         speakerModel: wizard.model || undefined,
-        roleId: wizard.roleId || undefined,
+        roleId: wizard.roleId,
         accountId: wizard.accountId || undefined,
+        thinkServiceIds: wizard.thinkServiceIds,
+        voiceId: wizard.voiceId,
       })
       await api.startDevice(created.id)
       showToast('设备已添加并启动')

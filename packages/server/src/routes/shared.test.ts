@@ -174,8 +174,22 @@ describe('loadDeviceConfig', () => {
 describe('findDeviceBySecret', () => {
   test('按 ttsSecret 命中设备', async () => {
     jest.mocked(listDeviceMetas).mockResolvedValue([
-      { id: 'd1', alias: 'A', did: 'X', ttsSecret: 's1', createdAt: 1 },
-      { id: 'd2', alias: 'B', did: 'X', ttsSecret: 's2', createdAt: 2 },
+      {
+        id: 'd1',
+        alias: 'A',
+        did: 'X',
+        roleId: 'r1',
+        ttsSecret: 's1',
+        createdAt: 1,
+      },
+      {
+        id: 'd2',
+        alias: 'B',
+        did: 'X',
+        roleId: 'r1',
+        ttsSecret: 's2',
+        createdAt: 2,
+      },
     ])
     expect((await findDeviceBySecret('s2'))?.id).toBe('d2')
     expect(await findDeviceBySecret('nope')).toBeUndefined()

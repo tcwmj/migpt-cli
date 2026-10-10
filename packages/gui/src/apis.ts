@@ -309,7 +309,7 @@ export const createDevice = (d: {
   alias: string
   did: string
   speakerModel?: string
-  roleId?: string
+  roleId: string
   accountId?: string
   thinkServiceIds?: string[]
   voiceId?: string

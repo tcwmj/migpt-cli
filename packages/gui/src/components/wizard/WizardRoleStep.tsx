@@ -1,19 +1,33 @@
 import { useEffect, useState } from 'react'
-import { type Role } from '../../apis.ts'
+import Select from 'react-select'
+import { type Role, type ThinkService, type VoiceService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { avatarOf } from '../../utils.ts'
 import { Button, EmptyState, Field } from '../atoms/index.ts'
+import { multiSelectStyles } from '../atoms/selectStyles.ts'
 import type { WizardSetDraft } from './types.ts'
 
 export function WizardRoleStep(props: {
   active: boolean
   roles: Role[]
   roleId: string
+  thinkSvcs: ThinkService[]
+  voiceSvcs: VoiceService[]
+  thinkServiceIds: string[]
+  voiceId: string
   setDraft: WizardSetDraft
   onNewRole: (d: { name: string; profile?: string }) => Promise<Role>
   onUpdateRole: (id: string, d: Partial<Role>) => Promise<Role>
 }) {
-  const { roles, roleId, setDraft, onNewRole, onUpdateRole } = props
+  const {
+    roles,
+    roleId,
+    thinkServiceIds,
+    voiceId,
+    setDraft,
+    onNewRole,
+    onUpdateRole,
+  } = props
   const [newRole, setNewRole] = useState(false)
   const [roleEdit, setRoleEdit] = useState(false)
   const [nrDraft, setNrDraft] = useState<{
@@ -31,6 +45,27 @@ export function WizardRoleStep(props: {
     if (props.active && !roleId && roles.length)
       setDraft({ roleId: roles[0].id })
   }, [props.active, roleId, roles, setDraft])
+
+  // 进入本步时预选首个思考/语音服务，避免用户漏选导致无法完成
+  useEffect(() => {
+    if (!props.active) return
+    const patch: Partial<{
+      thinkServiceIds: string[]
+      voiceId: string
+    }> = {}
+    if (!thinkServiceIds.length && props.thinkSvcs.length)
+      patch.thinkServiceIds = [props.thinkSvcs[0].id]
+    if (!voiceId && props.voiceSvcs.length)
+      patch.voiceId = props.voiceSvcs[0].id
+    if (Object.keys(patch).length) setDraft(patch)
+  }, [
+    props.active,
+    props.thinkSvcs,
+    props.voiceSvcs,
+    thinkServiceIds,
+    voiceId,
+    setDraft,
+  ])
 
   const saveRole = async () => {
     if (nrBusy) return
@@ -228,6 +263,46 @@ export function WizardRoleStep(props: {
             </div>
           )}
         </section>
+      </div>
+      <div className="grp" style={{ padding: '0 16px 12px' }}>
+        <h4>关联服务</h4>
+        <div className="row">
+          <Field
+            label="思考服务"
+            required
+            tip="按优先级排列，限额已达时自动切换下一个"
+          >
+            <Select
+              isMulti
+              options={props.thinkSvcs.map((s) => ({
+                value: s.id,
+                label: s.name + (s.limitReached ? '（限额）' : ''),
+              }))}
+              value={props.thinkSvcs
+                .filter((s) => thinkServiceIds.includes(s.id))
+                .map((s) => ({ value: s.id, label: s.name }))}
+              placeholder="选择思考服务…"
+              noOptionsMessage={() => '无可用服务'}
+              onChange={(vals) =>
+                setDraft({ thinkServiceIds: (vals || []).map((v) => v.value) })
+              }
+              styles={multiSelectStyles}
+            />
+          </Field>
+          <Field label="语音服务" required>
+            <select
+              value={voiceId}
+              onChange={(e) => setDraft({ voiceId: e.target.value })}
+            >
+              <option value="">请选择语音服务</option>
+              {props.voiceSvcs.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
       </div>
     </div>
   )

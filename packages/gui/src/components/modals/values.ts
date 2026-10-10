@@ -91,8 +91,11 @@ export function buildModalPayload(
     }
     out = { old: v.old, pwd: v.pwd }
   } else if (modal.kind === 'deviceBind') {
+    if (!v.roleId) {
+      return { err: '请选择对话角色' }
+    }
     out = {
-      roleId: v.roleId || undefined,
+      roleId: v.roleId,
       accountId: v.accountId || undefined,
       speakerModel: v.speakerModel || undefined,
     }

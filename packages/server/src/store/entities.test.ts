@@ -147,6 +147,7 @@ describe('设备元数据读取', () => {
       id: 'd1',
       alias: '客厅',
       did: 'X08E',
+      roleId: 'role-1',
       ttsSecret: 's',
       createdAt: 1,
     })
@@ -158,6 +159,7 @@ describe('设备元数据读取', () => {
       id: 'b',
       alias: 'B',
       did: 'X',
+      roleId: 'role-1',
       ttsSecret: 's',
       createdAt: 20,
     })
@@ -165,6 +167,7 @@ describe('设备元数据读取', () => {
       id: 'a',
       alias: 'A',
       did: 'X',
+      roleId: 'role-1',
       ttsSecret: 's',
       createdAt: 10,
     })
@@ -204,6 +207,9 @@ describe('实体列表读取', () => {
         callAIKeywords: [],
         wakeUpKeywords: [],
         exitKeywords: [],
+        checkInterval: 1000,
+        checkTTSStatusAfter: 3000,
+        exitKeepAliveAfter: 30,
         onEnterAI: [],
         onExitAI: [],
         onAIAsking: [],

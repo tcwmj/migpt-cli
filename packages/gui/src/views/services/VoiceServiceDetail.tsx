@@ -69,32 +69,36 @@ export function VoiceServiceDetail(props: {
                 )}
               </span>
             </div>
-            {(engine === 'openai' || engine === 'openai-compat') && (
-              <div className="rr">
-                <span className="k">接口地址</span>
-                <span className="v">{tts?.openai?.baseUrl || '—'}</span>
+            {!svc?.builtin &&
+              svc?.provider !== 'custom' &&
+              (engine === 'openai' || engine === 'openai-compat') && (
+                <div className="rr">
+                  <span className="k">接口地址</span>
+                  <span className="v">{tts?.openai?.baseUrl || '—'}</span>
+                </div>
+              )}
+          </div>
+          {!svc?.builtin &&
+            svc?.provider !== 'custom' &&
+            (engine === 'openai' || engine === 'openai-compat') && (
+              <div className="row">
+                <div className="rr">
+                  <span className="k">语音模型</span>
+                  <span className="v">{tts?.openai?.model || '默认模型'}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">API Key</span>
+                  <span className="v">
+                    {svc?.hasTtsToken ? (
+                      <Tag tone="accent">已配置</Tag>
+                    ) : (
+                      <Tag tone="neu">未配置</Tag>
+                    )}
+                  </span>
+                </div>
               </div>
             )}
-          </div>
-          {(engine === 'openai' || engine === 'openai-compat') && (
-            <div className="row">
-              <div className="rr">
-                <span className="k">语音模型</span>
-                <span className="v">{tts?.openai?.model || '默认模型'}</span>
-              </div>
-              <div className="rr">
-                <span className="k">API Key</span>
-                <span className="v">
-                  {svc?.hasTtsToken ? (
-                    <Tag tone="accent">已配置</Tag>
-                  ) : (
-                    <Tag tone="neu">未配置</Tag>
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
-          {engine === 'edge' && (
+          {!svc?.builtin && svc?.provider !== 'custom' && engine === 'edge' && (
             <div className="row">
               <div className="rr">
                 <span className="k">访问令牌</span>
@@ -108,25 +112,27 @@ export function VoiceServiceDetail(props: {
               </div>
             </div>
           )}
-          {engine === 'volcano' && (
-            <div className="row">
-              <div className="rr">
-                <span className="k">App ID</span>
-                <span className="v">{tts?.volcano?.appId || '—'}</span>
+          {!svc?.builtin &&
+            svc?.provider !== 'custom' &&
+            engine === 'volcano' && (
+              <div className="row">
+                <div className="rr">
+                  <span className="k">App ID</span>
+                  <span className="v">{tts?.volcano?.appId || '—'}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">访问令牌</span>
+                  <span className="v">
+                    {svc?.hasTtsToken ? (
+                      <Tag tone="accent">已配置</Tag>
+                    ) : (
+                      <Tag tone="neu">未配置</Tag>
+                    )}
+                  </span>
+                </div>
               </div>
-              <div className="rr">
-                <span className="k">访问令牌</span>
-                <span className="v">
-                  {svc?.hasTtsToken ? (
-                    <Tag tone="accent">已配置</Tag>
-                  ) : (
-                    <Tag tone="neu">未配置</Tag>
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
-          {svc?.provider !== 'custom' && (
+            )}
+          {!svc?.builtin && svc?.provider !== 'custom' && (
             <div className="row">
               <div className="rr">
                 <span className="k">音色 ID</span>
@@ -134,7 +140,7 @@ export function VoiceServiceDetail(props: {
               </div>
             </div>
           )}
-          {svc?.provider === 'custom' && (
+          {!svc?.builtin && svc?.provider === 'custom' && (
             <div className="row">
               <div className="rr">
                 <span className="k">TTS 配置</span>

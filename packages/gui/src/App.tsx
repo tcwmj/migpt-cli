@@ -464,6 +464,8 @@ export function App() {
           accounts={accounts}
           roles={roles}
           models={models}
+          thinkSvcs={thinkSvcs}
+          voiceSvcs={voiceSvcs}
           draft={wizard}
           setDraft={wz.setDraft}
           onClose={wz.closeWizard}

@@ -1,6 +1,12 @@
 /* ══ Wizard ══ */
 import { useState } from 'react'
-import { type Account, type Role, type SpeakerModel } from '../apis.ts'
+import {
+  type Account,
+  type Role,
+  type SpeakerModel,
+  type ThinkService,
+  type VoiceService,
+} from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
 import { WizardAccountStep } from './wizard/WizardAccountStep.tsx'
@@ -13,6 +19,8 @@ export function Wizard(props: {
   accounts: Account[]
   roles: Role[]
   models: SpeakerModel[]
+  thinkSvcs: ThinkService[]
+  voiceSvcs: VoiceService[]
   devices: { id: string; alias: string; did: string; accountId?: string }[]
   draft: WizardDraft
   setDraft: WizardSetDraft
@@ -44,11 +52,16 @@ export function Wizard(props: {
   const canNext =
     (step === 0 && !!draft.accountId) ||
     (step === 1 && !!draft.did && !pullErr) ||
-    step === 2
+    (step === 2 &&
+      !!draft.roleId &&
+      draft.thinkServiceIds.length > 0 &&
+      !!draft.voiceId)
   const finish = () => {
     if (closing) return
-    if (step === 2) close(props.onFinish)
-    else if (canNext) setDraft({ step: step + 1 })
+    if (step === 2) {
+      if (!canNext) return
+      close(props.onFinish)
+    } else if (canNext) setDraft({ step: step + 1 })
   }
   const WSTEP = [
     { n: '1', t: '连接账号', s: '读取设备' },
@@ -111,6 +124,10 @@ export function Wizard(props: {
             active={step === 2}
             roles={props.roles}
             roleId={draft.roleId}
+            thinkSvcs={props.thinkSvcs}
+            voiceSvcs={props.voiceSvcs}
+            thinkServiceIds={draft.thinkServiceIds}
+            voiceId={draft.voiceId}
             setDraft={setDraft}
             onNewRole={props.onNewRole}
             onUpdateRole={props.onUpdateRole}
@@ -130,7 +147,7 @@ export function Wizard(props: {
             <Button
               variant="primary"
               icon="arrowR"
-              disabled={!canNext && step < 2}
+              disabled={!canNext}
               onClick={finish}
             >
               {step === 2 ? '完成' : '下一步'}
