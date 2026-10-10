@@ -200,6 +200,24 @@ describe('applyBackup · 导入', () => {
     expect(meta.alias).toBe('书房')
     expect(meta.ttsSecret).toBe('sec')
   })
+
+  test('覆盖补丁随包往返：导入后 overrides.json 与包内容一致', async () => {
+    // 内置实体的用户修改存 overrides.json；导入必须还原它，
+    // 否则「可编辑」的内置改动会在迁移/恢复后静默丢失（变相回到初始数据）。
+    await write(paths.overridesFile, {
+      models: { 'xiaomi-pro': { name: '我的小爱 Pro' } },
+    })
+    const bundle = await buildBundle(false)
+    // 模拟迁出：本机覆盖被清空后导入应还原
+    await write(paths.overridesFile, {})
+    await applyBackup(bundle)
+    expect(await read(paths.overridesFile)).toEqual(
+      bundle.data.overrides as unknown,
+    )
+    expect((await read(paths.overridesFile)).models?.['xiaomi-pro']).toEqual({
+      name: '我的小爱 Pro',
+    })
+  })
 })
 
 describe('assertBundle', () => {

@@ -70,7 +70,7 @@ export function App() {
   )
 
   // Hash 路由同步：视图状态与 URL hash 双向绑定
-  useHashRouter(view, setView)
+  useHashRouter(view, setView, setSettingTab)
   const nav = useNav(setView, setSettingTab, setQuery)
   useEffect(() => {
     localStorage.setItem('migpt-side-off', sideOff ? '1' : '0')

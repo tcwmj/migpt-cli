@@ -130,7 +130,8 @@ export interface DeviceMeta {
   alias: string
   did: string
   speakerModel?: string
-  roleId?: string
+  /** 引用的对话角色（必填；角色承载人设与对话行为） */
+  roleId: string
   accountId?: string
   /** 有序思考服务列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
   thinkServiceIds?: string[]

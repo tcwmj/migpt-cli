@@ -29,11 +29,21 @@ function parseView(hash: string): View {
  * - 视图变化时更新 hash
  * - 浏览器前进/后退时同步视图
  */
-export function useHashRouter(view: View, setView: (v: View) => void): void {
+export function useHashRouter(
+  view: View,
+  setView: (v: View) => void,
+  setSettingTab?: (t: 'think' | 'voice') => void,
+): void {
   // 初始化：从 hash 读取初始视图
   useEffect(() => {
     const initial = parseView(window.location.hash)
-    if (initial !== 'home') setView(initial)
+    if (initial !== 'home') {
+      setView(initial)
+      // 如果是 think 或 voice 视图，同步设置 settingTab
+      if (setSettingTab && (initial === 'think' || initial === 'voice')) {
+        setSettingTab(initial)
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

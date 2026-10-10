@@ -233,7 +233,26 @@ export function VoiceServiceForm(props: {
           <div className="row">
             <Field
               label="TTS 配置（JSON）"
+              required
               tip="高级用法：直接填写 mi-gpt TTSConfig JSON"
+              hint={(() => {
+                if (!voiceDraft.customJson.trim()) return undefined
+                try {
+                  JSON.parse(voiceDraft.customJson)
+                  return undefined
+                } catch (e) {
+                  return 'JSON 格式错误，请检查语法'
+                }
+              })()}
+              hintTone={(() => {
+                if (!voiceDraft.customJson.trim()) return undefined
+                try {
+                  JSON.parse(voiceDraft.customJson)
+                  return undefined
+                } catch (e) {
+                  return 'warn'
+                }
+              })()}
             >
               <textarea
                 value={voiceDraft.customJson}
@@ -242,6 +261,7 @@ export function VoiceServiceForm(props: {
                   onDraft({ ...voiceDraft, customJson: e.target.value })
                 }
                 rows={5}
+                style={{ fontFamily: 'monospace' }}
               />
             </Field>
           </div>

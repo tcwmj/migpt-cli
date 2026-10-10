@@ -85,7 +85,11 @@ export function VoiceServiceDetail(props: {
               <div className="rr">
                 <span className="k">API Key</span>
                 <span className="v">
-                  {svc?.hasTtsToken ? '已配置' : '未配置'}
+                  {svc?.hasTtsToken ? (
+                    <Tag tone="accent">已配置</Tag>
+                  ) : (
+                    <Tag tone="neu">未配置</Tag>
+                  )}
                 </span>
               </div>
             </div>
@@ -95,7 +99,11 @@ export function VoiceServiceDetail(props: {
               <div className="rr">
                 <span className="k">访问令牌</span>
                 <span className="v">
-                  {svc?.hasTtsToken ? '已配置' : '未配置'}
+                  {svc?.hasTtsToken ? (
+                    <Tag tone="accent">已配置</Tag>
+                  ) : (
+                    <Tag tone="neu">未配置</Tag>
+                  )}
                 </span>
               </div>
             </div>
@@ -109,7 +117,11 @@ export function VoiceServiceDetail(props: {
               <div className="rr">
                 <span className="k">访问令牌</span>
                 <span className="v">
-                  {svc?.hasTtsToken ? '已配置' : '未配置'}
+                  {svc?.hasTtsToken ? (
+                    <Tag tone="accent">已配置</Tag>
+                  ) : (
+                    <Tag tone="neu">未配置</Tag>
+                  )}
                 </span>
               </div>
             </div>
@@ -128,9 +140,15 @@ export function VoiceServiceDetail(props: {
                 <span className="k">TTS 配置</span>
                 <span
                   className="v"
-                  style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    whiteSpace: 'pre-wrap',
+                  }}
                 >
-                  {tts ? JSON.stringify(tts, null, 2) : '—'}
+                  {tts && Object.keys(tts).length > 0
+                    ? JSON.stringify(tts, null, 2)
+                    : '—'}
                 </span>
               </div>
             </div>

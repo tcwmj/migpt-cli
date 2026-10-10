@@ -101,6 +101,29 @@ describe('合并内置与自建实体', () => {
     const ids = (await getSpeakerModels()).map((m) => m.id)
     expect(ids.filter((id) => id === 'xiaomi-pro')).toHaveLength(1)
   })
+
+  test('自建项伪造 builtin:true 会被读取层归零（可删、可编辑，不受内置锁定）', () => {
+    const fake: VoiceService = {
+      id: 'evil',
+      name: '伪装内置',
+      provider: 'edge',
+      builtin: true,
+      createdAt: 9,
+    }
+    const merged = mergeBuiltinVoices([fake])
+    const target = merged.find((v) => v.id === 'evil')!
+    expect(target.builtin).toBe(false)
+    // 型号同理
+    const fakeModel: SpeakerModel = {
+      id: 'evil-m',
+      name: '伪装内置型号',
+      did: 'XX',
+      builtin: true,
+      createdAt: 9,
+    }
+    const mergedM = mergeBuiltinModels([fakeModel])
+    expect(mergedM.find((m) => m.id === 'evil-m')!.builtin).toBe(false)
+  })
 })
 
 describe('落盘：自建写文件、内置改动写覆盖', () => {
