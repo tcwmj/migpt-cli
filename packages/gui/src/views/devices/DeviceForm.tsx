@@ -113,6 +113,7 @@ export function DeviceForm(props: {
           <div style={{ flex: 1 }}>
             <Field
               label="思考服务"
+              required
               tip="按优先级排列，限额已达时自动切换下一个"
             >
               <Select
@@ -132,18 +133,17 @@ export function DeviceForm(props: {
             </Field>
           </div>
           <div style={{ flex: 1 }}>
-            <Field label="语音服务">
+            <Field label="语音服务" required>
               <select
                 value={devDraft.voiceId || ''}
                 onChange={(e) =>
                   props.onDraft({ ...devDraft, voiceId: e.target.value })
                 }
               >
-                <option value="">（跟随角色或全局默认）</option>
+                <option value="">（未设置，必选）</option>
                 {props.voiceSvcs.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
-                    {s.isDefault ? ' · 默认' : ''}
                   </option>
                 ))}
               </select>

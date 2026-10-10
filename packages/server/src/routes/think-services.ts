@@ -23,7 +23,7 @@ export const registerThinkServiceRoutes = createCrudRouter<ThinkService>({
     !body.name || !body.provider || !body.model || !body.apiKey
       ? '名称、供应商、模型与 API Key 必填'
       : null,
-  build: (body, list) => {
+  build: (body) => {
     const svc: ThinkService = {
       id: nanoid(8),
       name: body.name as string,
@@ -32,25 +32,15 @@ export const registerThinkServiceRoutes = createCrudRouter<ThinkService>({
       apiKey: body.apiKey as string,
       baseUrl: body.baseUrl,
       temperature: body.temperature,
-      isDefault: body.isDefault ?? list.length === 0,
       createdAt: Date.now(),
     }
-    // 保持全局默认唯一
-    if (svc.isDefault) for (const t of list) t.isDefault = false
     return svc
   },
   applyUpdate: (list, idx, body) => {
-    const wasDefault = list[idx].isDefault
     // 脱敏后前端不回读 apiKey：空值视为「未修改」，避免误清空已存密钥
     const patch = pick<ThinkService>(body, THINK_FIELDS)
     if (!patch.apiKey) delete patch.apiKey
     list[idx] = { ...list[idx], ...patch, id: list[idx].id }
-    if (body.isDefault && !wasDefault) {
-      for (const t of list) if (t.id !== list[idx].id) t.isDefault = false
-    }
-    if (body.isDefault === false && wasDefault) {
-      list[idx].isDefault = list.length === 1
-    }
   },
   respond: redactThinkService,
   refRules: [

@@ -42,8 +42,6 @@ import {
   getAccounts,
   getAccountById,
   getRoles,
-  getDefaultThinkService,
-  getDefaultVoiceService,
   getDeviceMeta,
   listDeviceMetas,
   getRoomByRef,
@@ -135,62 +133,6 @@ describe('getAccounts / getAccountById', () => {
 
   test('账号为空时 getAccountById 返回 undefined', async () => {
     expect(await getAccountById()).toBeUndefined()
-  })
-})
-
-describe('默认思考 / 语音服务', () => {
-  test('优先返回 isDefault，否则回退首个', async () => {
-    await write(paths.thinkServicesFile, [
-      {
-        id: 't1',
-        name: '一',
-        provider: 'doubao',
-        model: 'm',
-        apiKey: '',
-        createdAt: 1,
-      },
-      {
-        id: 't2',
-        name: '二',
-        provider: 'openai',
-        model: 'm',
-        apiKey: '',
-        createdAt: 2,
-        isDefault: true,
-      },
-    ])
-    expect((await getDefaultThinkService())?.id).toBe('t2')
-
-    await write(paths.thinkServicesFile, [
-      {
-        id: 't1',
-        name: '一',
-        provider: 'doubao',
-        model: 'm',
-        apiKey: '',
-        createdAt: 1,
-      },
-    ])
-    expect((await getDefaultThinkService())?.id).toBe('t1')
-  })
-
-  test('无自建语音时回退内置默认语音', async () => {
-    expect(await getDefaultThinkService()).toBeUndefined()
-    expect((await getDefaultVoiceService())?.id).toBe('builtin-mi')
-  })
-
-  test('语音服务同样遵循 isDefault 优先', async () => {
-    await write(paths.voiceServicesFile, [
-      {
-        id: 'v1',
-        name: '内置',
-        provider: 'builtin',
-        createdAt: 1,
-        isDefault: true,
-      },
-      { id: 'v2', name: '第三方', provider: 'edge', createdAt: 2 },
-    ])
-    expect((await getDefaultVoiceService())?.id).toBe('v1')
   })
 })
 

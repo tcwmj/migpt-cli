@@ -64,6 +64,15 @@ export function useDevicesCrud(opts: {
 
   const saveDeviceForm = async () => {
     if (!devDraft) return
+    // 设备服务必填：思考服务与语音服务须显式指定（不再有全局默认回退）
+    if (!devDraft.thinkServiceIds.length) {
+      showToast('请至少选择一个思考服务')
+      return
+    }
+    if (!devDraft.voiceId) {
+      showToast('请选择一个语音服务')
+      return
+    }
     try {
       if (selDev) {
         await api.saveDevice(selDev, {

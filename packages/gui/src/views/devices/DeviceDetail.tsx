@@ -136,7 +136,7 @@ export function DeviceDetail(props: {
                     ))}
                   </div>
                 ) : (
-                  '跟随角色或全局默认'
+                  '未设置'
                 )}
               </span>
             </div>
@@ -152,7 +152,7 @@ export function DeviceDetail(props: {
                     {voiceService.name}
                   </button>
                 ) : (
-                  '跟随角色或全局默认'
+                  '未设置'
                 )}
               </span>
             </div>

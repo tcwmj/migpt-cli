@@ -88,6 +88,15 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         fail(res, 400, '别名和设备 ID 必填')
         return
       }
+      // 设备服务必填：思考服务与语音服务须显式指定（不再有全局默认回退）
+      if (!body.thinkServiceIds || body.thinkServiceIds.length === 0) {
+        fail(res, 400, '思考服务必填')
+        return
+      }
+      if (!body.voiceId) {
+        fail(res, 400, '语音服务必填')
+        return
+      }
       const metas = await listDeviceMetas()
       // 唯一性按「账号」维度：同账号下设备 ID 唯一（防止同一设备多套配置）；不同账号允许相同 ID/名称（支持设备切换账号）
       const sameAcct = body.accountId
@@ -198,6 +207,18 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         const patch = pick<DeviceMeta>(body.meta, DEVICE_META_FIELDS)
         if (!patch.ttsSecret) delete patch.ttsSecret
         const nextMeta: DeviceMeta = { ...meta, ...patch, id }
+        // 设备服务必填：合并后仍须各指定至少一个（不再有全局默认回退）
+        if (
+          !nextMeta.thinkServiceIds ||
+          nextMeta.thinkServiceIds.length === 0
+        ) {
+          fail(res, 400, '思考服务必填')
+          return
+        }
+        if (!nextMeta.voiceId) {
+          fail(res, 400, '语音服务必填')
+          return
+        }
         await saveDeviceMeta(id, nextMeta)
         // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
         if (

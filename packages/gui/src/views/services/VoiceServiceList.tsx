@@ -31,19 +31,12 @@ export function VoiceServiceList(props: {
               <b>{s.name}</b>
               <span>
                 {s.builtin
-                  ? 'builtin · 全局默认音色'
+                  ? 'builtin · 小米内置音色'
                   : (TTS_ENGINES[s.provider] || s.provider) +
                     (s.voiceId ? ' · ' + s.voiceId : '')}
               </span>
             </span>
-            {s.builtin ? (
-              <>
-                <Tag>内置</Tag>
-                {s.isDefault && <Tag tone="accent">默认</Tag>}
-              </>
-            ) : s.isDefault ? (
-              <Tag>默认</Tag>
-            ) : null}
+            {s.builtin ? <Tag>内置</Tag> : null}
           </div>
         )
       })}

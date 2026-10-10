@@ -48,7 +48,6 @@ const VOICE_OVERRIDE_FIELDS: readonly (keyof VoiceService)[] = [
   'voiceId',
   'ttsCommand',
   'tts',
-  'isDefault',
 ]
 
 /** 内置实体的用户覆盖补丁：按实体 id 存「与代码默认值不同的字段」 */
@@ -119,11 +118,6 @@ export function mergeBuiltinVoices(
     return patch ? { ...base, ...patch, id: base.id, builtin: true } : base
   })
   const all = [...builtins, ...customs]
-  // 兜底为默认：全局无显式默认时，把首个内置语音设为默认（保持「总有默认」语义）
-  if (!all.some((v) => v.isDefault)) {
-    const first = all.find((v) => v.builtin)
-    if (first) first.isDefault = true
-  }
   return all
 }
 
@@ -191,14 +185,8 @@ export async function resetBuiltinVoice(
     ...(prev.voices ?? {}),
   }
   delete voices[id]
-  // 重置后若全局无默认语音，兜底把内置语音设为默认（保持「总有默认」）
-  const custom = await readJson<VoiceService[]>(voiceServicesFile, [])
-  const anyDefault = mergeBuiltinVoices(custom, voices).some(
-    (v) => v.id !== id && v.isDefault,
-  )
-  if (!anyDefault) voices[id] = { isDefault: true }
   await persist(prev, { ...prev, voices })
-  return anyDefault ? def : { ...def, isDefault: true }
+  return def
 }
 
 /**

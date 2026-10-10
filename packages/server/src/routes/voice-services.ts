@@ -19,7 +19,7 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
   schema: voiceServiceListSchema,
   validate: (body) =>
     !body.name || !body.provider ? '名称与供应商必填' : null,
-  build: (body, list) => {
+  build: (body) => {
     const svc: VoiceService = {
       id: nanoid(8),
       name: body.name as string,
@@ -27,16 +27,12 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
       voiceId: body.voiceId,
       ttsCommand: body.ttsCommand,
       builtin: body.builtin ?? false,
-      isDefault: body.isDefault ?? list.length === 0,
       tts: body.tts,
       createdAt: Date.now(),
     }
-    // 保持全局默认唯一
-    if (svc.isDefault) for (const v of list) v.isDefault = false
     return svc
   },
   applyUpdate: (list, idx, body) => {
-    const wasDefault = list[idx].isDefault
     const patch = pick<VoiceService>(body, VOICE_FIELDS)
     // tts 密钥（trustedToken / accessToken / apiKey）读接口脱敏后不回传：
     // 前端提交的空值视为「未修改」，与存储值合并，避免误清空已存密钥
@@ -62,12 +58,6 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
       ...patch,
       id: list[idx].id,
       builtin: list[idx].builtin,
-    }
-    if (body.isDefault && !wasDefault) {
-      for (const v of list) if (v.id !== list[idx].id) v.isDefault = false
-    }
-    if (body.isDefault === false && wasDefault) {
-      list[idx].isDefault = list.length === 1
     }
   },
   deleteGuard: (target) => (target.builtin ? '内建语音服务不可删除' : null),

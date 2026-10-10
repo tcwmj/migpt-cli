@@ -138,9 +138,8 @@ describe('落盘：自建写文件、内置改动写覆盖', () => {
     expect((await getOverrides()).models).toBeUndefined()
   })
 
-  test('语音服务：内置默认标记写覆盖，自建语音写文件', async () => {
+  test('语音服务：自建语音写文件，内置项不进文件', async () => {
     const list = await getVoiceServices()
-    list[0].isDefault = true
     list.push({
       id: 'v1',
       name: '第三方',
@@ -152,9 +151,8 @@ describe('落盘：自建写文件、内置改动写覆盖', () => {
     expect(
       (await read<VoiceService[]>(paths.voiceServicesFile)).map((v) => v.id),
     ).toEqual(['v1'])
-    expect((await getOverrides()).voices?.['builtin-mi']).toEqual({
-      isDefault: true,
-    })
+    // 内置语音未被改动时无覆盖补丁
+    expect((await getOverrides()).voices).toBeUndefined()
   })
 })
 
@@ -179,28 +177,22 @@ describe('重置内置实体', () => {
     expect(await resetBuiltinVoice('nope')).toBeUndefined()
   })
 
-  test('重置语音：无其他默认时兜底为默认，有则让位', async () => {
-    expect((await resetBuiltinVoice('builtin-mi'))?.isDefault).toBe(true)
+  test('重置语音：删除覆盖回归代码默认，不波及其他数据', async () => {
+    const list = await getVoiceServices()
+    list.find((v) => v.id === 'builtin-mi')!.name = '改过'
+    await saveVoiceServices(list)
     expect((await getOverrides()).voices?.['builtin-mi']).toEqual({
-      isDefault: true,
+      name: '改过',
     })
 
-    await write(paths.voiceServicesFile, [
-      {
-        id: 'v1',
-        name: '第三方',
-        provider: 'edge',
-        isDefault: true,
-        createdAt: 1,
-      },
-    ])
-    expect((await resetBuiltinVoice('builtin-mi'))?.isDefault).toBeUndefined()
+    const def = await resetBuiltinVoice('builtin-mi')
+    expect(def?.name).toBe('默认语音')
     expect((await getOverrides()).voices).toBeUndefined()
   })
 })
 
 describe('一次性迁移：内置 / 用户数据分离', () => {
-  test('内置项移出文件，用户改动与默认标记存为覆盖', async () => {
+  test('内置项移出文件，用户改动存为覆盖', async () => {
     const pro = BUILTIN_MODELS.find((m) => m.id === 'xiaomi-pro')!
     await write(paths.speakerModelsFile, [
       { ...pro, name: '用户改名', createdAt: 5 },
@@ -212,7 +204,6 @@ describe('一次性迁移：内置 / 用户数据分离', () => {
         name: '小米内置',
         provider: 'builtin',
         builtin: true,
-        isDefault: true,
         createdAt: 1,
       },
       { id: 'v9', name: '第三方', provider: 'edge', createdAt: 2 },
@@ -229,8 +220,8 @@ describe('一次性迁移：内置 / 用户数据分离', () => {
 
     const ov = await getOverrides()
     expect(ov.models?.['xiaomi-pro']).toEqual({ name: '用户改名' })
-    // 旧名「小米内置」归一为默认名，不记为覆盖；仅保留默认标记
-    expect(ov.voices?.['builtin-mi']).toEqual({ isDefault: true })
+    // 旧名「小米内置」归一为默认名，与代码默认一致，不记为覆盖
+    expect(ov.voices).toBeUndefined()
   })
 
   test('重复执行幂等：不产生额外覆盖', async () => {

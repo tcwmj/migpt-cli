@@ -230,12 +230,9 @@ export const BUILTIN_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
 
 /**
  * 系统内置语音服务（小米内置 TTS，永不可删）。
- * isDefault 由合并层动态决定（用户未指定默认语音时兜底为默认），故不在定义中固化。
+ * 不再有「全局默认」概念：语音服务须由设备显式指定。
  */
-export const BUILTIN_VOICE_SERVICES: Omit<
-  VoiceService,
-  'createdAt' | 'isDefault'
->[] = [
+export const BUILTIN_VOICE_SERVICES: Omit<VoiceService, 'createdAt'>[] = [
   {
     id: 'builtin-mi',
     name: '默认语音',
@@ -262,7 +259,7 @@ export function builtinModelDefault(id: string): SpeakerModel | undefined {
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }
 
-/** 内置语音的完整默认实体（补齐 createdAt）；isDefault 由合并层决定，此处不固化 */
+/** 内置语音的完整默认实体（补齐 createdAt）；非内置返回 undefined */
 export function builtinVoiceDefault(id: string): VoiceService | undefined {
   const def = BUILTIN_VOICE_SERVICES.find((v) => v.id === id)
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined

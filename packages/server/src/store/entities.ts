@@ -146,22 +146,6 @@ export async function getRooms(): Promise<Room[]> {
   return readJsonListChecked(roomsFile, roomSchema, '会话群')
 }
 
-/** 全局默认思考服务（未指定角色/设备引用时回退） */
-export async function getDefaultThinkService(): Promise<
-  ThinkService | undefined
-> {
-  const list = await getThinkServices()
-  return list.find((t) => t.isDefault) ?? list[0]
-}
-
-/** 全局默认语音服务 */
-export async function getDefaultVoiceService(): Promise<
-  VoiceService | undefined
-> {
-  const list = await getVoiceServices()
-  return list.find((v) => v.isDefault) ?? list[0]
-}
-
 export async function getDeviceMeta(
   id: string,
 ): Promise<DeviceMeta | undefined> {

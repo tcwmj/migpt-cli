@@ -84,8 +84,7 @@ export function Drawer(props: {
         <div className="db">
           <div>
             <h4>
-              <I n="lock" size={14} /> 绑定链 · 优先级：设备指定 &gt; 角色指定
-              &gt; 全局默认
+              <I n="lock" size={14} /> 绑定链 · 服务取设备指定，会话群取角色指定
             </h4>
             <div
               style={{

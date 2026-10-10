@@ -205,10 +205,10 @@ export async function resolveBindings(
   const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
   const role = meta.roleId ? roles.find((r) => r.id === meta.roleId) : undefined
 
-  // 思考服务：设备列表（failover）→ 角色旧字段兼容 → 全局默认
+  // 思考服务：仅取设备指定列表（failover），不再回退角色或全局默认
   let think: (typeof thinks)[0] | undefined
-  let thinkSource: 'device' | 'global' = 'device'
-  const thinkIds = meta.thinkServiceIds ?? role?.thinkServiceIds ?? []
+  const thinkSource: 'device' | 'global' = 'device'
+  const thinkIds = meta.thinkServiceIds ?? []
   if (thinkIds.length > 0) {
     // 按顺序跳过 limitReached 的服务
     for (const sid of thinkIds) {
@@ -225,25 +225,18 @@ export async function resolveBindings(
   }
   // 无列表时保留 thinkServiceId 兼容旧数据
   if (!think) {
-    const legacyId = meta.thinkServiceId ?? role?.thinkServiceId
+    const legacyId = meta.thinkServiceId
     if (legacyId) think = thinks.find((t) => t.id === legacyId)
   }
-  if (!think) {
-    think = thinks.find((t) => t.isDefault) ?? thinks[0]
-    thinkSource = 'global'
-  }
 
-  // 语音服务：设备指定 → 角色旧字段兼容 → 全局默认
+  // 语音服务：仅取设备指定，不再回退角色或全局默认
   let voice: (typeof voices)[0] | undefined
-  let voiceSource: 'device' | 'global' = 'device'
-  const voiceId = meta.voiceId ?? role?.voiceId
+  const voiceId = meta.voiceId
   if (voiceId) {
     voice = voices.find((v) => v.id === voiceId)
   }
-  if (!voice) {
-    voice = voices.find((v) => v.isDefault) ?? voices[0]
-    voiceSource = 'global'
-  }
+  // 设备未指定语音服务时的来源标注（用于绑定链展示）
+  const voiceSource: 'device' | 'global' = 'device'
 
   // 会话群：角色指定 → 设备旧字段兼容（'' 视为未设置，用 || 回退）
   const rooms = await getRooms()

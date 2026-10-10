@@ -1,6 +1,6 @@
 import type { ThinkService } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { Button, ProviderLogo, Tag } from '../../components/atoms/index.ts'
+import { Button, ProviderLogo } from '../../components/atoms/index.ts'
 import { THINK_PROVIDERS } from '../../constants.ts'
 
 export function ThinkServiceList(props: {
@@ -31,7 +31,6 @@ export function ThinkServiceList(props: {
               <b>{s.name}</b>
               <span>{(p?.name || s.provider) + ' · ' + s.model}</span>
             </span>
-            {s.isDefault && <Tag>默认</Tag>}
           </div>
         )
       })}

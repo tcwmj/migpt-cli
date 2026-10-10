@@ -66,8 +66,6 @@ export interface ThinkService {
   apiKey: string
   baseUrl?: string
   temperature?: number
-  /** 全局默认思考服务：未指定角色/设备时回退到这里 */
-  isDefault?: boolean
   /** 已消耗 input token 数（自动累加 + 手动修正） */
   tokenInputUsed?: number
   /** 已消耗 output token 数（自动累加 + 手动修正） */
@@ -97,8 +95,6 @@ export interface VoiceService {
   ttsCommand?: (number | undefined)[]
   /** 内建标记：小米内置 voice 永不可删 */
   builtin?: boolean
-  /** 全局默认语音服务 */
-  isDefault?: boolean
   /** 第三方 TTS 引擎配置（provider !== 'builtin' 时生效） */
   tts?: import('mi-gpt-tts').TTSConfig
   /** 已消耗 input token 数（自动累加 + 手动修正） */
@@ -140,7 +136,7 @@ export interface DeviceMeta {
   thinkServiceIds?: string[]
   /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
   thinkServiceId?: string
-  /** 引用的语音服务（未指定时回退到全局默认） */
+  /** 引用的语音服务（必填；不再回退全局默认） */
   voiceId?: string
   /** @deprecated 已迁移至 Role.roomRef；保留仅兼容旧数据读取 */
   roomRef?: string
@@ -193,7 +189,7 @@ export interface PulledDevice {
 /**
  * 绑定链来源标注：
  * - account / role  来自设备显式绑定
- * - think / voice   依次回退：设备指定 → 角色旧字段兼容 → 全局默认
+ * - think / voice   仅来自设备指定（必填；不再回退角色或全局默认）
  * - room            依次回退：角色指定 → 设备旧字段兼容
  */
 export interface BindingRow {
@@ -299,7 +295,6 @@ export const ENTITY_FIELDS = {
     'apiKey',
     'baseUrl',
     'temperature',
-    'isDefault',
     'tokenInputUsed',
     'tokenOutputUsed',
     'tokenUsed',
@@ -315,7 +310,6 @@ export const ENTITY_FIELDS = {
     'voiceId',
     'ttsCommand',
     'builtin',
-    'isDefault',
     'tts',
     'tokenInputUsed',
     'tokenOutputUsed',

@@ -20,15 +20,22 @@ export function VoiceServiceDetail(props: {
   // 找到使用该服务的设备
   const boundDevices = props.devices.filter((d) => d.voiceId === props.selVoice)
 
+  // 获取引擎类型和 TTS 配置
+  const engine = svc
+    ? VOICE_PROVIDERS[svc.provider]?.engine || 'openai'
+    : 'openai'
+  const tts = svc?.tts as
+    | {
+        edge?: { trustedToken?: string }
+        volcano?: { appId?: string; accessToken?: string }
+        openai?: { apiKey?: string; model?: string; baseUrl?: string }
+      }
+    | undefined
+
   return (
     <div className="form-card">
       <h3>
         <I n="mic" size={17} /> 语音服务详情
-        {svc?.isDefault && (
-          <Tag tone="accent" style={{ marginLeft: 8 }}>
-            默认
-          </Tag>
-        )}
         <span className="refs">
           被 {props.usageVoice(props.selVoice)} 台设备引用 ·
           支持热切「把声音换成…」
@@ -67,6 +74,26 @@ export function VoiceServiceDetail(props: {
               <span className="v">{svc?.voiceId || '默认音色'}</span>
             </div>
           </div>
+          {(engine === 'openai' || engine === 'openai-compat') && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">接口地址</span>
+                <span className="v">{tts?.openai?.baseUrl || '—'}</span>
+              </div>
+              <div className="rr">
+                <span className="k">模型</span>
+                <span className="v">{tts?.openai?.model || '默认模型'}</span>
+              </div>
+            </div>
+          )}
+          {engine === 'volcano' && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">App ID</span>
+                <span className="v">{tts?.volcano?.appId || '—'}</span>
+              </div>
+            </div>
+          )}
           <div className="row">
             <div className="rr">
               <span className="k">TTS 令牌</span>
