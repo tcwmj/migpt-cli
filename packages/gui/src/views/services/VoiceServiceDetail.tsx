@@ -209,7 +209,12 @@ export function VoiceServiceDetail(props: {
                 {boundDevices.length > 0 ? (
                   <div className="link-list">
                     {boundDevices.map((d) => (
-                      <button key={d.id} type="button" className="link-btn">
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="link-btn"
+                        onClick={() => props.onNavigate?.('devices', d.id)}
+                      >
                         {d.alias || d.did}
                       </button>
                     ))}

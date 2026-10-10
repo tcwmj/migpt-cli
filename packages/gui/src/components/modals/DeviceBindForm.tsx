@@ -35,7 +35,7 @@ export function DeviceBindForm({
           onChange={(e) => setV({ ...v, roleId: e.target.value })}
           required
         >
-          <option value="">请选择角色</option>
+          <option value="">未设置</option>
           {roles.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}

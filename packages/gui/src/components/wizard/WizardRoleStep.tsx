@@ -281,7 +281,7 @@ export function WizardRoleStep(props: {
               value={props.thinkSvcs
                 .filter((s) => thinkServiceIds.includes(s.id))
                 .map((s) => ({ value: s.id, label: s.name }))}
-              placeholder="选择思考服务…"
+              placeholder="未设置"
               noOptionsMessage={() => '无可用服务'}
               onChange={(vals) =>
                 setDraft({ thinkServiceIds: (vals || []).map((v) => v.value) })
@@ -294,7 +294,7 @@ export function WizardRoleStep(props: {
               value={voiceId}
               onChange={(e) => setDraft({ voiceId: e.target.value })}
             >
-              <option value="">请选择语音服务</option>
+              <option value="">未设置</option>
               {props.voiceSvcs.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
