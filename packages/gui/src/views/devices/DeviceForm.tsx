@@ -152,9 +152,9 @@ export function DeviceForm(props: {
         </div>
       </div>
 
-      {/* 其他信息 */}
+      {/* 关联角色 */}
       <div className="grp">
-        <h4>其他信息</h4>
+        <h4>关联角色</h4>
         <div className="row">
           <Field label="对话角色">
             <select

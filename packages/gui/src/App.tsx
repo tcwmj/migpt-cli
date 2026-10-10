@@ -127,6 +127,39 @@ export function App() {
   const detail = dev.detail
   const wizard = wz.wizard
 
+  // 导航处理函数：跳转到指定视图并选中实体
+  const handleNavigate = (view: string, id: string) => {
+    setView(view as View)
+    // 根据视图类型选中对应实体
+    switch (view) {
+      case 'devices':
+        dev.selectDev(id)
+        break
+      case 'roles':
+        // RolesView 会自动选中第一个，需要手动设置
+        // 这里通过 URL hash 触发选择
+        window.location.hash = `#roles/${id}`
+        break
+      case 'rooms':
+        window.location.hash = `#rooms/${id}`
+        break
+      case 'think':
+        setSettingTab('think')
+        svc.selectThink(id)
+        break
+      case 'voice':
+        setSettingTab('voice')
+        svc.selectVoice(id)
+        break
+      case 'accounts':
+        acct.selectAcct(id)
+        break
+      case 'models':
+        model.selectModel(id)
+        break
+    }
+  }
+
   /* ══ 渲染 ══ */
   // 会话探测中：先不渲染，避免登录页闪烁
   if (authed === null) {
@@ -277,6 +310,7 @@ export function App() {
               }}
               onPickOpen={dev.setModelPickOpen}
               onPickQ={dev.setModelPickQ}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -289,6 +323,7 @@ export function App() {
               onSave={rr.saveRoom}
               onCreate={rr.createRoom}
               onDelete={rr.delRoom}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -297,10 +332,12 @@ export function App() {
               roles={rr.filterRoles}
               allRoles={roles}
               rooms={rooms}
+              devices={devices}
               roleUsage={rr.roleUsage}
               onSave={rr.saveRole}
               onCreate={rr.createRole}
               onDelete={rr.delRole}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -327,6 +364,8 @@ export function App() {
               thinkEdit={svc.thinkEdit}
               voiceEdit={svc.voiceEdit}
               selVoiceObj={svc.selVoiceObj}
+              devices={devices}
+              roles={roles}
               onSelectThink={svc.selectThink}
               onDraftThink={svc.setThinkDraft}
               onEditThink={svc.setThinkEdit}
@@ -340,6 +379,7 @@ export function App() {
               onSaveVoice={svc.saveVoice}
               usageThink={svc.usageThink}
               usageVoice={svc.usageVoice}
+              onNavigate={handleNavigate}
             />
           )}
 

@@ -42,6 +42,7 @@ export function DevicesView(props: {
   onDevAcctFilter: (f: string, firstId: string | null) => void
   onPickOpen: (open: boolean) => void
   onPickQ: (q: string) => void
+  onNavigate?: (view: string, id: string) => void
 }) {
   const {
     filterDevices,
@@ -118,12 +119,12 @@ export function DevicesView(props: {
               models={models}
               accounts={accounts}
               roles={roles}
-              rooms={rooms}
               thinkSvcs={props.thinkSvcs}
               voiceSvcs={props.voiceSvcs}
               onRestart={onRestart}
               onDelete={onDelete}
               onEdit={() => onEdit(true)}
+              onNavigate={props.onNavigate}
             />
           ) : devDraft ? (
             <DeviceForm

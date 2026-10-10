@@ -1,4 +1,4 @@
-import type { Role, Room } from '../../apis.ts'
+import type { Role, Room, DeviceRow } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button } from '../../components/atoms/index.ts'
 
@@ -6,13 +6,19 @@ export function RoleDetail(props: {
   role: Role
   usage: string[]
   rooms: Room[]
+  devices: DeviceRow[]
   onEdit: () => void
   onDelete: () => void
+  onNavigate?: (view: string, id: string) => void
 }) {
   const { role } = props
   const room = role.roomRef
     ? props.rooms.find((r) => r.id === role.roomRef)
     : undefined
+
+  // 找到引用该角色的设备
+  const boundDevices = props.devices.filter((d) => d.roleId === role.id)
+
   return (
     <div className="rform rview">
       <h3>
@@ -49,7 +55,19 @@ export function RoleDetail(props: {
           <div className="row">
             <div className="rr">
               <span className="k">会话群</span>
-              <span className="v">{room?.name || '未设置'}</span>
+              <span className="v">
+                {room ? (
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => props.onNavigate?.('rooms', room.id)}
+                  >
+                    {room.name}
+                  </button>
+                ) : (
+                  '未设置'
+                )}
+              </span>
             </div>
           </div>
         </div>
@@ -139,6 +157,32 @@ export function RoleDetail(props: {
               <span className="k">自动退出时间</span>
               <span className="v">
                 {role.exitKeepAliveAfter ?? 30} 秒无响应退出
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="grp">
+          <h4>关联服务</h4>
+          <div className="row">
+            <div className="rr">
+              <span className="k">设备服务</span>
+              <span className="v">
+                {boundDevices.length > 0 ? (
+                  <div className="link-list">
+                    {boundDevices.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="link-btn"
+                        onClick={() => props.onNavigate?.('devices', d.id)}
+                      >
+                        {d.alias || d.did}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  '无'
+                )}
               </span>
             </div>
           </div>

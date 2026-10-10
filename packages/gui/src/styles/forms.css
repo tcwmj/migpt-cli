@@ -72,6 +72,32 @@
   word-break: break-all;
 }
 
+.ro .rr .v .link-btn {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--accent-bg, rgba(217, 100, 42, 0.1));
+  border: 1px solid var(--accent-border, rgba(217, 100, 42, 0.2));
+  border-radius: var(--r-s);
+  padding: 2px 8px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  transition: all var(--dur-200);
+  white-space: nowrap;
+}
+
+.ro .rr .v .link-btn:hover {
+  background: var(--accent-bg-hover, rgba(217, 100, 42, 0.15));
+  border-color: var(--accent);
+}
+
+.ro .rr .v .link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+}
+
 .rform .bind .pick b {
   font-size: var(--fs-xs);
   display: block;

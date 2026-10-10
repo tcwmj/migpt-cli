@@ -505,6 +505,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--r-m);
   padding: var(--sp-6);
+  position: relative;
 }
 
 .stats-chart-card h3 {

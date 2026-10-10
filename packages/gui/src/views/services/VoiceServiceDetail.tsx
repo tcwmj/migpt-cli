@@ -1,4 +1,4 @@
-import type { VoiceService } from '../../apis.ts'
+import type { VoiceService, DeviceRow, Role } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
 import { VOICE_PROVIDERS } from '../../constants.ts'
@@ -7,12 +7,19 @@ export function VoiceServiceDetail(props: {
   selVoice: string
   selVoiceObj: VoiceService | null
   voiceSvcs: VoiceService[]
+  devices: DeviceRow[]
+  roles: Role[]
   usageVoice: (id: string) => number
   onDelete: (id: string) => void
   onReset: (id: string) => void
   onEdit: () => void
+  onNavigate?: (view: string, id: string) => void
 }) {
   const svc = props.voiceSvcs.find((s) => s.id === props.selVoice)
+
+  // 找到使用该服务的设备
+  const boundDevices = props.devices.filter((d) => d.voiceId === props.selVoice)
+
   return (
     <div className="form-card">
       <h3>
@@ -97,6 +104,27 @@ export function VoiceServiceDetail(props: {
               <span className="k">Token 上限</span>
               <span className="v">
                 {svc?.tokenLimit ? svc.tokenLimit.toLocaleString() : '未设置'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="grp">
+          <h4>关联服务</h4>
+          <div className="row">
+            <div className="rr">
+              <span className="k">设备服务</span>
+              <span className="v">
+                {boundDevices.length > 0 ? (
+                  <div className="link-list">
+                    {boundDevices.map((d) => (
+                      <button key={d.id} type="button" className="link-btn">
+                        {d.alias || d.did}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  '无'
+                )}
               </span>
             </div>
           </div>

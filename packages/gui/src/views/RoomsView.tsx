@@ -18,6 +18,7 @@ export function RoomsView(props: {
   onSave: (r: Room) => void
   onCreate: (r: Partial<Room>) => Promise<Room | null> | void
   onDelete: (id: string) => void
+  onNavigate?: (view: string, id: string) => void
 }) {
   const [selId, setSelId] = useState<string | null>(props.rooms[0]?.id || null)
   const sel = props.allRooms.find((r) => r.id === selId) || null
@@ -216,9 +217,24 @@ export function RoomsView(props: {
                           const used = props.roles.filter(
                             (d) => d.roomRef === sel.id,
                           )
-                          return used.length
-                            ? used.map((d) => d.name).join('、')
-                            : '未关联'
+                          return used.length ? (
+                            <div className="link-list">
+                              {used.map((d) => (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  className="link-btn"
+                                  onClick={() =>
+                                    props.onNavigate?.('roles', d.id)
+                                  }
+                                >
+                                  {d.name}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            '未关联'
+                          )
                         })()}
                       </span>
                     </div>

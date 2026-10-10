@@ -6,7 +6,7 @@ import {
   EmptyState,
   ProviderLogo,
 } from '../components/atoms/index.ts'
-import type { ThinkService, VoiceService } from '../apis.ts'
+import type { ThinkService, VoiceService, DeviceRow, Role } from '../apis.ts'
 import type { ThinkDraft, VoiceDraft } from './drafts.ts'
 import { ThinkServiceList } from './services/ThinkServiceList.tsx'
 import { ThinkServiceDetail } from './services/ThinkServiceDetail.tsx'
@@ -27,6 +27,8 @@ export function ServicesView(props: {
   thinkEdit: boolean
   voiceEdit: boolean
   selVoiceObj: VoiceService | null
+  devices: DeviceRow[]
+  roles: Role[]
   onSelectThink: (id: string | null) => void
   onDraftThink: (d: ThinkDraft | null) => void
   onEditThink: (e: boolean) => void
@@ -40,6 +42,7 @@ export function ServicesView(props: {
   onSaveVoice: () => void
   usageThink: (id: string) => number
   usageVoice: (id: string) => number
+  onNavigate?: (view: string, id: string) => void
 }) {
   const {
     tab,
@@ -52,6 +55,8 @@ export function ServicesView(props: {
     thinkEdit,
     voiceEdit,
     selVoiceObj,
+    devices,
+    roles,
     onSelectThink,
     onDraftThink,
     onEditThink,
@@ -65,6 +70,7 @@ export function ServicesView(props: {
     onSaveVoice,
     usageThink,
     usageVoice,
+    onNavigate,
   } = props
   const [thinkProvider, setThinkProvider] = useState('all')
   const [voiceProvider, setVoiceProvider] = useState('all')
@@ -160,9 +166,12 @@ export function ServicesView(props: {
                 <ThinkServiceDetail
                   selThink={selThink}
                   thinkSvcs={thinkSvcs}
+                  devices={devices}
+                  roles={roles}
                   usageThink={usageThink}
                   onDelete={onDeleteThink}
                   onEdit={() => onEditThink(true)}
+                  onNavigate={onNavigate}
                 />
               ) : thinkDraft ? (
                 <ThinkServiceForm
@@ -235,10 +244,13 @@ export function ServicesView(props: {
                   selVoice={selVoice}
                   selVoiceObj={selVoiceObj}
                   voiceSvcs={voiceSvcs}
+                  devices={devices}
+                  roles={roles}
                   usageVoice={usageVoice}
                   onDelete={onDeleteVoice}
                   onReset={onResetVoice}
                   onEdit={() => onEditVoice(true)}
+                  onNavigate={onNavigate}
                 />
               ) : voiceDraft ? (
                 <VoiceServiceForm

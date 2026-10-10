@@ -1,6 +1,6 @@
 /* ══ RolesView ══ */
 import { useEffect, useState } from 'react'
-import { type Role, type Room } from '../apis.ts'
+import { type Role, type Room, type DeviceRow } from '../apis.ts'
 import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import { RoleDetail } from './roles/RoleDetail.tsx'
 import { RoleEditForm } from './roles/RoleEditForm.tsx'
@@ -10,10 +10,12 @@ export function RolesView(props: {
   roles: Role[]
   allRoles: Role[]
   rooms: Room[]
+  devices: DeviceRow[]
   roleUsage: (id: string) => string[]
   onSave: (r: Role) => void
   onCreate: (r: Partial<Role>) => Promise<Role | null> | void
   onDelete: (id: string) => void
+  onNavigate?: (view: string, id: string) => void
 }) {
   const [selId, setSelId] = useState<string | null>(props.roles[0]?.id || null)
   const sel = props.allRoles.find((r) => r.id === selId) || null
@@ -122,8 +124,10 @@ export function RolesView(props: {
             role={sel}
             usage={usage}
             rooms={props.rooms}
+            devices={props.devices}
             onEdit={() => setEdit(true)}
             onDelete={() => props.onDelete(sel.id)}
+            onNavigate={props.onNavigate}
           />
         )}
         {draft && (edit || creating) && (

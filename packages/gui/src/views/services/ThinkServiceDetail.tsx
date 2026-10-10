@@ -1,4 +1,4 @@
-import type { ThinkService } from '../../apis.ts'
+import type { ThinkService, DeviceRow, Role } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
 import { THINK_PROVIDERS } from '../../constants.ts'
@@ -6,11 +6,20 @@ import { THINK_PROVIDERS } from '../../constants.ts'
 export function ThinkServiceDetail(props: {
   selThink: string
   thinkSvcs: ThinkService[]
+  devices: DeviceRow[]
+  roles: Role[]
   usageThink: (id: string) => number
   onDelete: (id: string) => void
   onEdit: () => void
+  onNavigate?: (view: string, id: string) => void
 }) {
   const svc = props.thinkSvcs.find((s) => s.id === props.selThink)
+
+  // 找到使用该服务的设备
+  const boundDevices = props.devices.filter((d) =>
+    d.thinkServiceIds?.includes(props.selThink),
+  )
+
   return (
     <div className="form-card">
       <h3>
@@ -100,6 +109,32 @@ export function ThinkServiceDetail(props: {
               <span className="k">Token 上限</span>
               <span className="v">
                 {svc?.tokenLimit ? svc.tokenLimit.toLocaleString() : '未设置'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="grp">
+          <h4>关联服务</h4>
+          <div className="row">
+            <div className="rr">
+              <span className="k">设备服务</span>
+              <span className="v">
+                {boundDevices.length > 0 ? (
+                  <div className="link-list">
+                    {boundDevices.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="link-btn"
+                        onClick={() => props.onNavigate?.('devices', d.id)}
+                      >
+                        {d.alias || d.did}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  '无'
+                )}
               </span>
             </div>
           </div>
