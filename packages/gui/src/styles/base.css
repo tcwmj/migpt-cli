@@ -87,10 +87,11 @@
   min-width: 180px;
 }
 
-/* 全宽字段：强制纵向布局，用于 TTS 配置等需要独占一行的字段 */
-.form-card .grp .fld.full-width {
-  flex-direction: column !important;
-  width: 100%;
+/* 提示行：横向分组布局中让 hint 独占一行（换行到输入框正下方），
+   避免与控件同行挤压输入框宽度 */
+.form-card .grp .fld > .hint {
+  flex: 1 1 100%;
+  min-width: 0;
 }
 
 /* 必填标识：统一红色星号，覆盖各表单 label 的默认文字色 */

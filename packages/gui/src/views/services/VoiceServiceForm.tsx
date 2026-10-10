@@ -239,17 +239,31 @@ export function VoiceServiceForm(props: {
           </>
         ) : (
           <div className="row">
-            <div className="fld full-width" style={{ flexDirection: 'column' }}>
-              <label>
-                TTS 配置
-                <span className="req">*</span>
-                <span
-                  className="tip"
-                  data-tip="高级用法：直接填写 mi-gpt TTSConfig JSON，支持 edge/volcano/openai 等引擎配置"
-                >
-                  ?
-                </span>
-              </label>
+            <Field
+              label="TTS 配置"
+              required
+              tip="高级用法：直接填写 mi-gpt TTSConfig JSON，支持 edge/volcano/openai 等引擎配置"
+              hint={(() => {
+                if (!voiceDraft.customJson.trim()) return undefined
+                try {
+                  const parsed = JSON.parse(voiceDraft.customJson)
+                  if (
+                    typeof parsed !== 'object' ||
+                    parsed === null ||
+                    Array.isArray(parsed)
+                  ) {
+                    return 'JSON 必须为对象（{...}），不能为数字、字符串或数组'
+                  }
+                  if (Object.keys(parsed).length === 0) {
+                    return 'TTS 配置不能为空对象'
+                  }
+                  return undefined
+                } catch (e) {
+                  return `JSON 格式错误: ${(e as Error).message}`
+                }
+              })()}
+              hintTone="warn"
+            >
               <textarea
                 value={voiceDraft.customJson}
                 onChange={(e) =>
@@ -282,36 +296,7 @@ export function VoiceServiceForm(props: {
                   lineHeight: '1.5',
                 }}
               />
-              {(() => {
-                if (!voiceDraft.customJson.trim()) return null
-                try {
-                  const parsed = JSON.parse(voiceDraft.customJson)
-                  if (
-                    typeof parsed !== 'object' ||
-                    parsed === null ||
-                    Array.isArray(parsed)
-                  ) {
-                    return (
-                      <span className="hint warn">
-                        JSON 必须为对象（{'{...}'}），不能为数字、字符串或数组
-                      </span>
-                    )
-                  }
-                  if (Object.keys(parsed).length === 0) {
-                    return (
-                      <span className="hint warn">TTS 配置不能为空对象</span>
-                    )
-                  }
-                  return null
-                } catch (e) {
-                  return (
-                    <span className="hint warn">
-                      JSON 格式错误: {(e as Error).message}
-                    </span>
-                  )
-                }
-              })()}
-            </div>
+            </Field>
           </div>
         )}
       </div>
