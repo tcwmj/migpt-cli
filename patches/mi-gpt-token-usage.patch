@@ -1,0 +1,16 @@
+--- a/node_modules/mi-gpt/dist/index.js
++++ b/node_modules/mi-gpt/dist/index.js
+@@ -1210,8 +1210,16 @@
+     const message = (_b = (_a = chatCompletion == null ? void 0 : chatCompletion.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message;
+     if (trace && this.traceOutput) {
+       this._logger.log(`\u2705 Answer: ${(message == null ? void 0 : message.content) ?? "None"}`.trim());
++      // 输出 token 用量信息
++      if (chatCompletion?.usage) {
++        const usage = chatCompletion.usage;
++        this._logger.log(`\u2705 Prompt tokens: ${usage.prompt_tokens ?? 0}`);
++        this._logger.log(`\u2705 Completion tokens: ${usage.completion_tokens ?? 0}`);
++        this._logger.log(`\u2705 Total tokens: ${usage.total_tokens ?? 0}`);
++      }
+     }
+     return message;
+   }

@@ -160,24 +160,31 @@ export function LogsView(props: {
             </div>
           ) : (
             <div className="logs">
-              {list.map((l, i) => (
-                <LogRow
-                  key={i}
-                  l={l}
-                  multi={l.text.includes('\n')}
-                  devName={selDevName}
-                  kindLabel={kindLabel[l.kind]}
-                  onToggle={(open) => {
-                    setExpanded((prev) => {
-                      const next = new Set(prev)
-                      if (open) next.add(i)
-                      else next.delete(i)
-                      return next
-                    })
-                  }}
-                  open={expanded.has(i)}
-                />
-              ))}
+              {list.map((l, i) => {
+                // 获取实际的设备名称，而不是统一显示"全部设备"
+                const actualDevName =
+                  devFilter === 'all'
+                    ? deviceById(l.deviceId)?.alias || l.deviceId || '未知设备'
+                    : selDevName
+                return (
+                  <LogRow
+                    key={i}
+                    l={l}
+                    multi={l.text.includes('\n')}
+                    devName={actualDevName}
+                    kindLabel={kindLabel[l.kind]}
+                    onToggle={(open) => {
+                      setExpanded((prev) => {
+                        const next = new Set(prev)
+                        if (open) next.add(i)
+                        else next.delete(i)
+                        return next
+                      })
+                    }}
+                    open={expanded.has(i)}
+                  />
+                )
+              })}
             </div>
           )}
         </section>

@@ -191,13 +191,15 @@ export const logRows = new Map<string, LogRow[]>()
 // 日志行解析正则：模块级预编译
 const LOG_TS_RE = /^(\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2})/
 const LOG_TS_STRIP_RE = /^\d{4}[/-]\d{2}[/-]\d{2} \d{2}:\d{2}:\d{2}\s*/
-const LOG_USER_RE = /^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/
-const LOG_AI_RE = /^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
+// 用户提问：Speaker 🔥 或 [用户] 或 问：等
+const LOG_USER_RE = /Speaker 🔥|^\[用户\]|\[User\]|\[Q\]|^问[:：]|用户说/
+// AI 回答：Speaker 🔊 或 Open AI ✅ Answer: 或 [AI] 等
+const LOG_AI_RE = /Speaker 🔊|Open AI ✅ Answer:|^\[AI\]|\[Assistant\]|\[A\]|^答[:：]|AI 说/
 // token 用量解析正则（中英文格式）
 const INPUT_TOKEN_RE =
-  /(?:prompt_tokens|input_tokens|输入.*?token)[=:]\s*(\d+)/i
+  /(?:prompt_tokens|input_tokens|输入.*?token|Prompt tokens)[=:]\s*(\d+)/i
 const OUTPUT_TOKEN_RE =
-  /(?:completion_tokens|output_tokens|输出.*?token)[=:]\s*(\d+)/i
+  /(?:completion_tokens|output_tokens|输出.*?token|Completion tokens)[=:]\s*(\d+)/i
 
 /** fire-and-forget：将 token 用量累加到角色绑定的第一个可用思考服务 */
 async function accumulateTokens(

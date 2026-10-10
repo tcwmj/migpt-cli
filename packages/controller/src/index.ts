@@ -96,7 +96,15 @@ export async function run(
     throw e
   }
   children.set(id, child)
-  child.on('exit', () => {
+  child.on('exit', (code, signal) => {
+    // 记录退出信息到日志
+    if (onLog) {
+      if (code !== null && code !== 0) {
+        onLog(id, `[MiGPT] 进程异常退出，退出码: ${code}`)
+      } else if (signal) {
+        onLog(id, `[MiGPT] 进程被信号终止: ${signal}`)
+      }
+    }
     if (children.get(id) === child) children.delete(id)
   })
 }

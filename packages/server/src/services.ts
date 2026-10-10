@@ -152,7 +152,9 @@ export function buildConfigFromRole(role: Role, account?: Account): GuiConfig {
       },
       speaker: {
         userId: account?.miUserId || '',
-        password: account?.miPassword || '',
+        // 直接使用 passToken 登录，绕过密码验证
+        // mi-service-lite 会先用 passToken 尝试，有效则不需要 password
+        password: account?.miPassword || 'passToken-mode',
         switchSpeakerKeywords: ['把声音换成'],
         callAIKeywords: role.callAIKeywords,
         wakeUpKeywords: role.wakeUpKeywords,

@@ -72,5 +72,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "mi-gpt": "^4.2.0"
+  }
 }
