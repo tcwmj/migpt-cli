@@ -6,6 +6,7 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin'
 import TerserJSPlugin from 'terser-webpack-plugin'
 import OptimizeCSSAssetsPlugin from 'css-minimizer-webpack-plugin'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
+import LiveReloadPlugin from 'webpack-livereload-plugin'
 
 import { fileURLToPath } from 'node:url'
 
@@ -106,6 +107,16 @@ export default function buildWebpackConfig(mode) {
   }
   if (mode === 'development') {
     base.devtool = 'inline-source-map'
+    // 本地开发：webpack --watch 每次重编译后，自动通知已打开的页面刷新，
+    // 免去手动 F5 / 硬刷新。仅 dev 模式启用，prod 不受影响。
+    base.plugins.push(
+      new LiveReloadPlugin({
+        port: 35729,
+        // 通过 <script> 注入 livereload 客户端，跨端口同源回连 dev 机，单机本地开发无碍
+        appendScriptTag: true,
+        quiet: false,
+      }),
+    )
   } else if (IS_PROD) {
     base.devtool = false
     base.optimization = {

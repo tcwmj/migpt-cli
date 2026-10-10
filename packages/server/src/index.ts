@@ -85,11 +85,22 @@ export function runServer(options?: ServerOptions) {
 
   // 静态资源匿名加载（前端 SPA 先加载 JS），API 全部要求认证
   if (options?.staticPath) {
+    // 本地开发（MIGPT_DEV=1 或 NODE_ENV≠production）：禁用强缓存，
+    // 否则浏览器在 1h 内软刷新会命中旧 bundle，livereload 刷新也拉不到新代码
+    const isDev =
+      process.env.MIGPT_DEV === '1' || process.env.NODE_ENV !== 'production'
     app.use(
       express.static(options.staticPath, {
         // 文件名无内容哈希，保守设 1 小时；前端构建改用哈希文件名后可提升到 1 年
         maxAge: '1h',
         etag: true,
+        ...(isDev
+          ? {
+              setHeaders: (res) => {
+                res.setHeader('Cache-Control', 'no-cache')
+              },
+            }
+          : {}),
       }),
     )
   }

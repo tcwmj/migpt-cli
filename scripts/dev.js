@@ -112,7 +112,12 @@ function startServer() {
   const child = spawn(
     nodeExe,
     [path.join(__dirname, 'dev-server.mjs'), '--port', '36597'],
-    { cwd: root, stdio: 'inherit' },
+    {
+      cwd: root,
+      stdio: 'inherit',
+      // 标记开发环境：后端据此对 GUI 静态资源关闭强缓存，配合 livereload 自动刷新
+      env: { ...process.env, MIGPT_DEV: '1' },
+    },
   )
   server = child
   child.on('exit', (code) => {
