@@ -15,7 +15,6 @@ import {
   getThinkServices,
   getVoiceServices,
   getRooms,
-  getRoomByRef,
   getSpeakerModelByRef,
   PROVIDER_BASE_URLS,
 } from './store.js'
@@ -268,7 +267,7 @@ export async function resolveBindings(
       name: think?.name || '未配置',
       detail: think ? `${think.provider} · ${think.model}` : undefined,
       source: thinkSource,
-      sourceLabel: thinkSource === 'device' ? '设备绑定' : '全局默认',
+      sourceLabel: '设备绑定',
     },
     {
       key: 'voice' as const,
@@ -280,7 +279,7 @@ export async function resolveBindings(
           : `${voice.provider} · ${voice.voiceId || '默认音色'}`
         : undefined,
       source: voiceSource,
-      sourceLabel: voiceSource === 'device' ? '设备绑定' : '全局默认',
+      sourceLabel: '设备绑定',
     },
     {
       key: 'room' as const,

@@ -44,7 +44,7 @@ export function asyncHandler(
 }
 
 // ── 请求体白名单：只接受契约声明的字段 ────────────────────────
-// 防止客户端夹带 id / createdAt / builtin / isDefault 等受控字段（越权改写服务端状态）。
+// 防止客户端夹带 id / createdAt / builtin 等受控字段（越权改写服务端状态）。
 export function pick<T extends object>(
   src: unknown,
   keys: readonly string[],
