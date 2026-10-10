@@ -77,6 +77,19 @@ export function redactBindings(b: DeviceBindings): DeviceBindings {
 /** 语音服务：第三方 TTS 引擎配置中的令牌（edge / volcano / openai）不对外回传明文 */
 export function redactVoiceService(v: VoiceService): VoiceService {
   if (!v.tts) return { ...v, hasTtsToken: false }
+
+  // 在脱敏前检查是否有任何令牌配置
+  const originalTts = v.tts as {
+    edge?: { trustedToken?: string }
+    volcano?: { accessToken?: string }
+    openai?: { apiKey?: string }
+  }
+  const hasToken = !!(
+    originalTts?.edge?.trustedToken ||
+    originalTts?.volcano?.accessToken ||
+    originalTts?.openai?.apiKey
+  )
+
   const next = JSON.parse(JSON.stringify(v)) as VoiceService
   const tts = next.tts as
     | {
@@ -85,13 +98,6 @@ export function redactVoiceService(v: VoiceService): VoiceService {
         openai?: { apiKey?: string }
       }
     | undefined
-
-  // 检查是否有任何令牌配置
-  const hasToken = !!(
-    tts?.edge?.trustedToken ||
-    tts?.volcano?.accessToken ||
-    tts?.openai?.apiKey
-  )
 
   if (tts?.edge?.trustedToken) tts.edge.trustedToken = ''
   if (tts?.volcano?.accessToken) tts.volcano.accessToken = ''

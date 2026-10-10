@@ -156,14 +156,14 @@ export function DeviceForm(props: {
       <div className="grp">
         <h4>关联角色</h4>
         <div className="row">
-          <Field label="对话角色">
+          <Field label="对话角色" required>
             <select
               value={devDraft.roleId}
               onChange={(e) =>
                 props.onDraft({ ...devDraft, roleId: e.target.value })
               }
             >
-              <option value="">未指定</option>
+              <option value="">请选择角色</option>
               {props.roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}

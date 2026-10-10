@@ -1,7 +1,7 @@
 // ── AI 角色（人设 + 对话行为）───────────────────────────────────
 import { nanoid } from 'nanoid'
 import { getRoles, saveRoles, roleListSchema } from '../store.js'
-import { ROLE_DEFAULTS, type Role } from '../types.js'
+import { type Role } from '../types.js'
 import { pick, normProfile, ROLE_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
 
@@ -14,10 +14,28 @@ export const registerRoleRoutes = createCrudRouter<Role>({
   schema: roleListSchema,
   listTransform: (roles) =>
     roles.map((r) => ({ ...r, profile: normProfile(r.profile) })),
+  // 角色不再有任何内置默认值：对话行为字段由调用方完整提供，缺失即拒绝创建。
+  // 空数组合法（表示「不设该提示」），仅当字段缺失（undefined / null）时拒绝。
+  validate: (body) =>
+    !body.name
+      ? '角色称呼必填'
+      : body.profile == null ||
+          body.callAIKeywords == null ||
+          body.wakeUpKeywords == null ||
+          body.exitKeywords == null ||
+          body.onEnterAI == null ||
+          body.onExitAI == null ||
+          body.onAIAsking == null ||
+          body.onAIReplied == null ||
+          body.onAIError == null ||
+          body.checkInterval == null ||
+          body.checkTTSStatusAfter == null ||
+          body.exitKeepAliveAfter == null
+        ? '角色配置不完整（对话行为字段缺失）'
+        : null,
   build: (body) =>
     ({
       id: nanoid(8),
-      ...ROLE_DEFAULTS,
       ...pick<Role>(body, ROLE_FIELDS),
       profile: normProfile(body.profile),
     }) as Role,

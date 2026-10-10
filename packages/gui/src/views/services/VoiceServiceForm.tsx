@@ -353,7 +353,18 @@ export function VoiceServiceForm(props: {
             ((engine === 'openai' || compat) &&
               voiceDraft.provider !== 'custom' &&
               (!voiceDraft.baseUrl || !voiceDraft.token)) ||
-            (engine === 'volcano' && (!voiceDraft.appId || !voiceDraft.token))
+            (engine === 'volcano' &&
+              (!voiceDraft.appId || !voiceDraft.token)) ||
+            (voiceDraft.provider === 'custom' &&
+              voiceDraft.customJson.trim() !== '' &&
+              (() => {
+                try {
+                  JSON.parse(voiceDraft.customJson)
+                  return false
+                } catch {
+                  return true
+                }
+              })())
           }
         >
           保存

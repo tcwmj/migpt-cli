@@ -3,13 +3,15 @@
 // { version, description, up }。启动时 runMigrations() 只执行 version 大于
 // 已存版本的步骤，逐条执行并落盘进度，因此可安全重入、可中断续跑。
 import path from 'node:path'
+import fs from 'node:fs/promises'
 import { nanoid } from 'nanoid'
 import { logger } from '../logger.js'
-import { dataVersionFile, devicesRoot, roomsFile } from '../paths.js'
+import { dataVersionFile, devicesRoot, roomsFile, rolesFile } from '../paths.js'
 import type { DeviceMeta } from '../types.js'
 import { readJson } from './json.js'
 import {
   deviceMetaSchema,
+  roleListSchema,
   roomListSchema,
   versionFileSchema,
   writeJsonChecked,
@@ -37,7 +39,7 @@ export interface Migration {
 }
 
 /** 当前数据结构版本：新增迁移时同步 +1 */
-export const DATA_VERSION = 3
+export const DATA_VERSION = 4
 
 /** 迁移：旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
 export async function migrateRooms(): Promise<void> {
@@ -140,6 +142,59 @@ export async function migrateTokenUsageFailover(): Promise<void> {
   if (voiceChanged) await saveVoiceServices(voiceServices)
 }
 
+/**
+ * 迁移 v4：对话角色必填 + 移除内置默认值回退
+ *
+ * 1. 角色：对话行为字段（checkInterval / checkTTSStatusAfter / exitKeepAliveAfter）
+ *    由可选改为必填——旧角色缺值时回填历史内置默认（1000 / 3000 / 30），
+ *    避免 roleSchema 校验失败被跳过导致角色丢失。
+ * 2. 设备：roleId 由可选改为必填——存量无角色设备归属到第一个角色；
+ *    若无任何角色，则跳过（无法凭空造角色，交由用户补建后自行绑定）。
+ *
+ * 注意：必须直接读原始 roles.json（不经 roleSchema），否则缺失新必填字段的旧角色
+ * 会在读取阶段就被过滤掉（parseEntityList 逐条跳过），迁移读不到目标。
+ */
+export async function migrateRoleRequired(): Promise<void> {
+  // ── 1. 角色：回填数值字段（读原始 JSON，绕过 schema 过滤）──────────
+  const rawRoles = await readJson<Record<string, unknown>[]>(rolesFile, [])
+  let rolesChanged = false
+  for (const role of rawRoles) {
+    if (role.checkInterval == null) {
+      role.checkInterval = 1000
+      rolesChanged = true
+    }
+    if (role.checkTTSStatusAfter == null) {
+      role.checkTTSStatusAfter = 3000
+      rolesChanged = true
+    }
+    if (role.exitKeepAliveAfter == null) {
+      role.exitKeepAliveAfter = 30
+      rolesChanged = true
+    }
+  }
+  if (rolesChanged) {
+    await writeJsonChecked(rolesFile, rawRoles, roleListSchema, '角色')
+  }
+
+  // ── 2. 设备：无 roleId 的归属到第一个角色 ─────────────────────────
+  const firstRoleId = (rawRoles[0] as { id?: string } | undefined)?.id
+  if (!firstRoleId) return
+  let ids: string[]
+  try {
+    ids = await fs.readdir(devicesRoot)
+  } catch {
+    return
+  }
+  for (const id of ids) {
+    const file = path.join(devicesRoot, id, 'meta.json')
+    const meta = await readJson<Record<string, unknown>>(file, {})
+    if (!meta || meta.roleId) continue
+    meta.roleId = firstRoleId
+    await writeJsonChecked(file, meta, deviceMetaSchema, '设备')
+    logger.info(`数据迁移 v4：设备 ${id} 补全对话角色 ${firstRoleId}`)
+  }
+}
+
 export const migrations: Migration[] = [
   {
     version: 1,
@@ -161,6 +216,12 @@ export const migrations: Migration[] = [
     description:
       'Token 用量追踪 + 思考服务 Failover：角色 thinkServiceId → thinkServiceIds、设备移除服务覆盖、服务补全 token 默认值',
     up: migrateTokenUsageFailover,
+  },
+  {
+    version: 4,
+    description:
+      '对话角色必填：角色数值字段回填历史默认、设备无角色时归属首个角色',
+    up: migrateRoleRequired,
   },
 ]
 

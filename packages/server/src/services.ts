@@ -7,7 +7,6 @@ import {
   type DeviceMeta,
   type PulledDevice,
   type DeviceBindings,
-  ROLE_DEFAULTS,
 } from './types.js'
 import {
   getAccounts,
@@ -135,23 +134,17 @@ export async function pullMicoDevices(
   }))
 }
 
-// ── 用角色的默认配置展开设备初始 migptgui.json ─────────────────────
-/** 去重合并关键词列表（用于把检测词并入唤醒/退出关键词，使其真实生效） */
-function mergeKW(...lists: (string[] | undefined)[]): string[] {
-  const s = new Set<string>()
-  for (const l of lists)
-    if (l) for (const e of l) if (e && e.trim()) s.add(e.trim())
-  return [...s]
-}
-
-export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
+// ── 用角色配置展开设备初始 migptgui.json ─────────────────────
+/**
+ * 按角色编译设备运行时配置。角色为必填（设备必须绑定对话角色），
+ * 不再有任何内置默认值回退：所有 bot / 对话行为字段均直接取自角色。
+ */
+export function buildConfigFromRole(role: Role, account?: Account): GuiConfig {
   return {
     config: {
       bot: {
-        name: role?.name || '傻妞',
-        profile: (
-          role?.profile || '性别：女\n性格：乖巧可爱\n爱好：喜欢搞怪，爱吃醋。'
-        ).replace(/\\n/g, '\n'),
+        name: role.name,
+        profile: role.profile.replace(/\\n/g, '\n'),
       },
       master: {
         name: '主人',
@@ -161,25 +154,18 @@ export function buildConfigFromRole(role?: Role, account?: Account): GuiConfig {
         userId: account?.miUserId || '',
         password: account?.miPassword || '',
         switchSpeakerKeywords: ['把声音换成'],
-        callAIKeywords: role?.callAIKeywords || ROLE_DEFAULTS.callAIKeywords,
-        wakeUpKeywords: mergeKW(
-          role?.wakeUpKeywords,
-          ROLE_DEFAULTS.wakeUpKeywords,
-        ),
-        exitKeywords: mergeKW(role?.exitKeywords, ROLE_DEFAULTS.exitKeywords),
-        onEnterAI: role?.onEnterAI || ROLE_DEFAULTS.onEnterAI,
-        onExitAI: role?.onExitAI || ROLE_DEFAULTS.onExitAI,
-        onAIAsking: role?.onAIAsking || ROLE_DEFAULTS.onAIAsking,
-        onAIReplied: role?.onAIReplied || ROLE_DEFAULTS.onAIReplied,
-        onAIError: role?.onAIError || ROLE_DEFAULTS.onAIError,
+        callAIKeywords: role.callAIKeywords,
+        wakeUpKeywords: role.wakeUpKeywords,
+        exitKeywords: role.exitKeywords,
+        onEnterAI: role.onEnterAI,
+        onExitAI: role.onExitAI,
+        onAIAsking: role.onAIAsking,
+        onAIReplied: role.onAIReplied,
+        onAIError: role.onAIError,
         // 连续对话检测参数：两个检测字段存毫秒（checkTTSStatusAfter 编译转秒），自动退出时间存秒
-        exitKeepAliveAfter:
-          role?.exitKeepAliveAfter ?? ROLE_DEFAULTS.exitKeepAliveAfter,
-        checkInterval: role?.checkInterval ?? ROLE_DEFAULTS.checkInterval,
-        checkTTSStatusAfter: Math.round(
-          (role?.checkTTSStatusAfter ?? ROLE_DEFAULTS.checkTTSStatusAfter) /
-            1000,
-        ),
+        exitKeepAliveAfter: role.exitKeepAliveAfter,
+        checkInterval: role.checkInterval,
+        checkTTSStatusAfter: Math.round(role.checkTTSStatusAfter / 1000),
       },
     },
     env: {
@@ -309,6 +295,10 @@ export async function buildRunConfig(
     getSpeakerModelByRef(meta.speakerModel),
   ])
   const { account, role, think, voice, room } = bindings
+  // 对话角色必填：缺失说明设备未绑定角色（或角色已被删除），无法编译人设配置
+  if (!role) {
+    throw new Error('设备未绑定对话角色，无法编译运行配置')
+  }
   const config = buildConfigFromRole(role, account)
 
   // 保留已有设备的 GUI 字段（publicURL / ttsProvider / speakerModel 等）

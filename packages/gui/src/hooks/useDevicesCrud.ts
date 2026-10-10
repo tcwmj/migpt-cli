@@ -73,6 +73,10 @@ export function useDevicesCrud(opts: {
       showToast('请选择一个语音服务')
       return
     }
+    if (!devDraft.roleId) {
+      showToast('请选择一个对话角色')
+      return
+    }
     try {
       if (selDev) {
         await api.saveDevice(selDev, {
@@ -81,7 +85,7 @@ export function useDevicesCrud(opts: {
             did: devDraft.did,
             speakerModel: devDraft.speakerModel || undefined,
             accountId: devDraft.accountId || undefined,
-            roleId: devDraft.roleId || undefined,
+            roleId: devDraft.roleId,
             thinkServiceIds: devDraft.thinkServiceIds.length
               ? devDraft.thinkServiceIds
               : undefined,
@@ -97,7 +101,7 @@ export function useDevicesCrud(opts: {
           did: devDraft.did,
           speakerModel: devDraft.speakerModel || undefined,
           accountId: devDraft.accountId || undefined,
-          roleId: devDraft.roleId || undefined,
+          roleId: devDraft.roleId,
           thinkServiceIds: devDraft.thinkServiceIds.length
             ? devDraft.thinkServiceIds
             : undefined,

@@ -33,17 +33,17 @@ export interface Role {
   callAIKeywords: string[]
   wakeUpKeywords: string[]
   exitKeywords: string[]
-  /** 连续对话 · 播放状态检测间隔（毫秒，默认 1000；调小可降低回复间停顿感） */
-  checkInterval?: number
-  /** 连续对话 · 下发 TTS 指令后多久开始检测播放状态（毫秒，默认 3000；不宜低于 1 秒） */
-  checkTTSStatusAfter?: number
+  /** 连续对话 · 播放状态检测间隔（毫秒；调小可降低回复间停顿感） */
+  checkInterval: number
+  /** 连续对话 · 下发 TTS 指令后多久开始检测播放状态（毫秒；不宜低于 1 秒） */
+  checkTTSStatusAfter: number
   onEnterAI: string[]
   onExitAI: string[]
   onAIAsking: string[]
   onAIReplied: string[]
   onAIError: string[]
-  /** 连续对话无响应自动退出时间（秒，默认 30） */
-  exitKeepAliveAfter?: number
+  /** 连续对话无响应自动退出时间（秒） */
+  exitKeepAliveAfter: number
   /** 会话群引用（Room 实体 id）：对话记忆上下文归属 */
   roomRef?: string
   /** @deprecated 已迁移至 DeviceMeta.thinkServiceIds；保留仅兼容旧数据读取 */
@@ -209,20 +209,6 @@ export interface DeviceBindings {
   voice?: VoiceService
   room?: Room
   rows: BindingRow[]
-}
-
-export const ROLE_DEFAULTS = {
-  callAIKeywords: ['请', '你', '傻妞'],
-  wakeUpKeywords: ['打开', '进入', '召唤'],
-  exitKeywords: ['关闭', '退出', '再见'],
-  checkInterval: 1000,
-  checkTTSStatusAfter: 3000,
-  exitKeepAliveAfter: 30,
-  onEnterAI: ['你好，我是傻妞，很高兴认识你'],
-  onExitAI: ['傻妞已退出'],
-  onAIAsking: ['让我先想想', '请稍等'],
-  onAIReplied: ['我说完了', '还有其他问题吗'],
-  onAIError: ['啊哦，出错了，请稍后再试吧！'],
 }
 
 /**

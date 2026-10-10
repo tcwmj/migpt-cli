@@ -97,6 +97,11 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         fail(res, 400, '语音服务必填')
         return
       }
+      // 对话角色必填：角色承载人设与对话行为，无角色无法编译运行配置
+      if (!body.roleId) {
+        fail(res, 400, '对话角色必填')
+        return
+      }
       const metas = await listDeviceMetas()
       // 唯一性按「账号」维度：同账号下设备 ID 唯一（防止同一设备多套配置）；不同账号允许相同 ID/名称（支持设备切换账号）
       const sameAcct = body.accountId
@@ -217,6 +222,11 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         }
         if (!nextMeta.voiceId) {
           fail(res, 400, '语音服务必填')
+          return
+        }
+        // 对话角色必填：合并后仍须指定（不再有内置默认人设回退）
+        if (!nextMeta.roleId) {
+          fail(res, 400, '对话角色必填')
           return
         }
         await saveDeviceMeta(id, nextMeta)
