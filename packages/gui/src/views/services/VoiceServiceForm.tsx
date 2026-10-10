@@ -19,6 +19,7 @@ export function VoiceServiceForm(props: {
   onSelect: (id: string | null) => void
   onSave: () => void
   onClearLimitReached?: () => void
+  onReset?: (id: string) => void
 }) {
   const {
     voiceDraft,
@@ -30,6 +31,7 @@ export function VoiceServiceForm(props: {
     onSelect,
   } = props
   const currentSvc = selVoice ? voiceSvcs.find((s) => s.id === selVoice) : null
+  const isBuiltin = currentSvc?.builtin === true
   const p = VOICE_PROVIDERS[voiceDraft.provider]
   const engine = p?.engine || 'edge'
   const compat = engine === 'openai-compat'

@@ -9,6 +9,7 @@ import {
 import type { VoiceService } from '../types.js'
 import { API_PREFIX, fail, pick, asyncHandler, VOICE_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
+import { redactVoiceService } from '../redact.js'
 
 export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
   path: 'voice-services',
@@ -17,6 +18,8 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
   list: getVoiceServices,
   save: saveVoiceServices,
   schema: voiceServiceListSchema,
+  listTransform: (list) => list.map(redactVoiceService),
+  respond: (entity) => redactVoiceService(entity),
   validate: (body) =>
     !body.name || !body.provider ? '名称与供应商必填' : null,
   build: (body) => {

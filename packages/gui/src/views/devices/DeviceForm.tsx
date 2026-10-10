@@ -120,7 +120,7 @@ export function DeviceForm(props: {
                 isMulti
                 options={thinkOptions}
                 value={thinkValue}
-                placeholder="选择思考服务…"
+                placeholder="未设置"
                 noOptionsMessage={() => '无可用服务'}
                 onChange={(vals) =>
                   props.onDraft({
@@ -140,7 +140,7 @@ export function DeviceForm(props: {
                   props.onDraft({ ...devDraft, voiceId: e.target.value })
                 }
               >
-                <option value="">（未设置，必选）</option>
+                <option value="">未设置</option>
                 {props.voiceSvcs.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -163,7 +163,7 @@ export function DeviceForm(props: {
                 props.onDraft({ ...devDraft, roleId: e.target.value })
               }
             >
-              <option value="">请选择角色</option>
+              <option value="">未设置</option>
               {props.roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
