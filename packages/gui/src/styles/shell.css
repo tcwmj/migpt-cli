@@ -205,7 +205,9 @@
   grid-template-columns: 64px 1fr;
 }
 .app.off .side {
-  overflow: visible;
+  /* 保持纵向可滚动（overflow-y: auto 继承自 .side）：
+     矮视口下菜单可滚到「个人中心」，不再因 overflow: visible 溢出白底背景。
+     折叠 tooltip 已改为 fixed 定位（见下），不再依赖 overflow: visible 逃逸。 */
   padding: var(--sp-7) var(--sp-3) var(--sp-5);
 }
 .app.off .brand {
@@ -308,28 +310,14 @@
     stroke var(--dur-160) ease;
 }
 
-/* 收缩态菜单 tooltip（悬停显示菜单名，置顶） */
-.app.off .side nav a {
-  position: relative;
-}
-.app.off .side nav a::before {
-  content: '';
-  position: absolute;
-  left: calc(100% + 5px);
-  top: 50%;
+/* 收缩态菜单 tooltip：JS 渲染的单个 fixed 浮层（见 Sidebar.tsx）。
+   不用 ::after 伪元素——侧栏滚动容器（overflow-y: auto）会把溢出右缘的
+   absolute 伪元素裁掉；fixed 相对视口定位不受祖先 overflow 裁剪，
+   侧栏左缘贴视口左边（x=0），轨道右缘恒在 64px，故水平位置可固定。 */
+.side-tip {
+  position: fixed;
+  left: 73px;
   transform: translateY(-50%);
-  border: 5px solid transparent;
-  border-right-color: var(--ink-1);
-  opacity: 0;
-  transition: opacity var(--dur-160) ease var(--dur-180);
-  z-index: var(--z-max);
-}
-.app.off .side nav a::after {
-  content: attr(data-label);
-  position: absolute;
-  left: calc(100% + 15px);
-  top: 50%;
-  transform: translateY(-50%) translateX(-4px);
   background: var(--ink-1);
   color: #fff;
   font-size: var(--fs-xs);
@@ -338,19 +326,17 @@
   border-radius: var(--r-s);
   white-space: nowrap;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
-  opacity: 0;
   pointer-events: none;
-  transition:
-    opacity var(--dur-160) ease var(--dur-180),
-    transform var(--dur-160) ease var(--dur-180);
   z-index: var(--z-max);
 }
-.app.off .side nav a:hover::before,
-.app.off .side nav a:hover::after {
-  opacity: 1;
-}
-.app.off .side nav a:hover::after {
+.side-tip::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 50%;
   transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--ink-1);
 }
 
 /* 窄屏侧栏已自动收缩，隐藏手动切换按钮 */
