@@ -363,7 +363,9 @@
 .main {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  /* 小屏防挤压（管理后台通行做法）：内容区保最小可用宽度，
+     视口不足时整页横向滚动，侧栏/顶栏/内容区不再被压扁变形 */
+  min-width: 760px;
 }
 
 .top {

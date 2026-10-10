@@ -2,7 +2,8 @@
 /* 角色列表 + 右侧详情/编辑区：各自独立滚动，不共享页面滚动条（与 .split 同规范） */
 .roles {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  /* 与统一「左列表 + 右详情」布局（.split）同宽，保持各页列表列一致 */
+  grid-template-columns: 300px 1fr;
   grid-template-rows: minmax(0, 1fr);
   gap: var(--sp-8);
   height: calc(100vh - 160px);

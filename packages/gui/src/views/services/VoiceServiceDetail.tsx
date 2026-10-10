@@ -140,7 +140,7 @@ export function VoiceServiceDetail(props: {
                     whiteSpace: 'pre-wrap',
                   }}
                 >
-                  {tts && Object.keys(tts).length > 0
+                  {tts !== undefined && tts !== null
                     ? JSON.stringify(tts, null, 2)
                     : '—'}
                 </span>

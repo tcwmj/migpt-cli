@@ -78,6 +78,11 @@ export function VoiceServiceForm(props: {
               onPick={(k) => {
                 const vp = VOICE_PROVIDERS[k]
                 const prevVp = VOICE_PROVIDERS[voiceDraft.provider]
+                // 切换到 custom 时，如果当前为空则填充默认样例
+                const customJson =
+                  k === 'custom' && !voiceDraft.customJson.trim()
+                    ? `{\n  "edge": {\n    "trustedToken": "your-token-here"\n  }\n}`
+                    : voiceDraft.customJson
                 onDraft({
                   ...voiceDraft,
                   provider: k,
@@ -88,6 +93,7 @@ export function VoiceServiceForm(props: {
                     voiceDraft.model && voiceDraft.model !== prevVp?.model
                       ? voiceDraft.model
                       : vp?.model || '',
+                  customJson,
                 })
               }}
             />
@@ -238,9 +244,16 @@ export function VoiceServiceForm(props: {
               required
               tip="高级用法：直接填写 mi-gpt TTSConfig JSON，支持 edge/volcano/openai 等引擎配置"
               hint={(() => {
-                if (!voiceDraft.customJson.trim()) return '请输入 JSON 配置'
+                if (!voiceDraft.customJson.trim()) return undefined
                 try {
-                  JSON.parse(voiceDraft.customJson)
+                  const parsed = JSON.parse(voiceDraft.customJson)
+                  if (
+                    typeof parsed !== 'object' ||
+                    parsed === null ||
+                    Array.isArray(parsed)
+                  ) {
+                    return 'JSON 必须为对象（{...}），不能为数字、字符串或数组'
+                  }
                   return undefined
                 } catch (e) {
                   return `JSON 格式错误: ${(e as Error).message}`
@@ -249,26 +262,65 @@ export function VoiceServiceForm(props: {
               hintTone={(() => {
                 if (!voiceDraft.customJson.trim()) return 'warn'
                 try {
-                  JSON.parse(voiceDraft.customJson)
+                  const parsed = JSON.parse(voiceDraft.customJson)
+                  if (
+                    typeof parsed !== 'object' ||
+                    parsed === null ||
+                    Array.isArray(parsed)
+                  ) {
+                    return 'warn'
+                  }
                   return undefined
                 } catch (e) {
                   return 'warn'
                 }
               })()}
             >
-              <textarea
-                value={voiceDraft.customJson}
-                placeholder={`{\n  "edge": {\n    "trustedToken": "your-token-here"\n  }\n}`}
-                onChange={(e) =>
-                  onDraft({ ...voiceDraft, customJson: e.target.value })
-                }
-                rows={8}
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: '13px',
-                  lineHeight: '1.5',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <textarea
+                  value={voiceDraft.customJson}
+                  onChange={(e) =>
+                    onDraft({ ...voiceDraft, customJson: e.target.value })
+                  }
+                  rows={10}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                    lineHeight: '1.5',
+                    width: '100%',
+                    paddingRight: '60px',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const parsed = JSON.parse(voiceDraft.customJson)
+                      onDraft({
+                        ...voiceDraft,
+                        customJson: JSON.stringify(parsed, null, 2),
+                      })
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  disabled={!voiceDraft.customJson.trim()}
+                  title="格式化 JSON"
+                  style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '4px',
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    background: 'var(--panel-2)',
+                    border: '1px solid var(--line)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  格式化
+                </button>
+              </div>
             </Field>
           </div>
         )}
@@ -371,13 +423,15 @@ export function VoiceServiceForm(props: {
             (engine === 'volcano' &&
               (!voiceDraft.appId || !voiceDraft.token)) ||
             (voiceDraft.provider === 'custom' &&
-              voiceDraft.customJson.trim() === '') ||
-            (voiceDraft.provider === 'custom' &&
-              voiceDraft.customJson.trim() !== '' &&
               (() => {
+                if (!voiceDraft.customJson.trim()) return true
                 try {
-                  JSON.parse(voiceDraft.customJson)
-                  return false
+                  const parsed = JSON.parse(voiceDraft.customJson)
+                  return (
+                    typeof parsed !== 'object' ||
+                    parsed === null ||
+                    Array.isArray(parsed)
+                  )
                 } catch {
                   return true
                 }
