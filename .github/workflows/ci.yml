@@ -17,6 +17,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks 需要全历史提交才能扫描既往泄漏（fetch-depth: 0）
+          fetch-depth: 0
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -25,6 +33,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      # 依赖漏洞门禁：只卡生产依赖的 high/critical。
+      # KNOWN 为上游未修复且无法在本仓库内安全降级绕过的公告（mi-gpt>=4.2 依赖链
+      # proxy-agent→get-uri→basic-ftp 的 DoS；降级 mi-gpt 属破坏性变更）。
+      # 上游修复或换依赖后，应从 KNOWN 清单移除对应 GHSA 使门禁恢复全覆盖。
+      - name: Dependency audit (production, high+)
+        run: |
+          set -e
+          # npm audit 发现漏洞时以退出码 1 结束：先捕获 JSON，判定交给门控脚本
+          npm audit --omit=dev --audit-level=high --json > /tmp/audit.json || true
+          node scripts/audit-gate.mjs /tmp/audit.json "GHSA-c475-qrg2-pj4r"
 
       - name: Lint
         run: npm run lint

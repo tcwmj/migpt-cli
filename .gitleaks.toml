@@ -1,0 +1,22 @@
+# gitleaks 配置（CI 密钥扫描门禁）
+# 默认规则集之外，放行测试夹具与构建产物中的伪凭据。
+title = "migpt-cli gitleaks config"
+
+[extend]
+# 继承 gitleaks 内置默认规则
+useDefault = true
+
+[allowlist]
+description = "测试夹具 / 构建产物 / 依赖锁定文件中的伪密钥与文档示例"
+paths = [
+  '''(.*?)\.test\.(ts|tsx|js)''',
+  '''(^|/)dist/''',
+  '''(^|/)node_modules/''',
+  '''package-lock\.json''',
+  '''\.workbuddy/''',
+  '''migpt-cli-review\.md''',
+]
+# 面板默认演示口令（非真实凭据，README/代码/测试中反复出现）
+regexes = [
+  '''123456''',
+]
