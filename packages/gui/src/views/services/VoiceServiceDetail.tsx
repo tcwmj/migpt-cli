@@ -69,20 +69,34 @@ export function VoiceServiceDetail(props: {
                 )}
               </span>
             </div>
-            <div className="rr">
-              <span className="k">音色 ID</span>
-              <span className="v">{svc?.voiceId || '默认音色'}</span>
-            </div>
-          </div>
-          {(engine === 'openai' || engine === 'openai-compat') && (
-            <div className="row">
+            {(engine === 'openai' || engine === 'openai-compat') && (
               <div className="rr">
                 <span className="k">接口地址</span>
                 <span className="v">{tts?.openai?.baseUrl || '—'}</span>
               </div>
+            )}
+          </div>
+          {(engine === 'openai' || engine === 'openai-compat') && (
+            <div className="row">
               <div className="rr">
-                <span className="k">模型</span>
+                <span className="k">语音模型</span>
                 <span className="v">{tts?.openai?.model || '默认模型'}</span>
+              </div>
+              <div className="rr">
+                <span className="k">API Key</span>
+                <span className="v">
+                  {svc?.hasTtsToken ? '已配置' : '未配置'}
+                </span>
+              </div>
+            </div>
+          )}
+          {engine === 'edge' && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">访问令牌</span>
+                <span className="v">
+                  {svc?.hasTtsToken ? '已配置' : '未配置'}
+                </span>
               </div>
             </div>
           )}
@@ -92,16 +106,35 @@ export function VoiceServiceDetail(props: {
                 <span className="k">App ID</span>
                 <span className="v">{tts?.volcano?.appId || '—'}</span>
               </div>
+              <div className="rr">
+                <span className="k">访问令牌</span>
+                <span className="v">
+                  {svc?.hasTtsToken ? '已配置' : '未配置'}
+                </span>
+              </div>
             </div>
           )}
-          <div className="row">
-            <div className="rr">
-              <span className="k">TTS 令牌</span>
-              <span className="v">
-                {svc?.hasTtsToken ? '已配置' : '未配置'}
-              </span>
+          {svc?.provider !== 'custom' && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">音色 ID</span>
+                <span className="v">{svc?.voiceId || '默认音色'}</span>
+              </div>
             </div>
-          </div>
+          )}
+          {svc?.provider === 'custom' && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">TTS 配置</span>
+                <span
+                  className="v"
+                  style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                >
+                  {tts ? JSON.stringify(tts, null, 2) : '—'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="grp">
           <h4>

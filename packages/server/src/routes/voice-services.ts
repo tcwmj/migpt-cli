@@ -26,7 +26,9 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
       provider: body.provider as string,
       voiceId: body.voiceId,
       ttsCommand: body.ttsCommand,
-      builtin: body.builtin ?? false,
+      // 内置标记只由代码注册表（store/builtins）决定，禁止客户端伪造 builtin:true
+      // 把自建实体锁成「不可删除且无法重置」
+      builtin: false,
       tts: body.tts,
       createdAt: Date.now(),
     }

@@ -98,7 +98,11 @@ export function mergeBuiltinModels(
   custom: SpeakerModel[],
   patches?: Record<string, Partial<SpeakerModel>>,
 ): SpeakerModel[] {
-  const customs = custom.filter((m) => !isBuiltinModel(m.id))
+  // 自建项的 builtin 标记一律归 false：内置身份只认代码注册表 id，
+  // 防止历史脏数据/导入包伪造 builtin:true 把用户自建实体锁成不可删、不可重置。
+  const customs = custom
+    .filter((m) => !isBuiltinModel(m.id))
+    .map((m) => (m.builtin ? { ...m, builtin: false } : m))
   const builtins = BUILTIN_MODELS.map((d) => {
     const base: SpeakerModel = { ...d, createdAt: BUILTIN_CREATED_AT }
     const patch = patches?.[d.id]
@@ -111,7 +115,10 @@ export function mergeBuiltinVoices(
   custom: VoiceService[],
   patches?: Record<string, Partial<VoiceService>>,
 ): VoiceService[] {
-  const customs = custom.filter((v) => !isBuiltinVoice(v.id))
+  // 同 mergeBuiltinModels：自建项的 builtin 标记一律归 false，内置身份只认代码注册表 id
+  const customs = custom
+    .filter((v) => !isBuiltinVoice(v.id))
+    .map((v) => (v.builtin ? { ...v, builtin: false } : v))
   const builtins = BUILTIN_VOICE_SERVICES.map((d) => {
     const base: VoiceService = { ...d, createdAt: BUILTIN_CREATED_AT }
     const patch = patches?.[d.id]

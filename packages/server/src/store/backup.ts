@@ -10,6 +10,7 @@ import {
   accountsFile,
   backupsRoot,
   devicesRoot,
+  overridesFile,
   rolesFile,
   roomsFile,
   settingsFile,
@@ -41,6 +42,7 @@ import {
   accountListSchema,
   DataValidationError,
   deviceMetaSchema,
+  overridesSchema,
   readJsonChecked,
   readJsonListChecked,
   roleListSchema,
@@ -276,6 +278,16 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
       '型号',
     ),
     writeJsonChecked(roomsFile, d.rooms ?? [], roomListSchema, '会话群'),
+    // 覆盖补丁（内置实体的用户改动）随包往返：不导入会静默丢失用户对内置项的修改。
+    // 脱敏包的补丁已被 scrubSecretsDeep 抹除敏感键，导入后用户改动中的凭据字段同样缺失，
+    // 与实体凭据「按 id 保留本机既有值」策略不同，补丁为字段级差异、无法按位补齐，
+    // 以包内容为准整体覆盖（重置能力在，随时可回归代码默认）。
+    writeJsonChecked(
+      overridesFile,
+      d.overrides ?? {},
+      overridesSchema,
+      '覆盖补丁',
+    ),
   ])
   await Promise.all(
     devices.map((m) =>

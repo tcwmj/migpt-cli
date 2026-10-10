@@ -330,9 +330,10 @@ export function VoiceServiceForm(props: {
           onClick={props.onSave}
           disabled={
             !voiceDraft.name ||
-            (engine === 'volcano' &&
-              (!voiceDraft.appId || !voiceDraft.token)) ||
-            ((engine === 'openai' || compat) && !voiceDraft.token)
+            ((engine === 'openai' || compat) &&
+              voiceDraft.provider !== 'custom' &&
+              (!voiceDraft.baseUrl || !voiceDraft.token)) ||
+            (engine === 'volcano' && (!voiceDraft.appId || !voiceDraft.token))
           }
         >
           保存
