@@ -207,10 +207,58 @@
   margin-bottom: var(--sp-8);
 }
 
-.wiz .wb .desc {
+/* 向导内表单字段 tooltip（复用 .grp .fld label .tip 的样式） */
+.wiz .form-card .fld label .tip {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+  width: 15px;
+  height: 15px;
+  line-height: 15px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
   color: var(--ink-3);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  cursor: help;
+  vertical-align: 1px;
+  flex-shrink: 0;
+}
+.wiz .form-card .fld label .tip:hover {
+  z-index: var(--z-popover);
+}
+.wiz .form-card .fld label .tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 300px;
+  white-space: normal;
+  transform: translateY(4px);
+  background: var(--ink-1);
+  color: #fff;
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--r-s);
   font-size: var(--fs-xs);
-  margin-bottom: var(--sp-8);
+  line-height: var(--lh-normal);
+  font-weight: var(--fw-regular);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-150),
+    visibility var(--dur-150),
+    transform var(--dur-150);
+  z-index: var(--z-popover);
+  pointer-events: none;
+  box-shadow: var(--shadow-pop);
+}
+.wiz .form-card .fld label .tip:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .pick-list {

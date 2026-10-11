@@ -28,6 +28,7 @@ export function WizardVoiceStep(props: {
 }) {
   const { voices, voiceId, setDraft, onNewVoice } = props
   const [form, setForm] = useState<VoiceDraft | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const sel = voices.find((v) => v.id === voiceId)
@@ -52,14 +53,26 @@ export function WizardVoiceStep(props: {
       const created = await onNewVoice(form)
       setDraft({ voiceId: created.id })
       setForm(null)
+      setEditingId(null)
     } catch (e) {
       setErr((e as Error).message || '保存语音服务失败')
     } finally {
       setBusy(false)
     }
   }
-  const openForm = () => {
+  const openNewForm = () => {
     setForm(blankVoice())
+    setEditingId(null)
+    setErr('')
+  }
+  const openEditForm = () => {
+    if (!sel) return
+    setForm({
+      ...voiceFormFromTts(sel),
+      name: sel.name,
+      timbreId: sel.timbreId || '',
+    })
+    setEditingId(sel.id)
     setErr('')
   }
 
@@ -113,7 +126,7 @@ export function WizardVoiceStep(props: {
           <Button
             icon="plus"
             style={{ justifyContent: 'center', marginTop: 4 }}
-            onClick={openForm}
+            onClick={openNewForm}
           >
             新建
           </Button>
@@ -128,13 +141,14 @@ export function WizardVoiceStep(props: {
               )}
               <VoiceForm
                 voiceDraft={form}
-                selVoice={null}
+                selVoice={editingId}
                 voices={voices}
                 usageVoice={() => 0}
                 onDraft={setForm}
                 onEdit={() => undefined}
                 onSelect={(id) => {
                   setForm(null)
+                  setEditingId(null)
                   setErr('')
                   if (id) setDraft({ voiceId: id })
                 }}
@@ -180,8 +194,8 @@ export function WizardVoiceStep(props: {
               </div>
               <div className="acts">
                 <span className="sp" />
-                <Button icon="plus" onClick={openForm}>
-                  新建语音服务
+                <Button variant="primary" icon="pencil" onClick={openEditForm}>
+                  编辑
                 </Button>
               </div>
             </div>
@@ -191,7 +205,7 @@ export function WizardVoiceStep(props: {
               title="选择语音服务"
               desc="从左侧列表选择一套音色；也可新建第三方语音。"
               action={
-                <Button variant="primary" icon="plus" onClick={openForm}>
+                <Button variant="primary" icon="plus" onClick={openNewForm}>
                   新建
                 </Button>
               }

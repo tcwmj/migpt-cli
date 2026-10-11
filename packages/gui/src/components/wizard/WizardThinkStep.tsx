@@ -27,6 +27,7 @@ export function WizardThinkStep(props: {
 }) {
   const { models, modelIds, setDraft, onNewThink } = props
   const [form, setForm] = useState<ModelDraft | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -41,14 +42,18 @@ export function WizardThinkStep(props: {
     if (prefilled.current || !models.length) return
     prefilled.current = true
     if (!modelIds.length) setDraft({ modelIds: [models[0].id] })
-  }, [props.active, models, modelIds, setDraft])
+    if (!selectedId) setSelectedId(models[0].id)
+  }, [props.active, models, modelIds, setDraft, selectedId])
 
-  const toggle = (id: string) =>
+  const toggle = (id: string) => {
     setDraft({
       modelIds: modelIds.includes(id)
         ? modelIds.filter((x) => x !== id)
         : [...modelIds, id],
     })
+    setSelectedId(id)
+  }
+
   /** 调整优先级：dir = -1 上移（更优先），1 下移 */
   const move = (id: string, dir: -1 | 1) => {
     const i = modelIds.indexOf(id)
@@ -59,6 +64,7 @@ export function WizardThinkStep(props: {
     next[j] = modelIds[i]
     setDraft({ modelIds: next })
   }
+
   const saveThink = async () => {
     if (!form || busy) return
     setBusy(true)
@@ -66,6 +72,7 @@ export function WizardThinkStep(props: {
     try {
       const created = await onNewThink(form)
       setDraft({ modelIds: [...modelIds, created.id] })
+      setSelectedId(created.id)
       setForm(null)
     } catch (e) {
       setErr((e as Error).message || '保存思考服务失败')
@@ -73,10 +80,15 @@ export function WizardThinkStep(props: {
       setBusy(false)
     }
   }
+
   // 按 modelIds 顺序还原已选项（顺序即优先级）
   const selected = modelIds
     .map((id) => models.find((m) => m.id === id))
     .filter((m): m is Model => !!m)
+
+  const selectedModel = selectedId
+    ? models.find((m) => m.id === selectedId)
+    : null
 
   return (
     <div className={'step' + (props.active ? ' on' : '')}>
@@ -97,7 +109,10 @@ export function WizardThinkStep(props: {
               <div
                 key={s.id}
                 className={'li' + (on ? ' on' : '')}
-                onClick={() => toggle(s.id)}
+                onClick={() => {
+                  toggle(s.id)
+                  setSelectedId(s.id)
+                }}
               >
                 {p ? (
                   <span className="ic t pv">
@@ -154,94 +169,80 @@ export function WizardThinkStep(props: {
                 onSave={saveThink}
               />
             </>
-          ) : (
+          ) : selectedModel ? (
             <div className="form-card">
               <h3>
-                <I n="bolt" size={17} /> 已选思考服务
-                <span className="refs">
-                  {selected.length
-                    ? `共 ${selected.length} 个 · 第 1 个最优先`
-                    : '未选择'}
-                </span>
+                <I n="bolt" size={17} /> 思考服务详情
               </h3>
               <div className="desc">
-                按顺序组成 failover 链：某个服务限额已达时自动切换下一个。
+                点击左侧列表项切换选中状态（多选）；按顺序组成 failover 链。
               </div>
-              {selected.length ? (
-                <div className="sel-list">
-                  {selected.map((s, i) => {
-                    const p = MODEL_PROVIDERS[s.provider]
-                    return (
-                      <div className="si" key={s.id}>
-                        <span className="no">{i + 1}</span>
-                        <span className="txt">
-                          <b>{s.name}</b>
-                          <span>
-                            {(p?.name || s.provider) + ' · ' + s.model}
-                          </span>
-                        </span>
-                        {s.limitReached && <Tag tone="bad">限额</Tag>}
-                        <span className="ops">
-                          <button
-                            className="icon-btn"
-                            title="提高优先级"
-                            disabled={i === 0}
-                            onClick={() => move(s.id, -1)}
-                          >
-                            <I n="up" size={15} />
-                          </button>
-                          <button
-                            className="icon-btn"
-                            title="降低优先级"
-                            disabled={i === selected.length - 1}
-                            onClick={() => move(s.id, 1)}
-                          >
-                            <I n="down" size={15} />
-                          </button>
-                          <button
-                            className="icon-btn"
-                            title="移除"
-                            onClick={() => toggle(s.id)}
-                          >
-                            <I n="x" size={15} />
-                          </button>
-                        </span>
-                      </div>
-                    )
-                  })}
+              <div className="ro">
+                <div className="rr">
+                  <span className="k">服务名称</span>
+                  <span className="v">{selectedModel.name || '—'}</span>
                 </div>
-              ) : (
-                <EmptyState
-                  icon="bolt"
-                  title="还没有选择思考服务"
-                  desc="从左侧列表点击选择，可多选并调整优先级。"
-                  action={
-                    <Button
-                      variant="primary"
-                      icon="plus"
-                      onClick={() => {
-                        setForm(blankThink())
-                        setErr('')
-                      }}
-                    >
-                      新建
-                    </Button>
-                  }
-                />
-              )}
+                <div className="rr">
+                  <span className="k">供应商</span>
+                  <span className="v">
+                    {MODEL_PROVIDERS[selectedModel.provider]?.name ||
+                      selectedModel.provider}
+                  </span>
+                </div>
+                <div className="rr">
+                  <span className="k">模型</span>
+                  <span className="v">{selectedModel.model || '—'}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">接口地址</span>
+                  <span className="v">{selectedModel.baseUrl || '—'}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">温度</span>
+                  <span className="v">{selectedModel.temperature ?? 0.7}</span>
+                </div>
+                <div className="rr">
+                  <span className="k">API Key</span>
+                  <span className="v">
+                    {selectedModel.hasApiKey ? '已配置' : '未配置'}
+                  </span>
+                </div>
+                {selectedModel.limitReached && (
+                  <div className="rr">
+                    <span className="k">状态</span>
+                    <span className="v">
+                      <Tag tone="bad">限额已达</Tag>
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="acts">
                 <span className="sp" />
                 <Button
-                  icon="plus"
+                  variant="primary"
+                  icon="pencil"
                   onClick={() => {
-                    setForm(blankThink())
+                    setForm({
+                      name: selectedModel.name,
+                      provider: selectedModel.provider,
+                      model: selectedModel.model || '',
+                      apiKey: '',
+                      temperature: String(selectedModel.temperature ?? 0.7),
+                      baseUrl: selectedModel.baseUrl || '',
+                    })
                     setErr('')
                   }}
                 >
-                  新建思考服务
+                  编辑
                 </Button>
               </div>
             </div>
+          ) : (
+            <EmptyState
+              icon="bolt"
+              title="选择思考服务"
+              desc="从左侧列表点击选择，可多选并调整优先级。"
+            />
           )}
         </section>
       </div>

@@ -203,7 +203,7 @@ export function HomeView(props: {
         <div className="guide-main">
           <b className="guide-h">
             新手引导
-            <span className="sub">3 步完成接入</span>
+            <span className="sub">5 步完成接入</span>
           </b>
           {[
             [
@@ -212,6 +212,8 @@ export function HomeView(props: {
               girlImg,
             ],
             ['选择设备', '从小米凭据拉取音箱列表，选择要接入的设备', catImg],
+            ['思考服务', '选择或新建大模型服务，作为音箱的思考大脑', girlImg],
+            ['语音服务', '选择或新建语音服务，决定音箱的发音音色', catImg],
             ['对话角色', '选择已有对话角色，或新建角色绑定角色性格', closeImg],
           ].map(([t, d, img], i) => (
             <div
