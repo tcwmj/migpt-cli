@@ -1,8 +1,8 @@
 // ── 内置实体定义（代码为准，只读）────────────────────────────────
-// 内置型号 / 内置语音 / 内置会话群 / 内置角色是系统自带、不可删除的实体；
+// 内置型号 / 内置语音 / 内置会话 / 内置角色是系统自带、不可删除的实体；
 // 它们的「定义」放在代码里，用户的修改以补丁形式写入 overrides.json（见 ./overrides.js）。
 // 这样内置定义可随版本升级自动修正，而用户自建实体始终独立存放、不受「重置默认」影响。
-import type { Robot, Room, SpeakerModel, VoiceService } from '../types.js'
+import type { Robot, Conversation, SpeakerModel, Voice } from '../types.js'
 
 /**
  * 系统内置音箱型号（禁删禁编辑定义；用户改动存覆盖补丁）。
@@ -10,107 +10,107 @@ import type { Robot, Room, SpeakerModel, VoiceService } from '../types.js'
  * 与 migpt-server 内置型号选择器（packages/options ChooseSpeaker）。
  * 分组：支持连续对话（完美运行）/ 不支持连续对话（正常运行）。
  */
-export const BUILTIN_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
+export const BUILTIN_SPEAKER_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
   // ── 支持连续对话（完美运行）──
   {
     id: 'xiaomi-smart-pro',
     name: 'Xiaomi 智能音箱 Pro',
-    did: 'OH2P',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'OH2P',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/vIHjnJJqrc',
   },
   {
     id: 'xiaomi-smart',
     name: 'Xiaomi 智能音箱',
-    did: 'OH2',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'OH2',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [5, 3],
     wakeUpCommand: [5, 1],
     playingCommand: [3, 1, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/WQG4uLGOcd',
   },
   {
     id: 'xiaomi-pro',
     name: '小爱音箱 Pro',
-    did: 'LX06',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'LX06',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 3],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/fqq9JgNvUR',
   },
   {
     id: 'xiaomi-ai-speaker',
     name: '小米 AI 音箱',
-    did: 'S12',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'S12',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 3],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/s1KdNlarvU',
   },
   {
     id: 'xiaomi-ai-speaker-2',
     name: '小米 AI 音箱（第二代）',
-    did: 'L15A',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'L15A',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
     playingCommand: [3, 1, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/h84tjXGVYP',
   },
   {
     id: 'xiaomi-universal',
     name: '小爱音箱 万能遥控版',
-    did: 'LX5A',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'LX5A',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 3],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/ZpRUVmwTh5',
   },
   {
     id: 'xiaomi-play-2019',
     name: '小爱音箱 Play（2019 款）',
-    did: 'LX05',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'LX05',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 3],
     playingCommand: [3, 1, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/sIhk2YxwD7',
   },
   {
     id: 'xiaomi-home-screen-10',
     name: '小爱智能家庭屏 10',
-    did: 'X10A',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'X10A',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/sDM9V3slih',
   },
   {
     id: 'xiaomi-sound-pro',
     name: 'Xiaomi Sound Pro',
-    did: 'L17A',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'L17A',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/s7vgvRqqwU',
   },
@@ -118,121 +118,121 @@ export const BUILTIN_MODELS: Omit<SpeakerModel, 'createdAt'>[] = [
   {
     id: 'xiaomi-speaker',
     name: '小爱音箱',
-    did: 'L06A',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'L06A',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 2],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/Ig6OUMFV2u',
   },
   {
     id: 'xiaomi-mini',
     name: '小爱音箱 mini',
-    did: 'LX01',
-    desc: '支持连续对话（官方完美运行）',
+    didPrefix: 'LX01',
+    description: '支持连续对话（官方完美运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 2],
     playingCommand: [4, 1, 1],
-    consecutive: true,
+    continuousDialogue: true,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/IBVUyAfu4M',
   },
   {
     id: 'xiaomi-play',
     name: '小爱音箱 Play',
-    did: 'L05B',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'L05B',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [5, 3],
     wakeUpCommand: [5, 1],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/s9jN6QwVcG',
   },
   {
     id: 'xiaomi-play-plus',
     name: '小米小爱音箱 Play 增强版',
-    did: 'L05C',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'L05C',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [5, 3],
     wakeUpCommand: [5, 1],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/NU5KITCTbl',
   },
   {
     id: 'xiaomi-art',
     name: '小爱音箱 Art',
-    did: 'L09A',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'L09A',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [3, 1],
     wakeUpCommand: [3, 2],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/c7uFBjO7cV',
   },
   {
     id: 'xiaomi-touch',
     name: '小爱触屏音箱',
-    did: 'LX04',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'LX04',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [5, 1],
     wakeUpCommand: [5, 2],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/SkwcG8td6n',
   },
   {
     id: 'xiaomi-home-mini',
     name: 'Xiaomi 智能家庭屏 Mini',
-    did: 'ASX4B',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'ASX4B',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [5, 3],
     wakeUpCommand: [5, 1],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/Q9Vnj3UTJt',
   },
   {
     id: 'xiaomi-home-6',
     name: 'Xiaomi 智能家庭屏 6',
-    did: 'X6A',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'X6A',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/2QVKCAW8rT',
   },
   {
     id: 'xiaomi-redmi-touch-8',
     name: 'Redmi 小爱触屏音箱 Pro 8 英寸',
-    did: 'X08E',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'X08E',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/0UncKIwUlB',
   },
   {
     id: 'xiaomi-home-pro-8',
     name: 'Xiaomi 智能家庭屏 Pro 8',
-    did: 'X8F',
-    desc: '无法连续对话（官方正常运行）',
+    didPrefix: 'X8F',
+    description: '无法连续对话（官方正常运行）',
     ttsCommand: [7, 3],
     wakeUpCommand: [7, 1],
-    consecutive: false,
+    continuousDialogue: false,
     builtin: true,
     imageUrl: 'https://aka.doubaocdn.com/s/FQuMVAKPUK',
   },
 ]
 
 /**
- * 系统内置语音服务（小米内置 TTS，永不可删）。
- * 不再有「全局默认」概念：语音服务须由设备显式指定。
+ * 系统内置语音（小米内置 TTS，永不可删）。
+ * 不再有「全局默认」概念：语音须由设备显式指定。
  */
-export const BUILTIN_VOICE_SERVICES: Omit<VoiceService, 'createdAt'>[] = [
+export const BUILTIN_VOICES: Omit<Voice, 'createdAt'>[] = [
   {
     id: 'builtin-mi',
     name: '默认语音',
@@ -242,13 +242,13 @@ export const BUILTIN_VOICE_SERVICES: Omit<VoiceService, 'createdAt'>[] = [
 ]
 
 /**
- * 系统内置会话群（永不可删；可编辑、可重置默认）。
- * id 与迁移前用户数据的原 id 一致（dQd66FVw），保证既有角色 roomRef 引用不失效。
+ * 系统内置会话（永不可删；可编辑、可重置默认）。
+ * id 与迁移前用户数据的原 id 一致（dQd66FVw），保证既有角色 conversationRef 引用不失效。
  */
-export const BUILTIN_ROOMS: Omit<Room, 'createdAt'>[] = [
+export const BUILTIN_CONVERSATIONS: Omit<Conversation, 'createdAt'>[] = [
   {
     id: 'dQd66FVw',
-    name: '傻妞会话群',
+    name: '傻妞会话',
     description: '家庭日常闲聊',
     builtin: true,
   },
@@ -259,7 +259,7 @@ export const BUILTIN_ROOMS: Omit<Room, 'createdAt'>[] = [
  * 数据取自迁移前用户保存的角色「傻妞」（id IgKuWadm），保留原 id
  * 以兼容设备 robotId 引用；旧数据中的死键（checkNotContinueKeywords 等契约外字段）不纳入定义。
  */
-export const BUILTIN_ROBOTS: Robot[] = [
+export const BUILTIN_ROBOTS: Omit<Robot, 'createdAt'>[] = [
   {
     id: 'IgKuWadm',
     name: '傻妞',
@@ -278,7 +278,7 @@ export const BUILTIN_ROBOTS: Robot[] = [
     onAIReplied: ['我说完了', '还有其他问题吗'],
     onAIError: ['啊哦，出错了，请稍后再试吧'],
     exitKeepAliveAfter: 30,
-    roomRef: 'dQd66FVw',
+    conversationId: 'dQd66FVw',
     builtin: true,
   },
 ]
@@ -289,36 +289,36 @@ export const BUILTIN_ROBOTS: Robot[] = [
  */
 export const BUILTIN_CREATED_AT = 0
 
-const BUILTIN_MODEL_IDS = new Set(BUILTIN_MODELS.map((m) => m.id))
-const BUILTIN_VOICE_IDS = new Set(BUILTIN_VOICE_SERVICES.map((v) => v.id))
-const BUILTIN_ROOM_IDS = new Set(BUILTIN_ROOMS.map((r) => r.id))
+const BUILTIN_SPEAKER_MODEL_IDS = new Set(BUILTIN_SPEAKER_MODELS.map((m) => m.id))
+const BUILTIN_VOICE_IDS = new Set(BUILTIN_VOICES.map((v) => v.id))
+const BUILTIN_CONVERSATION_IDS = new Set(BUILTIN_CONVERSATIONS.map((r) => r.id))
 const BUILTIN_ROBOT_IDS = new Set(BUILTIN_ROBOTS.map((r) => r.id))
 
-export const isBuiltinModel = (id: string): boolean => BUILTIN_MODEL_IDS.has(id)
+export const isBuiltinSpeakerModel = (id: string): boolean => BUILTIN_SPEAKER_MODEL_IDS.has(id)
 export const isBuiltinVoice = (id: string): boolean => BUILTIN_VOICE_IDS.has(id)
-export const isBuiltinRoom = (id: string): boolean => BUILTIN_ROOM_IDS.has(id)
+export const isBuiltinConversation = (id: string): boolean => BUILTIN_CONVERSATION_IDS.has(id)
 export const isBuiltinRobot = (id: string): boolean => BUILTIN_ROBOT_IDS.has(id)
 
 /** 内置型号的完整默认实体（补齐 createdAt）；非内置返回 undefined */
-export function builtinModelDefault(id: string): SpeakerModel | undefined {
-  const def = BUILTIN_MODELS.find((m) => m.id === id)
+export function builtinSpeakerModelDefault(id: string): SpeakerModel | undefined {
+  const def = BUILTIN_SPEAKER_MODELS.find((m) => m.id === id)
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }
 
 /** 内置语音的完整默认实体（补齐 createdAt）；非内置返回 undefined */
-export function builtinVoiceDefault(id: string): VoiceService | undefined {
-  const def = BUILTIN_VOICE_SERVICES.find((v) => v.id === id)
+export function builtinVoiceDefault(id: string): Voice | undefined {
+  const def = BUILTIN_VOICES.find((v) => v.id === id)
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }
 
-/** 内置会话群的完整默认实体（补齐 createdAt）；非内置返回 undefined */
-export function builtinRoomDefault(id: string): Room | undefined {
-  const def = BUILTIN_ROOMS.find((r) => r.id === id)
+/** 内置会话的完整默认实体（补齐 createdAt）；非内置返回 undefined */
+export function builtinConversationDefault(id: string): Conversation | undefined {
+  const def = BUILTIN_CONVERSATIONS.find((r) => r.id === id)
   return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }
 
-/** 内置角色的完整默认实体（Robot 无 createdAt，直接返回定义副本）；非内置返回 undefined */
+/** 内置角色的完整默认实体；非内置返回 undefined */
 export function builtinRobotDefault(id: string): Robot | undefined {
   const def = BUILTIN_ROBOTS.find((r) => r.id === id)
-  return def ? { ...def } : undefined
+  return def ? { ...def, createdAt: BUILTIN_CREATED_AT } : undefined
 }

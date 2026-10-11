@@ -3,14 +3,14 @@ import type { TTSConfig } from 'mi-gpt-tts'
 import type {
   Account,
   DeviceBindings,
-  DeviceMeta,
-  PulledDevice,
+  Device,
+  CloudDevice,
   Robot,
-  Room as ContractRoom,
-  Settings,
+  Conversation as ContractRoom,
+  Credential,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '@migptgui/contracts'
 // ── API 版本前缀（与服务端 API_PREFIX 保持一致）────────────────
 const API = '/api/v1'
@@ -20,13 +20,13 @@ export type {
   Account,
   BindingRow,
   DeviceBindings,
-  DeviceMeta,
-  PulledDevice,
+  Device,
+  CloudDevice,
   Robot,
-  Settings,
+  Credential,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '@migptgui/contracts'
 
 // ── 登录认证（httpOnly Cookie 会话）─────────────────────────
@@ -116,12 +116,12 @@ function post<T>(url: string, body?: unknown): Promise<T> {
 
 // ── 实体类型（共享契约见文件头 @migptgui/contracts）─────────────
 
-export interface DeviceRow extends DeviceMeta {
+export interface DeviceRow extends Device {
   running: boolean
 }
 
 export interface DeviceDetail {
-  meta: DeviceMeta
+  meta: Device
   config: GuiConfig
   bindings: DeviceBindings
 }
@@ -132,12 +132,12 @@ export const getStatusAll = () =>
     j<{ devices: DeviceRow[] }>(r),
   )
 
-export const getSettings = () =>
+export const getCredential = () =>
   fetch(api('/settings'), { headers: headers(false) }).then((r) =>
-    j<Settings>(r),
+    j<Credential>(r),
   )
 
-export const saveSettings = (s: Settings) =>
+export const saveCredential = (s: Credential) =>
   fetch(api('/settings'), {
     method: 'PUT',
     headers: headers(true),
@@ -168,7 +168,7 @@ export const deleteAccount = (id: string) =>
 
 // 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
 export const pullDevices = (accountId: string) =>
-  post<{ devices: PulledDevice[] }>(api(`/accounts/${accountId}/pull-devices`))
+  post<{ devices: CloudDevice[] }>(api(`/accounts/${accountId}/pull-devices`))
 
 // ── AI 角色 ─────────────────────────────────────────────────
 export const getRobots = () =>
@@ -197,56 +197,56 @@ export const resetRobot = (id: string) =>
     headers: headers(false),
   }).then((r) => j<Robot>(r))
 
-// ── 思考服务 ─────────────────────────────────────────────────
-export const getThinkServices = () =>
-  fetch(api('/think-services'), { headers: headers(false) }).then((r) =>
-    j<ThinkService[]>(r),
+// ── 模型 ─────────────────────────────────────────────────
+export const getModels = () =>
+  fetch(api('/models'), { headers: headers(false) }).then((r) =>
+    j<Model[]>(r),
   )
 
-export const createThinkService = (s: Partial<ThinkService>) =>
-  post<ThinkService>(api('/think-services'), s)
+export const createModel = (s: Partial<Model>) =>
+  post<Model>(api('/models'), s)
 
-export const updateThinkService = (id: string, s: Partial<ThinkService>) =>
-  fetch(api(`/think-services/${id}`), {
+export const updateModel = (id: string, s: Partial<Model>) =>
+  fetch(api(`/models/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(s),
-  }).then((r) => j<ThinkService>(r))
+  }).then((r) => j<Model>(r))
 
-export const deleteThinkService = (id: string) =>
-  fetch(api(`/think-services/${id}`), {
+export const deleteModel = (id: string) =>
+  fetch(api(`/models/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
-// ── 语音服务 ─────────────────────────────────────────────────
-export const getVoiceServices = () =>
-  fetch(api('/voice-services'), { headers: headers(false) }).then((r) =>
-    j<VoiceService[]>(r),
+// ── 语音 ─────────────────────────────────────────────────
+export const getVoices = () =>
+  fetch(api('/voices'), { headers: headers(false) }).then((r) =>
+    j<Voice[]>(r),
   )
 
-export const createVoiceService = (s: Partial<VoiceService>) =>
-  post<VoiceService>(api('/voice-services'), s)
+export const createVoice = (s: Partial<Voice>) =>
+  post<Voice>(api('/voices'), s)
 
-export const updateVoiceService = (id: string, s: Partial<VoiceService>) =>
-  fetch(api(`/voice-services/${id}`), {
+export const updateVoice = (id: string, s: Partial<Voice>) =>
+  fetch(api(`/voices/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(s),
-  }).then((r) => j<VoiceService>(r))
+  }).then((r) => j<Voice>(r))
 
-export const deleteVoiceService = (id: string) =>
-  fetch(api(`/voice-services/${id}`), {
+export const deleteVoice = (id: string) =>
+  fetch(api(`/voices/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
-/** 重置内置语音服务为系统默认值（仅 builtin 可用） */
-export const resetVoiceService = (id: string) =>
-  fetch(api(`/voice-services/${id}/reset`), {
+/** 重置内置语音为系统默认值（仅 builtin 可用） */
+export const resetVoice = (id: string) =>
+  fetch(api(`/voices/${id}/reset`), {
     method: 'POST',
     headers: headers(false),
-  }).then((r) => j<VoiceService>(r))
+  }).then((r) => j<Voice>(r))
 
 // ── 音箱型号 ─────────────────────────────────────────────────
 export const getSpeakerModels = () =>
@@ -277,41 +277,41 @@ export const resetSpeakerModel = (id: string) =>
     headers: headers(false),
   }).then((r) => j<SpeakerModel>(r))
 
-// ── 会话群（对话记忆上下文归属，多角色共用）───────────────────────
-/** 会话群（extends 共享契约；robotCount 为前端聚合展示字段） */
-export interface Room extends ContractRoom {
+// ── 会话（对话记忆上下文归属，多角色共用）───────────────────────
+/** 会话（extends 共享契约；robotCount 为前端聚合展示字段） */
+export interface Conversation extends ContractRoom {
   robotCount?: number
 }
 
 export const getRooms = () =>
-  fetch(api('/rooms'), { headers: headers(false) }).then((r) => j<Room[]>(r))
+  fetch(api('/conversations'), { headers: headers(false) }).then((r) => j<Conversation[]>(r))
 
-export const createRoom = (r: Partial<Room>) =>
-  fetch(api('/rooms'), {
+export const createRoom = (r: Partial<Conversation>) =>
+  fetch(api('/conversations'), {
     method: 'POST',
     headers: headers(true),
     body: JSON.stringify(r),
-  }).then((x) => j<Room>(x))
+  }).then((x) => j<Conversation>(x))
 
-export const updateRoom = (id: string, r: Partial<Room>) =>
-  fetch(api(`/rooms/${id}`), {
+export const updateRoom = (id: string, r: Partial<Conversation>) =>
+  fetch(api(`/conversations/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(r),
-  }).then((x) => j<Room>(x))
+  }).then((x) => j<Conversation>(x))
 
 export const deleteRoom = (id: string) =>
-  fetch(api(`/rooms/${id}`), {
+  fetch(api(`/conversations/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
-/** 重置内置会话群为系统默认值（仅 builtin 可用） */
+/** 重置内置会话为系统默认值（仅 builtin 可用） */
 export const resetRoom = (id: string) =>
-  fetch(api(`/rooms/${id}/reset`), {
+  fetch(api(`/conversations/${id}/reset`), {
     method: 'POST',
     headers: headers(false),
-  }).then((r) => j<Room>(r))
+  }).then((r) => j<Conversation>(r))
 
 // ── 设备管理 ─────────────────────────────────────────────────
 export const listDevices = () =>
@@ -325,7 +325,7 @@ export const createDevice = (d: {
   speakerModel?: string
   robotId: string
   accountId?: string
-  thinkServiceIds?: string[]
+  modelIds?: string[]
   voiceId?: string
 }) => post<{ id: string }>(api('/devices'), d)
 
@@ -336,7 +336,7 @@ export const getDevice = (id: string) =>
 
 export const saveDevice = (
   id: string,
-  body: { meta?: Partial<DeviceMeta>; config?: GuiConfig },
+  body: { meta?: Partial<Device>; config?: GuiConfig },
 ) =>
   fetch(api(`/devices/${id}`), {
     method: 'PUT',
@@ -370,9 +370,23 @@ export interface LogEntry {
   text: string
 }
 
-export const getLogs = (limit = 200) =>
-  fetch(api(`/logs?limit=${limit}`), { headers: headers(false) }).then((r) =>
-    j<{ total: number; logs: LogEntry[] }>(r),
+export const getLogs = (
+  limit = 200,
+  date?: string,
+  from?: string,
+  to?: string,
+) => {
+  const qs =
+    from && to ? `&from=${from}&to=${to}` : date ? `&date=${date}` : ''
+  return fetch(api(`/logs?limit=${limit}${qs}`), {
+    headers: headers(false),
+  }).then((r) => j<{ total: number; logs: LogEntry[] }>(r))
+}
+
+/** 有对话日志落盘的日期列表（yyyyMMdd，降序），供日历置灰/高亮判断 */
+export const getLogDates = () =>
+  fetch(api('/logs/dates'), { headers: headers(false) }).then((r) =>
+    j<{ dates: string[] }>(r),
   )
 
 // ── 系统日志（实时 + 下载）───────────────────────────────────
@@ -492,9 +506,9 @@ export interface DimensionEntity {
 export interface ServiceHealth {
   id: string
   name: string
-  type: 'think' | 'voice'
+  type: 'model' | 'voice'
   limitReached: boolean
-  tokenUsed: number
+  totalTokensUsed: number
   tokenLimit?: number
   usagePercent?: number
 }

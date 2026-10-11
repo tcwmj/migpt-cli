@@ -197,7 +197,7 @@ export function AccountsView(props: {
                         (m) =>
                           m.id === d.hardware ||
                           m.name === d.hardware ||
-                          (m.did && d.hardware && d.hardware.startsWith(m.did)),
+                          (m.didPrefix && d.hardware && d.hardware.startsWith(m.didPrefix)),
                       )
                       const bound = devices.find(
                         (x) => x.accountId === selAcct && x.did === d.miotDID,
@@ -368,4 +368,4 @@ export function AccountsView(props: {
   )
 }
 
-/* ══ 设备型号 ══ */
+/* ══ 音箱型号 ══ */

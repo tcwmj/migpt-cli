@@ -13,7 +13,7 @@ export function initModalValues(modal: ModalState): Record<string, string> {
     init.name = (p.name as string) || ''
     init.miUserId = (p.miUserId as string) || ''
     init.passToken = ''
-  } else if (modal.kind === 'think') {
+  } else if (modal.kind === 'model') {
     init.name = (p.name as string) || ''
     init.provider = (p.provider as string) || 'custom'
     init.model =
@@ -24,7 +24,7 @@ export function initModalValues(modal: ModalState): Record<string, string> {
       (p.baseUrl as string) || PROVIDER_PRESETS[init.provider]?.baseUrl || ''
   } else if (modal.kind === 'voice') {
     init.name = (p.name as string) || ''
-    init.voiceId = (p.voiceId as string) || ''
+    init.timbreId = (p.timbreId as string) || ''
     const v = voiceFormFromTts(p as { provider?: string; tts?: unknown })
     init.provider = v.provider
     init.token = v.token
@@ -53,7 +53,7 @@ export function buildModalPayload(
   let out: Record<string, unknown> = {}
   if (modal.kind === 'account') {
     out = { name: v.name, miUserId: v.miUserId, passToken: v.passToken }
-  } else if (modal.kind === 'think') {
+  } else if (modal.kind === 'model') {
     out = {
       name: v.name,
       provider: v.provider,
@@ -64,11 +64,11 @@ export function buildModalPayload(
     if (v.apiKey) out.apiKey = v.apiKey
   } else if (modal.kind === 'voice') {
     out = { name: v.name, provider: v.provider }
-    if (v.voiceId) out.voiceId = v.voiceId
+    if (v.timbreId) out.timbreId = v.timbreId
     const { tts, err } = buildVoiceTts({
       provider: v.provider,
       name: v.name,
-      voiceId: v.voiceId,
+      timbreId: v.timbreId,
       token: v.token,
       appId: v.appId,
       model: v.model,

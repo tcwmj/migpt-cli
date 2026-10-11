@@ -12,6 +12,7 @@ jest.mock('./paths.js', () => {
     root,
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
+    conversationsDir: p.join(root, 'conversations'),
   }
 })
 
@@ -25,7 +26,6 @@ import {
   logBuffers,
   logRows,
   demoTs,
-  MAX_LOG_LINES,
 } from './logger.js'
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -52,7 +52,7 @@ describe('系统日志落盘（pino-roll 按天轮转）', () => {
   const root = p.dirname(paths.systemLogFile)
   const listLogs = async () =>
     (await fs.readdir(root)).filter((n) =>
-      /^system(\.\d{4}-\d{2}-\d{2}\.\d+)?\.log(\.\d+)?$/.test(n),
+      /^system(\.\d{8}\.\d+)?\.log(\.\d+)?$/.test(n),
     )
 
   test('日志写入当天轮转文件（system.<日期>.N.log）', async () => {
@@ -60,9 +60,7 @@ describe('系统日志落盘（pino-roll 按天轮转）', () => {
     // SonicBoom fd 异步打开 + 异步 flush，等待落盘完成
     await wait(700)
     const files = await listLogs()
-    expect(files.some((n) => /^system\.\d{4}-\d{2}-\d{2}\.\d+\.log$/.test(n))).toBe(
-      true,
-    )
+    expect(files.some((n) => /^system\.\d{8}\.\d+\.log$/.test(n))).toBe(true)
     const content = (
       await Promise.all(files.map((n) => fs.readFile(p.join(root, n), 'utf-8')))
     ).join('')
@@ -103,19 +101,33 @@ describe('设备日志缓冲', () => {
     expect(logBuffers.get('d1')).toHaveLength(4)
   })
 
-  test('超过上限时截断', () => {
-    for (let i = 0; i < MAX_LOG_LINES + 10; i++) {
+  test('小规模写入不截断，且落盘到按天文件', async () => {
+    for (let i = 0; i < 1000; i++) {
       appendLog('d2', `2026/10/08 10:00:00 x${i}`)
     }
-    expect(logBuffers.get('d2')).toHaveLength(MAX_LOG_LINES)
-    expect(logRows.get('d2')).toHaveLength(MAX_LOG_LINES)
+    expect(logBuffers.get('d2')).toHaveLength(1000)
+    expect(logRows.get('d2')).toHaveLength(1000)
+    // WriteStream 异步打开 + 异步写入，等待落盘后再查文件
+    await wait(500)
+    const convDir = paths.conversationsDir
+    const files = await fs.readdir(convDir)
+    const target = files.filter(
+      (n) => n.startsWith('d2.') && n.endsWith('.log'),
+    )
+    expect(target.length).toBeGreaterThanOrEqual(1)
+    const content = await fs.readFile(p.join(convDir, target[0]), 'utf-8')
+    expect(content.trim().split('\n').length).toBe(1000)
   })
 
-  test('clearDeviceLog 清空原始与结构化缓冲', () => {
+  test('clearDeviceLog 清空原始与结构化缓冲，并删除落盘文件', async () => {
     appendLog('d3', '2026/10/08 10:00:00 [系统] a')
+    await wait(300)
     clearDeviceLog('d3')
     expect(logBuffers.has('d3')).toBe(false)
     expect(logRows.has('d3')).toBe(false)
+    const convDir = paths.conversationsDir
+    const files = await fs.readdir(convDir)
+    expect(files.some((n) => n.startsWith('d3.'))).toBe(false)
   })
 })
 

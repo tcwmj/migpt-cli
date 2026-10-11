@@ -3,10 +3,10 @@ import type {
   Account,
   DeviceRow,
   Robot,
-  Room,
+  Conversation,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
@@ -17,12 +17,12 @@ export function DeviceForm(props: {
   devDraft: DevDraft
   selDev: string | null
   devices: DeviceRow[]
-  models: SpeakerModel[]
+  speakerModels: SpeakerModel[]
   accounts: Account[]
   robots: Robot[]
-  rooms: Room[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
+  conversations: Conversation[]
+  models: Model[]
+  voices: Voice[]
   modelPickOpen: boolean
   modelPickQ: string
   devPull: DevPullState
@@ -37,15 +37,15 @@ export function DeviceForm(props: {
 }) {
   const { devDraft, selDev } = props
   const running = props.devices.find((x) => x.id === selDev)?.running
-  const model = props.models.find((x) => x.id === devDraft.speakerModel) || null
+  const model = props.speakerModels.find((x) => x.id === devDraft.speakerModel) || null
   const account = props.accounts.find((a) => a.id === devDraft.accountId)
 
-  const thinkOptions = props.thinkSvcs.map((s) => ({
+  const thinkOptions = props.speakerModels.map((s) => ({
     value: s.id,
     label: s.name + (s.limitReached ? '（限额）' : ''),
   }))
   const thinkValue = thinkOptions.filter((o) =>
-    (devDraft.thinkServiceIds || []).includes(o.value),
+    (devDraft.modelIds || []).includes(o.value),
   )
 
   return (
@@ -89,15 +89,15 @@ export function DeviceForm(props: {
             <input value={devDraft.alias} disabled />
           </Field>
           <Field label="设备 ID">
-            <input value={devDraft.did} disabled />
+            <input value={devDraft.didPrefix} disabled />
           </Field>
         </div>
         <div className="row">
-          <Field label="设备型号">
+          <Field label="音箱型号">
             <input
               value={
                 model
-                  ? `${model.name}（${model.did}）`
+                  ? `${model.name}（${model.didPrefix}）`
                   : devDraft.speakerModel || '—'
               }
               disabled
@@ -112,7 +112,7 @@ export function DeviceForm(props: {
         <div className="row">
           <div style={{ flex: 1 }}>
             <Field
-              label="思考服务"
+              label="模型"
               required
               tip="按优先级排列，限额已达时自动切换下一个"
             >
@@ -125,7 +125,7 @@ export function DeviceForm(props: {
                 onChange={(vals) =>
                   props.onDraft({
                     ...devDraft,
-                    thinkServiceIds: vals.map((v) => v.value),
+                    modelIds: vals.map((v) => v.value),
                   })
                 }
                 styles={multiSelectStyles}
@@ -133,7 +133,7 @@ export function DeviceForm(props: {
             </Field>
           </div>
           <div style={{ flex: 1 }}>
-            <Field label="语音服务" required>
+            <Field label="语音" required>
               <select
                 value={devDraft.voiceId || ''}
                 onChange={(e) =>
@@ -141,7 +141,7 @@ export function DeviceForm(props: {
                 }
               >
                 <option value="">未设置</option>
-                {props.voiceSvcs.map((s) => (
+                {props.voices.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -183,7 +183,7 @@ export function DeviceForm(props: {
       {model && model.consecutive && !model.playingCommand?.length && (
         <div className="notice">
           <I n="warning" size={15} /> 此型号未配置播放检测指令，连续对话将依赖
-          Mina 检测播放状态；若出现异常，可在「设备型号」中补充播放检测指令。
+          Mina 检测播放状态；若出现异常，可在「音箱型号」中补充播放检测指令。
         </div>
       )}
       <div className="acts">
@@ -204,7 +204,7 @@ export function DeviceForm(props: {
           variant="primary"
           icon="check"
           onClick={props.onSave}
-          disabled={!devDraft.alias || !devDraft.did}
+          disabled={!devDraft.alias || !devDraft.didPrefix}
         >
           保存
         </Button>

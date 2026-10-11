@@ -6,47 +6,61 @@ import { getAllStatus, run, stop, type RunConfig } from '@migptgui/controller'
 import { type GuiConfig } from '@migptgui/options'
 import { devicesRoot } from '../paths.js'
 import {
-  getDeviceMeta,
-  listDeviceMetas,
+  getDevice,
+  listDevices,
   getAccountById,
   assertUniqueName,
   loadDeviceConfig,
-  saveDeviceMeta,
+  saveDevice,
   saveDeviceConfig,
   saveDeviceCredentials,
   removeDevice,
 } from '../store.js'
 import { buildRunConfig, resolveBindings } from '../services.js'
 import {
-  redactDeviceMeta,
-  redactDeviceMetas,
+  redactDevice,
+  redactDevices,
   redactGuiConfig,
   redactBindings,
 } from '../redact.js'
 import { logBuffers, appendLog, clearDeviceLog } from '../logger.js'
-import type { DeviceMeta } from '../types.js'
+import type { Device } from '../types.js'
 import {
   API_PREFIX,
   pick,
-  DEVICE_META_FIELDS,
+  DEVICE_FIELDS,
   ok,
   fail,
   type RouteContext,
   asyncHandler,
 } from './shared.js'
 import { assertSafeId } from '../errors.js'
+import { LOG_DATE_RE } from '../store.js'
 
 const dAudio = createDebug('@migptgui/server:audio')
+
+/** 解析 query 中的日期参数（yyyyMMdd）；未提供返回 undefined，非法返回 null */
+function parseLogDate(v: unknown): string | undefined | null {
+  if (v === undefined) return undefined
+  const s = String(v)
+  return LOG_DATE_RE.test(s) ? s : null
+}
+
+/** 从原始日志行首部时间戳提取 yyyyMMdd 日期键（无时间戳返回空） */
+function dayOfRaw(line: string): string {
+  const m = line.match(/^(\d{4})[/-](\d{2})[/-](\d{2})/)
+  return m ? `${m[1]}${m[2]}${m[3]}` : ''
+}
 
 export function registerDeviceRoutes({ app }: RouteContext): void {
   // ── 状态：全部设备 ─────────────────────────────────────────────
   app.get(
     `${API_PREFIX}/status`,
     asyncHandler(async (req, res) => {
-      const devices = await listDeviceMetas()
+      const devices = await listDevices()
       const status = getAllStatus()
       res.json({
-        devices: redactDeviceMetas(devices).map((meta) => ({
+        devices: redactDevices(devices).map((meta) => ({
           ...meta,
           running: !!status[meta.id],
         })),
@@ -57,10 +71,10 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   app.get(
     `${API_PREFIX}/devices`,
     asyncHandler(async (req, res) => {
-      const devices = await listDeviceMetas()
+      const devices = await listDevices()
       const status = getAllStatus()
       res.json(
-        redactDeviceMetas(devices).map((meta) => ({
+        redactDevices(devices).map((meta) => ({
           ...meta,
           running: !!status[meta.id],
         })),
@@ -77,24 +91,24 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         speakerModel?: string
         robotId?: string
         accountId?: string
-        thinkServiceIds?: string[]
-        thinkServiceId?: string
+        modelIds?: string[]
+        modelId?: string
         voiceId?: string
-        roomRef?: string
-        roomName?: string
-        roomDescription?: string
+        conversationRef?: string
+        conversationName?: string
+        conversationDescription?: string
       }
       if (!body.alias || !body.did) {
         fail(res, 400, '别名和设备 ID 必填')
         return
       }
-      // 设备服务必填：思考服务与语音服务须显式指定（不再有全局默认回退）
-      if (!body.thinkServiceIds || body.thinkServiceIds.length === 0) {
-        fail(res, 400, '思考服务必填')
+      // 设备服务必填：模型与语音须显式指定（不再有全局默认回退）
+      if (!body.modelIds || body.modelIds.length === 0) {
+        fail(res, 400, '模型必填')
         return
       }
       if (!body.voiceId) {
-        fail(res, 400, '语音服务必填')
+        fail(res, 400, '语音必填')
         return
       }
       // 对话角色必填：角色承载人设与对话行为，无角色无法编译运行配置
@@ -102,7 +116,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         fail(res, 400, '对话角色必填')
         return
       }
-      const metas = await listDeviceMetas()
+      const metas = await listDevices()
       // 唯一性按「账号」维度：同账号下设备 ID 唯一（防止同一设备多套配置）；不同账号允许相同 ID/名称（支持设备切换账号）
       const sameAcct = body.accountId
         ? metas.filter((m) => m.accountId === body.accountId)
@@ -117,27 +131,27 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         return
       }
       const id = nanoid(8)
-      const meta: DeviceMeta = {
+      const meta: Device = {
         id,
         alias: body.alias,
         did: body.did,
         speakerModel: body.speakerModel,
         robotId: body.robotId,
         accountId: body.accountId,
-        thinkServiceIds: body.thinkServiceIds,
-        thinkServiceId: body.thinkServiceId,
+        modelIds: body.modelIds,
+        modelId: body.modelId,
         voiceId: body.voiceId,
-        roomRef: body.roomRef,
-        roomName: body.roomName,
-        roomDescription: body.roomDescription,
+        conversationRef: body.conversationRef,
+        conversationName: body.conversationName,
+        conversationDescription: body.conversationDescription,
         ttsSecret: nanoid(),
         createdAt: Date.now(),
       }
-      await saveDeviceMeta(id, meta)
+      await saveDevice(id, meta)
       // 按绑定链编译初始配置（编译投影）
       const { config } = await buildRunConfig(meta)
       await saveDeviceConfig(id, config)
-      res.json({ id, meta: redactDeviceMeta(meta) })
+      res.json({ id, meta: redactDevice(meta) })
     }),
   )
 
@@ -145,7 +159,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     `${API_PREFIX}/devices/:id`,
     asyncHandler(async (req, res) => {
       assertSafeId(req.params.id)
-      const meta = await getDeviceMeta(req.params.id)
+      const meta = await getDevice(req.params.id)
       if (!meta) {
         fail(res, 404, '设备不存在')
         return
@@ -155,7 +169,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       const bindings = await resolveBindings(meta)
       // 响应脱敏：meta / config / bindings 中的凭据一律不回传明文
       res.json({
-        meta: redactDeviceMeta(meta),
+        meta: redactDevice(meta),
         config: config ? redactGuiConfig(config) : config,
         bindings: redactBindings(bindings),
       })
@@ -166,13 +180,13 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     `${API_PREFIX}/devices/:id`,
     asyncHandler(async (req, res) => {
       const id = assertSafeId(req.params.id)
-      const meta = await getDeviceMeta(id)
+      const meta = await getDevice(id)
       if (!meta) {
         fail(res, 404, '设备不存在')
         return
       }
       const body = req.body as {
-        meta?: Partial<DeviceMeta>
+        meta?: Partial<Device>
         config?: GuiConfig
       }
       if (body.meta) {
@@ -182,7 +196,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
           body.meta.did !== undefined ||
           body.meta.accountId !== undefined
         ) {
-          const allMetas = await listDeviceMetas()
+          const allMetas = await listDevices()
           const nextAcct =
             body.meta.accountId !== undefined
               ? body.meta.accountId
@@ -209,19 +223,16 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
           }
         }
         // 脱敏后前端不回读 ttsSecret：空值视为「未修改」，避免误清空设备 TTS 路径令牌
-        const patch = pick<DeviceMeta>(body.meta, DEVICE_META_FIELDS)
+        const patch = pick<Device>(body.meta, DEVICE_FIELDS)
         if (!patch.ttsSecret) delete patch.ttsSecret
-        const nextMeta: DeviceMeta = { ...meta, ...patch, id }
+        const nextMeta: Device = { ...meta, ...patch, id }
         // 设备服务必填：合并后仍须各指定至少一个（不再有全局默认回退）
-        if (
-          !nextMeta.thinkServiceIds ||
-          nextMeta.thinkServiceIds.length === 0
-        ) {
-          fail(res, 400, '思考服务必填')
+        if (!nextMeta.modelIds || nextMeta.modelIds.length === 0) {
+          fail(res, 400, '模型必填')
           return
         }
         if (!nextMeta.voiceId) {
-          fail(res, 400, '语音服务必填')
+          fail(res, 400, '语音必填')
           return
         }
         // 对话角色必填：合并后仍须指定（不再有内置默认人设回退）
@@ -229,19 +240,19 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
           fail(res, 400, '对话角色必填')
           return
         }
-        await saveDeviceMeta(id, nextMeta)
+        await saveDevice(id, nextMeta)
         // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
         if (
           body.meta.robotId !== undefined ||
           body.meta.accountId !== undefined ||
           body.meta.speakerModel !== undefined ||
           body.meta.did !== undefined ||
-          body.meta.thinkServiceIds !== undefined ||
-          body.meta.thinkServiceId !== undefined ||
+          body.meta.modelIds !== undefined ||
+          body.meta.modelId !== undefined ||
           body.meta.voiceId !== undefined ||
-          body.meta.roomRef !== undefined ||
-          body.meta.roomName !== undefined ||
-          body.meta.roomDescription !== undefined
+          body.meta.conversationRef !== undefined ||
+          body.meta.conversationName !== undefined ||
+          body.meta.conversationDescription !== undefined
         ) {
           const { config } = await buildRunConfig(nextMeta)
           await saveDeviceConfig(id, config)
@@ -270,7 +281,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     `${API_PREFIX}/devices/:id/start`,
     asyncHandler(async (req, res) => {
       const id = assertSafeId(req.params.id)
-      const meta = await getDeviceMeta(id)
+      const meta = await getDevice(id)
       if (!meta) {
         fail(res, 404, '设备不存在')
         return
@@ -304,7 +315,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         await saveDeviceCredentials(id, miJson)
       }
 
-      // 内建 TTS：为设备注入独立的 TTS_BASE_URL
+      // 内置 TTS：为设备注入独立的 TTS_BASE_URL
       if (
         config.config.speaker.tts === 'custom' &&
         config.gui &&
@@ -338,8 +349,24 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
     `${API_PREFIX}/devices/:id/logs`,
     asyncHandler(async (req, res) => {
       assertSafeId(req.params.id)
+      const date = parseLogDate(req.query.date)
+      if (date === null) {
+        fail(res, 400, '日期参数格式应为 yyyyMMdd')
+        return
+      }
       const limit = Number(req.query.limit) || 100
-      const buf = logBuffers.get(req.params.id) || []
+      let buf = logBuffers.get(req.params.id) || []
+      if (date) {
+        // 按天过滤：无时间戳的续行归属上一条带时间戳行的日期，避免丢行
+        const out: string[] = []
+        let cur = ''
+        for (const l of buf) {
+          const d = dayOfRaw(l)
+          if (d) cur = d
+          if (cur === date) out.push(l)
+        }
+        buf = out
+      }
       res.json({ logs: buf.slice(-limit) })
     }),
   )

@@ -31,9 +31,9 @@ export function VoiceForm({ v, setV }: ModalFormProps) {
       {v.provider !== 'custom' && (
         <Field row label="音色" hint="留空使用该引擎的默认音色">
           <input
-            value={v.voiceId || ''}
+            value={v.timbreId || ''}
             placeholder="选择或输入音色 ID"
-            onChange={(e) => setV({ ...v, voiceId: e.target.value })}
+            onChange={(e) => setV({ ...v, timbreId: e.target.value })}
           />
         </Field>
       )}

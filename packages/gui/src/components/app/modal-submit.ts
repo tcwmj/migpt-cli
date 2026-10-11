@@ -2,10 +2,10 @@
 import * as api from '../../apis.ts'
 import type {
   Account,
-  DeviceMeta,
+  Device,
   Robot,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../../apis.ts'
 import type { ModalState } from '../../ui-types.ts'
 import { errText } from './errText.ts'
@@ -30,30 +30,30 @@ export async function submitModal(opts: {
         showToast('账号已连接')
       }
       refreshAll()
-    } else if (modal.kind === 'think') {
-      const payload = (modal.payload || {}) as ThinkService
+    } else if (modal.kind === 'model') {
+      const payload = (modal.payload || {}) as Model
       if (payload.id) {
-        await api.updateThinkService(
+        await api.updateModel(
           payload.id,
-          values as Partial<ThinkService>,
+          values as Partial<Model>,
         )
-        showToast('思考服务已更新，热生效')
+        showToast('模型已更新，热生效')
       } else {
-        await api.createThinkService(values as Partial<ThinkService>)
-        showToast('思考服务已创建')
+        await api.createModel(values as Partial<Model>)
+        showToast('模型已创建')
       }
       refreshAll()
     } else if (modal.kind === 'voice') {
-      const payload = (modal.payload || {}) as VoiceService
+      const payload = (modal.payload || {}) as Voice
       if (payload.id) {
-        await api.updateVoiceService(
+        await api.updateVoice(
           payload.id,
-          values as Partial<VoiceService>,
+          values as Partial<Voice>,
         )
-        showToast('语音服务已更新，音色热切')
+        showToast('语音已更新，音色热切')
       } else {
-        await api.createVoiceService(values as Partial<VoiceService>)
-        showToast('语音服务已创建')
+        await api.createVoice(values as Partial<Voice>)
+        showToast('语音已创建')
       }
       refreshAll()
     } else if (modal.kind === 'robot') {
@@ -75,8 +75,8 @@ export async function submitModal(opts: {
       )
       showToast('密码已修改，下次登录生效')
     } else if (modal.kind === 'deviceBind') {
-      const meta = (modal.payload || {}) as DeviceMeta
-      await api.saveDevice(meta.id, { meta: values as Partial<DeviceMeta> })
+      const meta = (modal.payload || {}) as Device
+      await api.saveDevice(meta.id, { meta: values as Partial<Device> })
       showToast('绑定已更新，需重启设备生效')
       refreshAll()
       if (detailOpen) openDevice(meta.id)

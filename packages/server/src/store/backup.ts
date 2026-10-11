@@ -2,7 +2,7 @@
 // 导出：把全部可写数据打包为单个 JSON（可脱敏，便于分享 / 迁移 / 留存）；
 // 导入：按 id 覆盖同项、补齐缺失项（不删除本机多余项），脱敏包按 id 保留本机既有凭据；
 // 备份：定时把「未脱敏」全量包写入 backupsRoot，按数量滚动保留。
-// 说明：只覆盖用户数据（账号 / 角色 / 服务 / 型号 / 会话群 / 设备 / 覆盖补丁），
+// 说明：只覆盖用户数据（账号 / 角色 / 服务 / 型号 / 会话 / 设备 / 覆盖补丁），
 // 不含登录凭据 auth.json 与运行日志 system.log。
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -12,59 +12,59 @@ import {
   devicesRoot,
   overridesFile,
   robotsFile,
-  roomsFile,
-  settingsFile,
+  conversationsFile,
+  credentialsFile,
   speakerModelsFile,
-  thinkServicesFile,
-  voiceServicesFile,
+  modelsFile,
+  voicesFile,
 } from '../paths.js'
 import type {
   Account,
-  DeviceMeta,
+  Device,
   Robot,
-  Room,
-  Settings,
+  Conversation,
+  Credential,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../types.js'
 import { logger } from '../logger.js'
 import {
   redactAccount,
-  redactDeviceMeta,
-  redactSettings,
-  redactThinkService,
-  redactVoiceService,
+  redactDevice,
+  redactCredential,
+  redactModel,
+  redactVoice,
 } from '../redact.js'
 import { writeJson } from './json.js'
 import {
   accountSchema,
   accountListSchema,
   DataValidationError,
-  deviceMetaSchema,
+  deviceSchema,
   overridesSchema,
   readJsonChecked,
   readJsonListChecked,
   robotListSchema,
   robotSchema,
-  roomListSchema,
-  roomSchema,
-  settingsSchema,
+  conversationListSchema,
+  conversationSchema,
+  credentialSchema,
   speakerModelListSchema,
   speakerModelSchema,
-  thinkServiceListSchema,
-  thinkServiceSchema,
-  voiceServiceListSchema,
-  voiceServiceSchema,
+  modelListSchema,
+  modelSchema,
+  voiceListSchema,
+  voiceSchema,
   writeJsonChecked,
 } from './schemas.js'
 import {
   getOverrides,
   splitBuiltinEntities,
-  splitBuiltinRobotsRooms,
+  splitBuiltinRobotsConversations,
   type Overrides,
 } from './overrides.js'
-import { listDeviceMetas } from './entities.js'
+import { listDevices } from './entities.js'
 import { getDataVersion } from './migrations.js'
 import { assertSafeId } from '../errors.js'
 
@@ -73,14 +73,14 @@ export const BACKUP_FORMAT_VERSION = 1
 
 /** 备份包内承载的全量用户数据 */
 export interface BackupData {
-  settings: Settings
+  credentials: Credential
   accounts: Account[]
   robots: Robot[]
-  thinkServices: ThinkService[]
-  voiceServices: VoiceService[]
+  models: Model[]
+  voices: Voice[]
   speakerModels: SpeakerModel[]
-  rooms: Room[]
-  devices: DeviceMeta[]
+  conversations: Conversation[]
+  devices: Device[]
   overrides: Overrides
 }
 
@@ -125,33 +125,33 @@ function scrubSecretsDeep(value: unknown): unknown {
 /** 采集全部可写数据（未脱敏） */
 export async function collectData(): Promise<BackupData> {
   const [
-    settings,
+    credentials,
     accounts,
     robots,
-    thinkServices,
-    voiceServices,
+    models,
+    voices,
     speakerModels,
-    rooms,
+    conversations,
     overrides,
   ] = await Promise.all([
-    readJsonChecked(settingsFile, settingsSchema, '登录设置', {}),
+    readJsonChecked(credentialsFile, credentialSchema, '小米凭据', {}),
     readJsonListChecked(accountsFile, accountSchema, '账号'),
     readJsonListChecked(robotsFile, robotSchema, '角色'),
-    readJsonListChecked(thinkServicesFile, thinkServiceSchema, '思考服务'),
-    readJsonListChecked(voiceServicesFile, voiceServiceSchema, '语音服务'),
+    readJsonListChecked(modelsFile, modelSchema, '模型'),
+    readJsonListChecked(voicesFile, voiceSchema, '语音'),
     readJsonListChecked(speakerModelsFile, speakerModelSchema, '型号'),
-    readJsonListChecked(roomsFile, roomSchema, '会话群'),
+    readJsonListChecked(conversationsFile, conversationSchema, '会话'),
     getOverrides(),
   ])
-  const devices = await listDeviceMetas()
+  const devices = await listDevices()
   return {
-    settings,
+    credentials,
     accounts,
     robots,
-    thinkServices,
-    voiceServices,
+    models,
+    voices,
     speakerModels,
-    rooms,
+    conversations,
     devices,
     overrides,
   }
@@ -159,14 +159,14 @@ export async function collectData(): Promise<BackupData> {
 
 function redactData(data: BackupData): BackupData {
   return {
-    settings: redactSettings(data.settings),
+    credentials: redactCredential(data.credentials),
     accounts: data.accounts.map(redactAccount),
     robots: data.robots,
-    thinkServices: data.thinkServices.map(redactThinkService),
-    voiceServices: data.voiceServices.map(redactVoiceService),
+    models: data.models.map(redactModel),
+    voices: data.voices.map(redactVoice),
     speakerModels: data.speakerModels,
-    rooms: data.rooms,
-    devices: data.devices.map(redactDeviceMeta),
+    conversations: data.conversations,
+    devices: data.devices.map(redactDevice),
     overrides: scrubSecretsDeep(data.overrides) as Overrides,
   }
 }
@@ -219,40 +219,121 @@ function keepSecrets<T extends { id: string }>(
 export interface ImportResult {
   accounts: number
   robots: number
-  thinkServices: number
-  voiceServices: number
+  models: number
+  voices: number
   speakerModels: number
-  rooms: number
+  conversations: number
   devices: number
 }
 
+/** 对象内逐条改键（仅旧键存在且新键缺失时写入） */
+function moveKey(
+  obj: Record<string, unknown>,
+  from: string,
+  to: string,
+): boolean {
+  if (obj[from] === undefined || obj[to] !== undefined) return false
+  obj[to] = obj[from]
+  delete obj[from]
+  return true
+}
+
 /**
- * 旧包兼容归一化：实体更名 role→robot 之前导出的包用旧键（data.roles、
- * device.meta.roleId、overrides.roles）。导入前统一转为新键，避免旧包导入失败或静默丢数据。
- * 新包（无旧键）为 no-op。
+ * 旧包兼容归一化：历次实体更名之前导出的包仍用旧键
+ * （role→robot、ThinkService→Model、VoiceService→Voice、Room→Conversation、
+ * Settings→Credential，以及 roomRef/voiceId/did/desc/consecutive 等字段改名）。
+ * 导入前统一转为新键，避免旧包导入失败或静默丢数据；新包（无旧键）为 no-op。
  */
-function normalizeLegacyData(d: BackupData): {
-  robots: Robot[]
-  devices: DeviceMeta[]
-  overrides: Overrides
-} {
-  const legacy = d as BackupData & { roles?: Robot[] }
-  const robots = d.robots ?? legacy.roles ?? []
-  const devices = (d.devices ?? []).map((m) => {
-    const mm = m as DeviceMeta & { roleId?: string }
-    if (mm.roleId === undefined) return mm
-    const { roleId, ...rest } = mm
-    return rest.robotId === undefined ? { ...rest, robotId: roleId } : rest
+function normalizeLegacyData(d: BackupData): BackupData {
+  const legacy = d as BackupData & {
+    settings?: Credential
+    thinkServices?: Model[]
+    voiceServices?: Voice[]
+    rooms?: Conversation[]
+    roles?: Robot[]
+  }
+  const out: BackupData = { ...d }
+  // ── 实体分组键 ────────────────────────────────────────────────
+  if (out.credentials === undefined && legacy.settings !== undefined) {
+    out.credentials = legacy.settings
+  }
+  if (out.models === undefined && legacy.thinkServices !== undefined) {
+    out.models = legacy.thinkServices
+  }
+  if (out.voices === undefined && legacy.voiceServices !== undefined) {
+    out.voices = legacy.voiceServices
+  }
+  if (out.conversations === undefined && legacy.rooms !== undefined) {
+    out.conversations = legacy.rooms
+  }
+  if (out.robots === undefined && legacy.roles !== undefined) {
+    out.robots = legacy.roles
+  }
+  // ── 字段改名 ──────────────────────────────────────────────────
+  out.robots = (out.robots ?? []).map((r) => {
+    const item = r as Robot & { roomRef?: string }
+    if (item.roomRef === undefined) return item
+    const { roomRef, ...rest } = item
+    return rest.conversationId === undefined
+      ? ({ ...rest, conversationId: roomRef } as Robot)
+      : (rest as Robot)
   })
-  const overrides: Overrides = { ...(d.overrides ?? {}) }
-  const legacyOv = overrides as Overrides & {
-    roles?: Record<string, Partial<Robot>>
+  out.voices = (out.voices ?? []).map((v) => {
+    const item = v as Voice & { voiceId?: string }
+    if (item.voiceId === undefined) return item
+    const { voiceId, ...rest } = item
+    return rest.timbreId === undefined
+      ? ({ ...rest, timbreId: voiceId } as Voice)
+      : (rest as Voice)
+  })
+  out.speakerModels = (out.speakerModels ?? []).map((m) => {
+    const item = m as unknown as Record<string, unknown>
+    moveKey(item, 'did', 'didPrefix')
+    moveKey(item, 'desc', 'description')
+    moveKey(item, 'consecutive', 'continuousDialogue')
+    return item as unknown as SpeakerModel
+  })
+  out.devices = (out.devices ?? []).map((m) => {
+    const item = m as unknown as Record<string, unknown>
+    if (item.roleId !== undefined) moveKey(item, 'roleId', 'robotId')
+    moveKey(item, 'roomRef', 'conversationRef')
+    moveKey(item, 'roomName', 'conversationName')
+    moveKey(item, 'roomDescription', 'conversationDescription')
+    return item as unknown as Device
+  })
+  // ── overrides 分组键与补丁字段 ────────────────────────────────
+  const ov: Record<string, unknown> = { ...(d.overrides ?? {}) }
+  if (ov.roles !== undefined) {
+    if (ov.robots === undefined) ov.robots = ov.roles
+    delete ov.roles
   }
-  if (legacyOv.roles !== undefined) {
-    if (overrides.robots === undefined) overrides.robots = legacyOv.roles
-    delete legacyOv.roles
+  if (ov.models !== undefined) {
+    if (ov.speakerModels === undefined) ov.speakerModels = ov.models
+    delete ov.models
   }
-  return { robots, devices, overrides }
+  if (ov.rooms !== undefined) {
+    if (ov.conversations === undefined) ov.conversations = ov.rooms
+    delete ov.rooms
+  }
+  const patchRules: Record<string, readonly (readonly [string, string])[]> = {
+    speakerModels: [
+      ['did', 'didPrefix'],
+      ['desc', 'description'],
+      ['consecutive', 'continuousDialogue'],
+    ],
+    voices: [['voiceId', 'timbreId']],
+    robots: [['roomRef', 'conversationId']],
+  }
+  for (const [group, pairs] of Object.entries(patchRules)) {
+    const bag = ov[group] as Record<string, Record<string, unknown>> | undefined
+    if (!bag || typeof bag !== 'object') continue
+    for (const patch of Object.values(bag)) {
+      if (!patch || typeof patch !== 'object') continue
+      for (const [from, to] of pairs) moveKey(patch, from, to)
+    }
+  }
+  out.overrides = ov as Overrides
+  return out
 }
 
 /**
@@ -262,19 +343,15 @@ function normalizeLegacyData(d: BackupData): {
 export async function applyBackup(raw: unknown): Promise<ImportResult> {
   assertBundle(raw)
   const bundle = raw
-  const d = bundle.data
-  const {
-    robots: robotList,
-    devices: deviceList,
-    overrides: overridesData,
-  } = normalizeLegacyData(d)
+  const d = normalizeLegacyData(bundle.data)
+  const { robots: robotList, devices: deviceList, overrides: overridesData } = d
 
-  const [prevAccounts, prevThinks, prevDevices, prevSettings] =
+  const [prevAccounts, prevModels, prevDevices, prevCredential] =
     await Promise.all([
       readJsonListChecked(accountsFile, accountSchema, '账号'),
-      readJsonListChecked(thinkServicesFile, thinkServiceSchema, '思考服务'),
-      listDeviceMetas(),
-      readJsonChecked(settingsFile, settingsSchema, '登录设置', {}),
+      readJsonListChecked(modelsFile, modelSchema, '模型'),
+      listDevices(),
+      readJsonChecked(credentialsFile, credentialSchema, '小米凭据', {}),
     ])
 
   // 脱敏包按 id 保留本机凭据；未脱敏包以内容为准
@@ -287,31 +364,31 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
     'passToken',
     'miPassword',
   ])
-  const thinkServices = keep(d.thinkServices ?? [], prevThinks, ['apiKey'])
+  const models = keep(d.models ?? [], prevModels, ['apiKey'])
   const devices = keep(deviceList, prevDevices, ['ttsSecret'])
-  // 旧版 settings 无前端消费者；脱敏导入只更新 miUserId，保留本机既有凭据
-  const settings: Settings = bundle.redacted
+  // 旧版 credentials 无前端消费者；脱敏导入只更新 miUserId，保留本机既有凭据
+  const credentials: Credential = bundle.redacted
     ? {
-        ...prevSettings,
-        miUserId: d.settings?.miUserId ?? prevSettings.miUserId,
+        ...prevCredential,
+        miUserId: d.credentials?.miUserId ?? prevCredential.miUserId,
       }
-    : (d.settings ?? {})
+    : (d.credentials ?? {})
 
   await Promise.all([
-    writeJsonChecked(settingsFile, settings, settingsSchema, '登录设置'),
+    writeJsonChecked(credentialsFile, credentials, credentialSchema, '小米凭据'),
     writeJsonChecked(accountsFile, accounts, accountListSchema, '账号'),
     writeJsonChecked(robotsFile, robotList, robotListSchema, '角色'),
     writeJsonChecked(
-      thinkServicesFile,
-      thinkServices,
-      thinkServiceListSchema,
-      '思考服务',
+      modelsFile,
+      models,
+      modelListSchema,
+      '模型',
     ),
     writeJsonChecked(
-      voiceServicesFile,
-      d.voiceServices ?? [],
-      voiceServiceListSchema,
-      '语音服务',
+      voicesFile,
+      d.voices ?? [],
+      voiceListSchema,
+      '语音',
     ),
     writeJsonChecked(
       speakerModelsFile,
@@ -319,7 +396,7 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
       speakerModelListSchema,
       '型号',
     ),
-    writeJsonChecked(roomsFile, d.rooms ?? [], roomListSchema, '会话群'),
+    writeJsonChecked(conversationsFile, d.conversations ?? [], conversationListSchema, '会话'),
     // 覆盖补丁（内置实体的用户改动）随包往返：不导入会静默丢失用户对内置项的修改。
     // 脱敏包的补丁已被 scrubSecretsDeep 抹除敏感键，导入后用户改动中的凭据字段同样缺失，
     // 与实体凭据「按 id 保留本机既有值」策略不同，补丁为字段级差异、无法按位补齐，
@@ -331,7 +408,7 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
       writeJsonChecked(
         path.join(devicesRoot, assertSafeId(m.id), 'meta.json'),
         m,
-        deviceMetaSchema,
+        deviceSchema,
         `设备 ${assertSafeId(m.id)}`,
       ),
     ),
@@ -341,21 +418,21 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
   // 把这些内置项转为覆盖补丁（合并进刚导入的 overrides），避免读取层
   // 按内置 id 过滤时静默丢失用户对内置项的改动。迁移幂等，新包为无操作。
   await splitBuiltinEntities()
-  await splitBuiltinRobotsRooms()
+  await splitBuiltinRobotsConversations()
 
   logger.info(
-    `导入备份：账号 ${accounts.length}、角色 ${robotList.length}、思考服务 ${thinkServices.length}、` +
-      `语音 ${(d.voiceServices ?? []).length}、型号 ${(d.speakerModels ?? []).length}、` +
-      `会话群 ${(d.rooms ?? []).length}、设备 ${devices.length}${bundle.redacted ? '（脱敏包，保留本机凭据）' : ''}`,
+    `导入备份：账号 ${accounts.length}、角色 ${robotList.length}、模型 ${models.length}、` +
+      `语音 ${(d.voices ?? []).length}、型号 ${(d.speakerModels ?? []).length}、` +
+      `会话 ${(d.conversations ?? []).length}、设备 ${devices.length}${bundle.redacted ? '（脱敏包，保留本机凭据）' : ''}`,
   )
 
   return {
     accounts: accounts.length,
     robots: robotList.length,
-    thinkServices: thinkServices.length,
-    voiceServices: (d.voiceServices ?? []).length,
+    models: models.length,
+    voices: (d.voices ?? []).length,
     speakerModels: (d.speakerModels ?? []).length,
-    rooms: (d.rooms ?? []).length,
+    conversations: (d.conversations ?? []).length,
     devices: devices.length,
   }
 }

@@ -7,37 +7,41 @@ import fs from 'node:fs/promises'
 import { nanoid } from 'nanoid'
 import { logger } from '../logger.js'
 import {
+  credentialsFile,
   dataVersionFile,
   devicesRoot,
+  modelsFile,
   overridesFile,
-  roomsFile,
+  conversationsFile,
   robotsFile,
   root,
+  speakerModelsFile,
+  voicesFile,
 } from '../paths.js'
-import type { DeviceMeta } from '../types.js'
+import type { Device } from '../types.js'
 import { readJson, writeJson } from './json.js'
 import {
-  deviceMetaSchema,
+  deviceSchema,
   robotListSchema,
-  roomListSchema,
+  conversationListSchema,
   versionFileSchema,
   writeJsonChecked,
 } from './schemas.js'
 import {
   getAccounts,
   getRobots,
-  getRooms,
-  getThinkServices,
-  getVoiceServices,
-  listDeviceMetas,
-  saveDeviceMeta,
-  saveThinkServices,
+  getConversations,
+  getModels,
+  getVoices,
+  listDevices,
+  saveDevice,
+  saveModels,
 } from './entities.js'
 import {
   saveRobots,
-  saveVoiceServices,
+  saveVoices,
   splitBuiltinEntities,
-  splitBuiltinRobotsRooms,
+  splitBuiltinRobotsConversations,
 } from './overrides.js'
 
 export interface Migration {
@@ -50,107 +54,107 @@ export interface Migration {
 }
 
 /** 当前数据结构版本：新增迁移时同步 +1 */
-export const DATA_VERSION = 5
+export const DATA_VERSION = 6
 
-/** 迁移：旧版设备会话群字段 → Room 独立实体（幂等；同名归并，多设备共用） */
-export async function migrateRooms(): Promise<void> {
-  const metas = await listDeviceMetas()
-  const rooms = await getRooms()
+/** 迁移：旧版设备会话字段 → Conversation 独立实体（幂等；同名归并，多设备共用） */
+export async function migrateConversations(): Promise<void> {
+  const metas = await listDevices()
+  const conversations = await getConversations()
   let changed = false
   for (const meta of metas) {
-    if (!meta.roomName || meta.roomRef) continue
-    let room = rooms.find((r) => r.name === meta.roomName)
-    if (!room) {
-      room = {
+    if (!meta.conversationName || meta.conversationRef) continue
+    let conversation = conversations.find((r) => r.name === meta.conversationName)
+    if (!conversation) {
+      conversation = {
         id: nanoid(8),
-        name: meta.roomName,
-        description: meta.roomDescription,
+        name: meta.conversationName,
+        description: meta.conversationDescription,
         createdAt: Date.now(),
       }
-      rooms.push(room)
+      conversations.push(conversation)
     }
-    const nextMeta: DeviceMeta = { ...meta, roomRef: room.id }
-    delete nextMeta.roomName
-    delete nextMeta.roomDescription
+    const nextMeta: Device = { ...meta, conversationRef: conversation.id }
+    delete nextMeta.conversationName
+    delete nextMeta.conversationDescription
     await writeJsonChecked(
       path.join(devicesRoot, meta.id, 'meta.json'),
       nextMeta,
-      deviceMetaSchema,
+      deviceSchema,
       '设备',
     )
     changed = true
   }
   if (changed)
-    await writeJsonChecked(roomsFile, rooms, roomListSchema, '会话群')
+    await writeJsonChecked(conversationsFile, conversations, conversationListSchema, '会话')
 }
 
 /**
- * 迁移 v3：Token 用量追踪 + 思考服务 Failover + 设备字段精简
+ * 迁移 v3：Token 用量追踪 + 模型 Failover + 设备字段精简
  *
- * 1. 角色：旧 thinkServiceId → thinkServiceIds: [thinkServiceId]（仅当 thinkServiceIds 不存在时）
- * 2. 设备：移除 thinkServiceId / voiceOverrideId 字段（设备不再直接绑定）
- * 3. ThinkService / VoiceService：补全 token 用量字段默认值（0）
+ * 1. 角色：旧 modelId → modelIds: [modelId]（仅当 modelIds 不存在时）
+ * 2. 设备：移除 modelId / voiceOverrideId 字段（设备不再直接绑定）
+ * 3. Model / Voice：补全 token 用量字段默认值（0）
  */
 export async function migrateTokenUsageFailover(): Promise<void> {
-  // ── 1. 角色迁移：thinkServiceId → thinkServiceIds ────────────────
+  // ── 1. 角色迁移：modelId → modelIds ────────────────
   const robots = await getRobots()
   let robotsChanged = false
   for (const robot of robots) {
-    if (robot.thinkServiceId && !robot.thinkServiceIds) {
-      robot.thinkServiceIds = [robot.thinkServiceId]
-      delete robot.thinkServiceId
+    if (robot.modelId && !robot.modelIds) {
+      robot.modelIds = [robot.modelId]
+      delete robot.modelId
       robotsChanged = true
     }
   }
   if (robotsChanged) await saveRobots(robots)
 
-  // ── 2. 设备迁移：移除 thinkServiceId / voiceOverrideId ───────────
-  const metas = await listDeviceMetas()
+  // ── 2. 设备迁移：移除 modelId / voiceOverrideId ───────────
+  const metas = await listDevices()
   for (const meta of metas) {
     const raw = meta as unknown as Record<string, unknown>
-    if (raw.thinkServiceId !== undefined || raw.voiceOverrideId !== undefined) {
-      delete raw.thinkServiceId
+    if (raw.modelId !== undefined || raw.voiceOverrideId !== undefined) {
+      delete raw.modelId
       delete raw.voiceOverrideId
-      await saveDeviceMeta(meta.id, meta)
+      await saveDevice(meta.id, meta)
     }
   }
 
-  // ── 3. ThinkService / VoiceService：补全 token 用量默认值 ─────────
-  const thinkServices = await getThinkServices()
-  let thinkChanged = false
-  for (const svc of thinkServices) {
-    if (svc.tokenInputUsed == null) {
-      svc.tokenInputUsed = 0
-      thinkChanged = true
+  // ── 3. Model / Voice：补全 token 用量默认值 ─────────
+  const models = await getModels()
+  let modelChanged = false
+  for (const svc of models) {
+    if (svc.inputTokensUsed == null) {
+      svc.inputTokensUsed = 0
+      modelChanged = true
     }
-    if (svc.tokenOutputUsed == null) {
-      svc.tokenOutputUsed = 0
-      thinkChanged = true
+    if (svc.outputTokensUsed == null) {
+      svc.outputTokensUsed = 0
+      modelChanged = true
     }
-    if (svc.tokenUsed == null) {
-      svc.tokenUsed = 0
-      thinkChanged = true
+    if (svc.totalTokensUsed == null) {
+      svc.totalTokensUsed = 0
+      modelChanged = true
     }
   }
-  if (thinkChanged) await saveThinkServices(thinkServices)
+  if (modelChanged) await saveModels(models)
 
-  const voiceServices = await getVoiceServices()
+  const voices = await getVoices()
   let voiceChanged = false
-  for (const svc of voiceServices) {
-    if (svc.tokenInputUsed == null) {
-      svc.tokenInputUsed = 0
+  for (const svc of voices) {
+    if (svc.inputTokensUsed == null) {
+      svc.inputTokensUsed = 0
       voiceChanged = true
     }
-    if (svc.tokenOutputUsed == null) {
-      svc.tokenOutputUsed = 0
+    if (svc.outputTokensUsed == null) {
+      svc.outputTokensUsed = 0
       voiceChanged = true
     }
-    if (svc.tokenUsed == null) {
-      svc.tokenUsed = 0
+    if (svc.totalTokensUsed == null) {
+      svc.totalTokensUsed = 0
       voiceChanged = true
     }
   }
-  if (voiceChanged) await saveVoiceServices(voiceServices)
+  if (voiceChanged) await saveVoices(voices)
 }
 
 /**
@@ -168,7 +172,7 @@ export async function migrateTokenUsageFailover(): Promise<void> {
 export async function migrateRobotRequired(): Promise<void> {
   // ── 1. 角色：回填数值字段 + 防御性补齐（读原始 JSON，绕过 schema 过滤）──
   // 注意：新 robotSchema 收紧后，缺数值字段的旧角色会在 getRobots() 阶段被跳过，
-  // 导致 v3 的 thinkServiceId → thinkServiceIds 转换漏做——此处对原始数据补做。
+  // 导致 v3 的 modelId → modelIds 转换漏做——此处对原始数据补做。
   const rawRobots = await readJson<Record<string, unknown>[]>(robotsFile, [])
   const ARRAY_FIELDS = [
     'callAIKeywords',
@@ -205,10 +209,10 @@ export async function migrateRobotRequired(): Promise<void> {
       robot.profile = ''
       robotsChanged = true
     }
-    // 补做 v3 的 thinkServiceId → thinkServiceIds 转换（旧角色可能被 v3 跳过）
-    if (robot.thinkServiceId && !robot.thinkServiceIds) {
-      robot.thinkServiceIds = [robot.thinkServiceId]
-      delete robot.thinkServiceId
+    // 补做 v3 的 modelId → modelIds 转换（旧角色可能被 v3 跳过）
+    if (robot.modelId && !robot.modelIds) {
+      robot.modelIds = [robot.modelId]
+      delete robot.modelId
       robotsChanged = true
     }
   }
@@ -230,7 +234,7 @@ export async function migrateRobotRequired(): Promise<void> {
     const meta = await readJson<Record<string, unknown>>(file, {})
     if (!meta || meta.robotId) continue
     meta.robotId = firstRobotId
-    await writeJsonChecked(file, meta, deviceMetaSchema, '设备')
+    await writeJsonChecked(file, meta, deviceSchema, '设备')
     logger.info(`数据迁移 v4：设备 ${id} 补全对话角色 ${firstRobotId}`)
   }
 }
@@ -239,7 +243,7 @@ export async function migrateRobotRequired(): Promise<void> {
  * 实体更名迁移：对话角色 role → robot（硬切，不留 roles.json 副本）。
  *
  * 1. `roles.json` → `robots.json`（整文件改名；robots.json 已存在时保留新文件、删除旧文件）
- * 2. 设备 meta.json：`roleId` 键 → `robotId`（直接读原始文件，不经 deviceMetaSchema——
+ * 2. 设备 meta.json：`roleId` 键 → `robotId`（直接读原始文件，不经 deviceSchema——
  *    旧键数据在新 schema 下会解析失败被跳过，必须绕过校验层改键）
  * 3. `overrides.json`：`roles` 补丁分组键 → `robots`
  *
@@ -291,14 +295,174 @@ export async function migrateRoleToRobot(): Promise<void> {
   }
 }
 
+/**
+ * 实体更名迁移：ThinkService→Model、VoiceService→Voice、Room→Conversation、
+ * Settings→Credential，以及若干字段改名（硬切，不留旧文件副本）。
+ *
+ * 1. 存储文件改名：settings.json→credentials.json、thinkServices.json→models.json、
+ *    voiceServices.json→voices.json、rooms.json→conversations.json
+ * 2. 字段改名：Robot.roomRef→conversationId（并补齐 createdAt）、Voice.voiceId→timbreId、
+ *    SpeakerModel.did→didPrefix / desc→description / consecutive→continuousDialogue、
+ *    设备 meta 的 roomRef/roomName/roomDescription → conversationRef/conversationName/conversationDescription
+ * 3. overrides.json：分组键 models→speakerModels、rooms→conversations，
+ *    并同步修正各分组内的补丁字段名
+ *
+ * 与 migrateRoleToRobot 同理挂在版本判断之前：存量数据可能停在 v1~v5 任一版本，
+ * 而本版代码的 v4/v5 迁移已按新命名读写，不先改名会读空、误判内置项。
+ * 全流程幂等，无旧键时仅做若干次 fs 检查。
+ */
+async function renameStoreFile(from: string, to: string): Promise<void> {
+  try {
+    await fs.access(from)
+  } catch {
+    return // 旧文件不存在：已改名或全新安装
+  }
+  try {
+    await fs.access(to)
+    // 新文件已存在：说明改名已完成，旧文件是中断残留，直接删除
+    await fs.rm(from, { force: true })
+    logger.info(`数据迁移（实体更名）：删除残留 ${path.basename(from)}`)
+    return
+  } catch {
+    await fs.rename(from, to)
+    logger.info(
+      `数据迁移（实体更名）：${path.basename(from)} → ${path.basename(to)}`,
+    )
+  }
+}
+
+/** 逐条对象改键（仅在旧键存在且新键缺失时写入） */
+function renameKey(
+  obj: Record<string, unknown>,
+  from: string,
+  to: string,
+): boolean {
+  if (obj[from] === undefined || obj[to] !== undefined) return false
+  obj[to] = obj[from]
+  delete obj[from]
+  return true
+}
+
+export async function migrateEntityRenames(): Promise<void> {
+  // ── 1. 存储文件改名 ──────────────────────────────────────────
+  await renameStoreFile(path.join(root, 'settings.json'), credentialsFile)
+  await renameStoreFile(path.join(root, 'thinkServices.json'), modelsFile)
+  await renameStoreFile(path.join(root, 'voiceServices.json'), voicesFile)
+  await renameStoreFile(path.join(root, 'rooms.json'), conversationsFile)
+
+  // ── 2. 机器人：roomRef → conversationId + 补齐 createdAt ──────
+  const robots = await readJson<Record<string, unknown>[]>(robotsFile, [])
+  let robotsChanged = false
+  for (const r of robots) {
+    if (!r || typeof r !== 'object') continue
+    if (renameKey(r, 'roomRef', 'conversationId')) robotsChanged = true
+    if (typeof r.createdAt !== 'number') {
+      r.createdAt = Date.now()
+      robotsChanged = true
+    }
+  }
+  if (robotsChanged) {
+    await writeJsonChecked(robotsFile, robots, robotListSchema, '角色')
+    logger.info('数据迁移（实体更名）：角色 roomRef → conversationId')
+  }
+
+  // ── 3. 语音：voiceId → timbreId ──────────────────────────────
+  const voices = await readJson<Record<string, unknown>[]>(voicesFile, [])
+  let voicesChanged = false
+  for (const v of voices) {
+    if (!v || typeof v !== 'object') continue
+    if (renameKey(v, 'voiceId', 'timbreId')) voicesChanged = true
+  }
+  if (voicesChanged) {
+    await writeJson(voicesFile, voices)
+    logger.info('数据迁移（实体更名）：语音 voiceId → timbreId')
+  }
+
+  // ── 4. 音箱型号：did / desc / consecutive 改名 ────────────────
+  const models = await readJson<Record<string, unknown>[]>(
+    speakerModelsFile,
+    [],
+  )
+  let modelsChanged = false
+  for (const m of models) {
+    if (!m || typeof m !== 'object') continue
+    if (renameKey(m, 'did', 'didPrefix')) modelsChanged = true
+    if (renameKey(m, 'desc', 'description')) modelsChanged = true
+    if (renameKey(m, 'consecutive', 'continuousDialogue')) modelsChanged = true
+  }
+  if (modelsChanged) {
+    await writeJson(speakerModelsFile, models)
+    logger.info('数据迁移（实体更名）：音箱型号字段改名（did/desc/consecutive）')
+  }
+
+  // ── 5. 设备 meta：room* → conversation* ──────────────────────
+  const ids = await fs.readdir(devicesRoot).catch(() => [] as string[])
+  for (const id of ids) {
+    const file = path.join(devicesRoot, id, 'meta.json')
+    const meta = await readJson<Record<string, unknown> | null>(file, null)
+    if (!meta || typeof meta !== 'object') continue
+    let changed = false
+    if (renameKey(meta, 'roomRef', 'conversationRef')) changed = true
+    if (renameKey(meta, 'roomName', 'conversationName')) changed = true
+    if (renameKey(meta, 'roomDescription', 'conversationDescription')) {
+      changed = true
+    }
+    if (changed) {
+      await writeJson(file, meta)
+      logger.info(`数据迁移（实体更名）：设备 ${id} meta room* → conversation*`)
+    }
+  }
+
+  // ── 6. overrides.json：分组键与补丁字段名 ────────────────────
+  const ov = await readJson<Record<string, unknown> | null>(overridesFile, null)
+  if (!ov || typeof ov !== 'object') return
+  let ovChanged = false
+  if (ov.models !== undefined) {
+    if (ov.speakerModels === undefined) ov.speakerModels = ov.models
+    delete ov.models
+    ovChanged = true
+  }
+  if (ov.rooms !== undefined) {
+    if (ov.conversations === undefined) ov.conversations = ov.rooms
+    delete ov.rooms
+    ovChanged = true
+  }
+  const patchGroups: Record<
+    string,
+    readonly (readonly [string, string])[]
+  > = {
+    speakerModels: [
+      ['did', 'didPrefix'],
+      ['desc', 'description'],
+      ['consecutive', 'continuousDialogue'],
+    ],
+    voices: [['voiceId', 'timbreId']],
+    robots: [['roomRef', 'conversationId']],
+  }
+  for (const [group, pairs] of Object.entries(patchGroups)) {
+    const bag = ov[group] as Record<string, Record<string, unknown>> | undefined
+    if (!bag || typeof bag !== 'object') continue
+    for (const patch of Object.values(bag)) {
+      if (!patch || typeof patch !== 'object') continue
+      for (const [from, to] of pairs) {
+        if (renameKey(patch, from, to)) ovChanged = true
+      }
+    }
+  }
+  if (ovChanged) {
+    await writeJson(overridesFile, ov)
+    logger.info('数据迁移（实体更名）：overrides.json 分组与补丁字段名已同步')
+  }
+}
+
 export const migrations: Migration[] = [
   {
     version: 1,
-    description: '基线：旧 settings.json → 多账号、设备会话群 → Room 实体',
+    description: '基线：旧 credentials.json → 多账号、设备会话 → Conversation 实体',
     up: async () => {
-      // getAccounts 内部含 settings.json → 首个账号的兼容迁移
+      // getAccounts 内部含 credentials.json → 首个账号的兼容迁移
       await getAccounts()
-      await migrateRooms()
+      await migrateConversations()
     },
   },
   {
@@ -310,7 +474,7 @@ export const migrations: Migration[] = [
   {
     version: 3,
     description:
-      'Token 用量追踪 + 思考服务 Failover：角色 thinkServiceId → thinkServiceIds、设备移除服务覆盖、服务补全 token 默认值',
+      'Token 用量追踪 + 模型 Failover：角色 modelId → modelIds、设备移除服务覆盖、服务补全 token 默认值',
     up: migrateTokenUsageFailover,
   },
   {
@@ -322,8 +486,14 @@ export const migrations: Migration[] = [
   {
     version: 5,
     description:
-      '内置/用户数据分离（会话群/角色）：内置会话群与内置角色移出可写文件，用户改动存入 overrides.json',
-    up: splitBuiltinRobotsRooms,
+      '内置/用户数据分离（会话/角色）：内置会话与内置角色移出可写文件，用户改动存入 overrides.json',
+    up: splitBuiltinRobotsConversations,
+  },
+  {
+    version: 6,
+    description:
+      '实体与字段更名：ThinkService→Model、VoiceService→Voice、Room→Conversation、Settings→Credential，存储文件与设备/覆盖字段同步',
+    up: migrateEntityRenames,
   },
 ]
 
@@ -343,6 +513,8 @@ export async function runMigrations(): Promise<number> {
   // 本版代码读写已全部指向 robots 命名，不改名会直接丢数据。
   // 改名步骤幂等且与版本号解耦（无旧键时近似 no-op），故放在版本判断之前。
   await migrateRoleToRobot()
+  // 同理：本轮实体更名（Model/Voice/Conversation/Credential）也必须先于 pending 迁移
+  await migrateEntityRenames()
   const current = await getDataVersion()
   if (current >= DATA_VERSION) return 0
   const pending = migrations

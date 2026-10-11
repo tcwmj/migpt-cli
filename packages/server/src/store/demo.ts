@@ -1,6 +1,12 @@
 // ── 演示日志种子：仅 MIGPT_DEMO_LOGS=1 时注入 mock 对话，供「对话记录」页联调 ──
-import { appendLog, clearDeviceLog, demoTs, logger } from '../logger.js'
-import { listDeviceMetas } from './entities.js'
+import {
+  appendLog,
+  clearDeviceLog,
+  demoTs,
+  logger,
+  setConvPersistence,
+} from '../logger.js'
+import { listDevices } from './entities.js'
 import { getEnv } from './env.js'
 
 const DEMO_SCENES: {
@@ -13,7 +19,7 @@ const DEMO_SCENES: {
   {
     q: '小爱同学，今天天气怎么样',
     a: '今天多云转晴，气温 18~26℃，早晚偏凉记得加件外套。',
-    sys: '思考服务命中角色默认（豆包 Doubao-Seed）',
+    sys: '模型命中角色默认（豆包 Doubao-Seed）',
     input: 320,
     output: 85,
   },
@@ -48,7 +54,7 @@ const DEMO_SCENES: {
   {
     q: '今天有什么新闻',
     a: '今日头条：1）神舟二十号成功返回；2）沪深两市成交额破万亿；3）全国多地降温超 10℃。',
-    sys: '思考服务命中角色默认（豆包 Doubao-Seed）',
+    sys: '模型命中角色默认（豆包 Doubao-Seed）',
     input: 520,
     output: 168,
   },
@@ -56,28 +62,34 @@ const DEMO_SCENES: {
 
 export async function seedDemoLogs() {
   if (!getEnv().MIGPT_DEMO_LOGS) return
-  const devices = await listDeviceMetas()
+  const devices = await listDevices()
   if (!devices.length) return
+  // 演示数据仅注入内存，不落盘（避免污染永久对话文件，重启后自动消失）
+  setConvPersistence(false)
   const now = Date.now()
-  for (const d of devices) {
-    clearDeviceLog(d.id)
-    for (let i = 0; i < 6; i++) {
-      const s = DEMO_SCENES[i % DEMO_SCENES.length]
-      const tq = new Date(now - (i * 47 + 13) * 60000)
-      appendLog(d.id, `${demoTs(tq)} [用户] 问：${s.q}`)
-      // AI 回复带 token 用量（供统计页面解析）
-      appendLog(
-        d.id,
-        `${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a} | input_tokens=${s.input} output_tokens=${s.output}`,
-      )
-      if (s.sys)
+  try {
+    for (const d of devices) {
+      clearDeviceLog(d.id)
+      for (let i = 0; i < 6; i++) {
+        const s = DEMO_SCENES[i % DEMO_SCENES.length]
+        const tq = new Date(now - (i * 47 + 13) * 60000)
+        appendLog(d.id, `${demoTs(tq)} [用户] 问：${s.q}`)
+        // AI 回复带 token 用量（供统计页面解析）
         appendLog(
           d.id,
-          `${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`,
+          `${demoTs(new Date(tq.getTime() + 3500))} [AI] 答：${s.a} | input_tokens=${s.input} output_tokens=${s.output}`,
         )
+        if (s.sys)
+          appendLog(
+            d.id,
+            `${demoTs(new Date(tq.getTime() + 16000))} [系统] ${s.sys}`,
+          )
+      }
     }
+    logger.info(
+      `[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`,
+    )
+  } finally {
+    setConvPersistence(true)
   }
-  logger.info(
-    `[demo] 已为 ${devices.length} 台设备注入演示对话日志（MIGPT_DEMO_LOGS=1）`,
-  )
 }

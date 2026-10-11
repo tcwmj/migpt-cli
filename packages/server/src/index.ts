@@ -16,18 +16,18 @@ import { registerAuthRoutes } from './routes/auth.js'
 import { registerDeviceTtsRoutes } from './routes/device-tts.js'
 import { registerAccountRoutes } from './routes/accounts.js'
 import { registerRobotRoutes } from './routes/robots.js'
-import { registerThinkServiceRoutes } from './routes/think-services.js'
-import { registerVoiceServiceRoutes } from './routes/voice-services.js'
+import { registerModelRoutes } from './routes/models.js'
+import { registerVoiceRoutes } from './routes/voices.js'
 import { registerSpeakerModelRoutes } from './routes/speaker-models.js'
-import { registerRoomRoutes } from './routes/rooms.js'
+import { registerConversationRoutes } from './routes/conversations.js'
 import { registerDeviceRoutes } from './routes/devices.js'
 import { registerLogRoutes } from './routes/logs.js'
 import { registerLegacyRoutes } from './routes/legacy.js'
-import { registerTestRoutes } from './routes/misc.js'
+import { registerTestRoutes } from './routes/test.js'
 import { registerBackupRoutes } from './routes/backup.js'
 import { registerStatsRoutes } from './routes/stats.js'
 import type { ServerOptions } from './routes/shared.js'
-import { logger } from './logger.js'
+import { logger, loadAllConversationLogs } from './logger.js'
 import { requestId, errorHandler } from './middleware.js'
 
 export type { ServerOptions }
@@ -137,10 +137,10 @@ export function createApp(options?: ServerOptions) {
 
   registerAccountRoutes({ app, options })
   registerRobotRoutes({ app, options })
-  registerThinkServiceRoutes({ app, options })
-  registerVoiceServiceRoutes({ app, options })
+  registerModelRoutes({ app, options })
+  registerVoiceRoutes({ app, options })
   registerSpeakerModelRoutes({ app, options })
-  registerRoomRoutes({ app, options })
+  registerConversationRoutes({ app, options })
   registerDeviceRoutes({ app, options })
   registerLogRoutes({ app, options })
   registerLegacyRoutes({ app, options })
@@ -180,6 +180,8 @@ export function runServer(options?: ServerOptions): ServerHandle {
     } catch (e) {
       logger.error({ err: e }, '数据迁移失败')
     }
+    // 先回灌历史对话日志到内存（不重复落盘），再注入演示数据（演示数据不落盘）
+    await loadAllConversationLogs()
     await Promise.allSettled([seedDemoLogs()])
     server = app.listen(port, () => {
       logger.info({ port }, '服务已启动')

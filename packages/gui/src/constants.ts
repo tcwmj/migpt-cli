@@ -1,53 +1,56 @@
 /* ══ 领域常量：视图枚举、菜单标题、供应商注册表、TTS 引擎 ══ */
 import { PROVIDER_BASE_URLS } from '@migptgui/contracts'
 
-/** 主菜单视图枚举（菜单顺序 = 配置先后顺序，对话记录/系统日志置底） */
+/**
+ * 主菜单视图枚举：键名一律取实体英文名复数（对话记录/系统日志置底）。
+ * 音箱型号用 speaker-models，避免与 LLM 模型（models）同词。
+ */
 export type View =
   | 'home'
   | 'accounts'
   | 'devices'
   | 'robots'
-  | 'logs'
-  | 'think'
-  | 'voice'
+  | 'conversations'
   | 'models'
-  | 'rooms'
+  | 'voices'
+  | 'speaker-models'
+  | 'chat-logs'
+  | 'stats'
+  | 'system-logs'
   | 'settings'
   | 'profile'
-  | 'syslogs'
-  | 'stats'
 
 export const TITLES: Record<View, string> = {
   home: '首页',
   accounts: '云端账号',
   devices: '设备服务',
   robots: '对话角色',
-  logs: '对话记录',
-  think: '思考服务',
-  voice: '语音服务',
-  models: '设备型号',
-  rooms: '会话群',
+  conversations: '会话',
+  models: '模型',
+  voices: '语音',
+  'speaker-models': '音箱型号',
+  'chat-logs': '对话记录',
+  stats: '使用统计',
+  'system-logs': '系统日志',
   settings: '基础设置',
   profile: '个人中心',
-  syslogs: '系统日志',
-  stats: '使用统计',
 }
 
 /** 各菜单页顶部搜索输入框的提示信息（切换菜单后动态切换） */
 export const SEARCH_HINT: Record<View, string> = {
-  home: '搜索账号 / 设备 / 角色 / 服务',
+  home: '搜索账号 / 设备 / 角色 / 模型 / 语音',
   accounts: '搜索账号名称 / 小米 ID',
   devices: '搜索设备名称 / did',
   robots: '搜索角色名称 / 人设关键词',
-  think: '搜索思考服务名称 / 模型',
-  voice: '搜索语音服务名称 / 供应商',
-  models: '搜索型号名称 / 标识 / did',
-  rooms: '搜索会话群名称 / 描述',
-  logs: '搜索对话记录内容',
-  syslogs: '搜索系统日志内容',
+  conversations: '搜索会话名称 / 描述',
+  models: '搜索模型名称 / 供应商 / 模型标识',
+  voices: '搜索语音名称 / 供应商',
+  'speaker-models': '搜索型号名称 / 型号标识',
+  'chat-logs': '搜索对话记录内容',
+  stats: '搜索统计维度',
+  'system-logs': '搜索系统日志内容',
   settings: '搜索设置项',
   profile: '搜索设置项',
-  stats: '搜索统计维度',
 }
 
 /**
@@ -84,11 +87,11 @@ const LOBE = 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg/icons'
 const SI = 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons'
 
 /**
- * 思考服务供应商注册表（自定义 + 国内外主流厂商，均提供 OpenAI 兼容端点）。
+ * 模型供应商注册表（自定义 + 国内外主流厂商，均提供 OpenAI 兼容端点）。
  * baseUrl 单一事实源取自 @migptgui/contracts 的 PROVIDER_BASE_URLS。
  * logo 字段为官方品牌 Logo SVG（LobeHub / Simple Icons CDN）；无资源的品牌回退为字标。
  */
-export const THINK_PROVIDERS: Record<string, ProviderDef> = {
+export const MODEL_PROVIDERS: Record<string, ProviderDef> = {
   custom: {
     name: '自定义',
     color: '#64748b',
@@ -267,14 +270,14 @@ export const PROVIDER_PRESETS: Record<
   string,
   { baseUrl: string; model: string }
 > = Object.fromEntries(
-  Object.entries(THINK_PROVIDERS).map(([k, p]) => [
+  Object.entries(MODEL_PROVIDERS).map(([k, p]) => [
     k,
     { baseUrl: p.baseUrl || '', model: p.model || '' },
   ]),
 )
 
 /**
- * 语音服务供应商注册表。
+ * 语音供应商注册表。
  * 仅收录 mi-gpt-tts（或其 OpenAI 兼容 /v1/audio/speech 端点）真实可驱动的供应商；
  * 其余厂商因无兼容 TTS 接口，一律不进列表，避免用户配置后无法发音。
  * engine 标注底层 TTS 引擎（写入 tts 配置的键）：
@@ -376,7 +379,7 @@ export const VOICE_PROVIDERS: Record<
 }
 
 /**
- * 语音服务供应商键 → 展示名称（含历史引擎键兜底，兼容旧数据展示）。
+ * 语音供应商键 → 展示名称（含历史引擎键兜底，兼容旧数据展示）。
  * builtin 为小米内置语音，仅用于展示、不出现在新建供应商列表。
  */
 export const TTS_ENGINES: Record<string, string> = {
@@ -387,7 +390,7 @@ export const TTS_ENGINES: Record<string, string> = {
 }
 
 /**
- * 语音表单统一字段（思考/语音服务表单与弹窗共用同一份草稿）：
+ * 语音表单统一字段（思考/语音表单与弹窗共用同一份草稿）：
  * 所有供应商共用一组输入，切换供应商自动收敛表单：
  * - edge：token 可选，留空自动获取
  * - volcano：appId + token 必填
@@ -396,7 +399,7 @@ export const TTS_ENGINES: Record<string, string> = {
 export interface VoiceFormValues {
   provider: string
   name: string
-  voiceId: string
+  timbreId: string
   /** 访问令牌 / Access Token / API Key */
   token: string
   /** 火山语音合成 App ID（仅 volcano） */
@@ -409,7 +412,7 @@ export interface VoiceFormValues {
 }
 
 /**
- * 读取既有语音服务的 tts 配置 → 统一表单值（按供应商引擎映射）。
+ * 读取既有语音的 tts 配置 → 统一表单值（按供应商引擎映射）。
  * 返回值不含名称 / 音色等实体字段，由调用方自行并入草稿。
  */
 export function voiceFormFromTts<
@@ -425,7 +428,7 @@ export function voiceFormFromTts<
   const v: VoiceFormValues = {
     provider,
     name: '',
-    voiceId: '',
+    timbreId: '',
     token: '',
     appId: '',
     model: VOICE_PROVIDERS[provider]?.model || '',
