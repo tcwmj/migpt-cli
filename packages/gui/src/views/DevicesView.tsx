@@ -1,7 +1,7 @@
 /* ══ DevicesView ══ */
 import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import type {
-  Account,
+  Credential,
   DeviceRow,
   Robot,
   Conversation,
@@ -27,7 +27,7 @@ export function DevicesView(props: {
   modelPickQ: string
   speakerModels: SpeakerModel[]
   robots: Robot[]
-  accounts: Account[]
+  credentials: Credential[]
   conversations: Conversation[]
   models: Model[]
   voices: Voice[]
@@ -37,7 +37,7 @@ export function DevicesView(props: {
   onDelete: () => void
   onSave: () => void
   onRestart: (id: string) => void
-  onPull: (accountId: string) => void
+  onPull: (credentialId: string) => void
   onResetPull: () => void
   onDevAcctFilter: (f: string, firstId: string | null) => void
   onPickOpen: (open: boolean) => void
@@ -54,7 +54,7 @@ export function DevicesView(props: {
     devAcctGroups,
     speakerModels,
     robots,
-    accounts,
+    credentials,
     conversations,
     onSelect,
     onDraft,
@@ -85,11 +85,11 @@ export function DevicesView(props: {
             onClick={() =>
               onDevAcctFilter(
                 g.id,
-                devices.find((d) => d.accountId === g.id)?.id || null,
+                devices.find((d) => d.credentialId === g.id)?.id || null,
               )
             }
           >
-            {g.name} {devices.filter((d) => d.accountId === g.id).length}
+            {g.name} {devices.filter((d) => d.credentialId === g.id).length}
           </Chip>
         ))}
         <span className="sp" />
@@ -110,14 +110,14 @@ export function DevicesView(props: {
             <EmptyState
               icon="speaker"
               title="还没有绑定设备"
-              desc="请前往「云端账号」页面，通过「去接入」按钮添加设备。"
+              desc="请前往「小米凭据」页面，通过「去接入」按钮添加设备。"
             />
           ) : selDev && !devEdit ? (
             <DeviceDetail
               selDev={selDev}
               devices={devices}
               speakerModels={speakerModels}
-              accounts={accounts}
+              credentials={credentials}
               robots={robots}
               models={props.models}
               voices={props.voices}
@@ -132,7 +132,7 @@ export function DevicesView(props: {
               selDev={selDev}
               devices={devices}
               speakerModels={speakerModels}
-              accounts={accounts}
+              credentials={credentials}
               robots={robots}
               conversations={conversations}
               models={props.models}

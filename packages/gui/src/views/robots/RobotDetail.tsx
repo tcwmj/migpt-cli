@@ -1,6 +1,14 @@
 import type { Robot, Conversation, DeviceRow } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Tag } from '../../components/atoms/index.ts'
+import { findRobotTemplate } from '@migptgui/contracts'
+
+/** 系统提示词的三态展示文案 */
+function promptStateOf(t?: string): string {
+  if (t === undefined) return '跟随内置默认'
+  if (t === '') return '已关闭'
+  return '已自定义'
+}
 
 export function RobotDetail(props: {
   robot: Robot
@@ -16,6 +24,8 @@ export function RobotDetail(props: {
   const conversation = robot.conversationId
     ? props.conversations.find((r) => r.id === robot.conversationId)
     : undefined
+  const tpl = findRobotTemplate(robot.templateId)
+  const promptState = promptStateOf(robot.systemTemplate)
 
   // 找到引用该角色的设备
   const boundDevices = props.devices.filter((d) => d.robotId === robot.id)
@@ -73,7 +83,21 @@ export function RobotDetail(props: {
                 )}
               </span>
             </div>
+            <div className="rr">
+              <span className="k">系统提示词</span>
+              <span className="v">{promptState}</span>
+            </div>
           </div>
+          {tpl && (
+            <div className="row">
+              <div className="rr">
+                <span className="k">基于模板</span>
+                <span className="v">
+                  {tpl.name} · {tpl.tagline}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="grp">
           <h4>回复提示</h4>

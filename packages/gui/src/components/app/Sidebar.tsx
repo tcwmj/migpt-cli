@@ -6,7 +6,7 @@ import { TITLES, type View } from '../../constants.ts'
 /** 主菜单项（顺序即侧栏顺序） */
 const NAV: View[] = [
   'home',
-  'accounts',
+  'credentials',
   'devices',
   'robots',
   'conversations',
@@ -21,7 +21,7 @@ const NAV: View[] = [
 /** 菜单图标：settings / profile 等非菜单视图回退为齿轮 */
 const NAV_ICON: Record<View, string> = {
   home: 'home',
-  accounts: 'user',
+  credentials: 'user',
   devices: 'speaker',
   robots: 'chat',
   'chat-logs': 'log',

@@ -482,3 +482,249 @@
   color: #fff;
   border-color: var(--accent);
 }
+
+/* ══ 角色模板 ══
+   新建角色的起点选择：卡片网格 + 跳过入口；套用后即为普通角色，与模板解耦 */
+
+.tplpick {
+  grid-column: 2;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+  animation: cardIn var(--dur-250) ease both;
+}
+/* 空列表时模板选择铺在整块面板中 */
+.panel .tplpick {
+  grid-column: auto;
+  max-width: 780px;
+}
+
+.tplpick .tplhead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-6);
+  margin-bottom: var(--sp-8);
+}
+.tplpick .tplhead b {
+  font-size: var(--fs-lg);
+  color: var(--ink-1);
+}
+.tplpick .tplhead span {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.tplpick .tplgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: var(--sp-6);
+}
+
+.tplcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  text-align: left;
+  padding: var(--sp-6) var(--sp-7);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-2);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.tplcard:hover {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+.tplcard.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.tplcard .tl {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-1);
+}
+.tplcard .tg {
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  line-height: var(--lh-base);
+}
+.tplcard .ts {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  line-height: var(--lh-base);
+}
+
+.tplpick .tplskip {
+  margin-top: var(--sp-8);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tplpick .tplskip:hover {
+  color: var(--accent);
+}
+
+/* 紧凑模式：向导窄栏内单列排布 */
+.tplpick.compact .tplgrid {
+  grid-template-columns: 1fr;
+}
+/* 裸模式：外层已有卡片容器，去掉自身外框与投影 */
+.tplpick.bare {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  background: none;
+}
+
+/* ── 编辑页：模板套用条 ── */
+.tplbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.tplbar .lb {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.tplchip {
+  font: inherit;
+  font-size: var(--fs-xs);
+  padding: var(--sp-2) var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: var(--panel-2);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.tplchip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tplchip.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.tplnote {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  margin-bottom: var(--sp-6);
+}
+
+/* ── 高级功能折叠区（默认收起） ── */
+.grp.adv {
+  padding-left: 0;
+  padding-right: 0;
+}
+.advbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  width: 100%;
+  padding: var(--sp-5) var(--sp-7);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-2);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.advbar:hover {
+  border-color: var(--accent);
+}
+.advbar .at {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-1);
+}
+.advbar .at .cv {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition: transform 0.18s ease;
+}
+.advbar .at .cv.on {
+  transform: rotate(180deg);
+}
+.advbar .ah {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.advbody {
+  margin-top: var(--sp-7);
+  padding: 0 var(--sp-7);
+}
+.advbody .fld textarea.code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--fs-xs);
+  line-height: 1.65;
+  min-height: 240px;
+}
+.advbody .hint .var {
+  display: inline-block;
+  margin: 0 3px;
+  padding: 1px 6px;
+  border-radius: var(--r-s);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-2xs);
+}
+.advacts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin-top: var(--sp-7);
+}
+.advnote {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--warn-ink);
+}
+.advpreview {
+  margin-top: var(--sp-7);
+  padding: var(--sp-7);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-2);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--fs-2xs);
+  line-height: 1.7;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1180px) {
+  .tplpick {
+    grid-column: auto;
+  }
+}

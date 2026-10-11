@@ -43,7 +43,7 @@ export type DevDraft = {
   alias: string
   did: string
   speakerModel: string
-  accountId: string
+  credentialId: string
   robotId: string
   modelIds: string[]
   voiceId: string
@@ -54,7 +54,7 @@ export type DevPullState = {
   err: string
   list: CloudDevice[] | null
 }
-export type AcctDevState = {
+export type CredDevState = {
   loading: boolean
   err: string
   list: CloudDevice[]

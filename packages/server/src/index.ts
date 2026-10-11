@@ -14,7 +14,7 @@ import {
 } from './store.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerDeviceTtsRoutes } from './routes/device-tts.js'
-import { registerAccountRoutes } from './routes/accounts.js'
+import { registerCredentialRoutes } from './routes/credentials.js'
 import { registerRobotRoutes } from './routes/robots.js'
 import { registerModelRoutes } from './routes/models.js'
 import { registerVoiceRoutes } from './routes/voices.js'
@@ -140,7 +140,7 @@ export function createApp(options?: ServerOptions) {
   // 认证中间件必须先于其他 /api 路由挂载
   registerAuthRoutes({ app, options })
 
-  registerAccountRoutes({ app, options })
+  registerCredentialRoutes({ app, options })
   registerRobotRoutes({ app, options })
   registerModelRoutes({ app, options })
   registerVoiceRoutes({ app, options })

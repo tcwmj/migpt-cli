@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../apis.ts'
 import {
-  type Account,
+  type Credential,
   type CloudDevice,
   type SpeakerModel,
 } from '../../apis.ts'
@@ -11,10 +11,10 @@ import type { WizardSetDraft } from './types.ts'
 
 export function WizardDeviceStep(props: {
   active: boolean
-  accountId: string
-  selAcct: Account | undefined
+  credentialId: string
+  selAcct: Credential | undefined
   speakerModels: SpeakerModel[]
-  devices: { id: string; alias: string; did: string; accountId?: string }[]
+  devices: { id: string; alias: string; did: string; credentialId?: string }[]
   did: string
   alias: string
   model: string
@@ -22,7 +22,7 @@ export function WizardDeviceStep(props: {
   pullErr: string
   setPullErr: (e: string) => void
 }) {
-  const { accountId, selAcct, speakerModels, devices, did, setDraft } = props
+  const { credentialId, selAcct, speakerModels, devices, did, setDraft } = props
   const { setPullErr } = props
   const [pulling, setPulling] = useState(false)
   const [pulled, setPulled] = useState<CloudDevice[] | null>(null)
@@ -47,7 +47,7 @@ export function WizardDeviceStep(props: {
           setPulled(list)
           if (!list.length)
             setPullErr(
-              '该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确',
+              '该凭据下未发现音箱设备，请确认小米 ID 与 passToken 正确',
             )
         })
         .catch((e) => setPullErr((e as Error).message || '拉取设备失败'))
@@ -56,8 +56,8 @@ export function WizardDeviceStep(props: {
     [setPullErr],
   )
   useEffect(() => {
-    if (props.active && accountId) load(accountId)
-  }, [props.active, accountId, load])
+    if (props.active && credentialId) load(credentialId)
+  }, [props.active, credentialId, load])
   // 设备拉取完成且有设备时，默认选中第一台
   useEffect(() => {
     if (props.active && pulled && pulled.length > 0 && !did) {
@@ -77,8 +77,8 @@ export function WizardDeviceStep(props: {
         <aside className="slist">
           {!selAcct ? (
             <EmptyState
-              title="请先选择云端账号"
-              desc="回到上一步选择或新建账号。"
+              title="请先选择小米凭据"
+              desc="回到上一步选择或新建凭据。"
               style={{ padding: '16px' }}
             />
           ) : (
@@ -97,7 +97,8 @@ export function WizardDeviceStep(props: {
                 ? pulled.map((d) => {
                     const m = modelOf(d.hardware)
                     const bound = !!devices.find(
-                      (x) => x.accountId === selAcct.id && x.did === d.miotDID,
+                      (x) =>
+                        x.credentialId === selAcct.id && x.did === d.miotDID,
                     )
                     return (
                       <div
@@ -159,7 +160,7 @@ export function WizardDeviceStep(props: {
               <div className="notice err">{pullErr}</div>
               <div className="desc">
                 返回上一步检查小米 ID 与
-                passToken，或到「云端账号」页更新凭据后重试。
+                passToken，或到「小米凭据」页更新凭据后重试。
               </div>
             </div>
           ) : did ? (

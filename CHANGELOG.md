@@ -6,6 +6,31 @@
 > 版本说明：`@migptgui/*` 产品线（`contracts` / `controller` / `gui` / `options` / `options-with-preview` / `server`）
 > 与发布包 `migpt-server` 已统一为 `2.0.0`；`migpt-cli` 独立按 `5.x` 演进；根包 `@mgc/root` 为私有占位（`0.0.0`）不参与发布。
 
+## [未发布]
+
+### Added
+
+- Docker Compose 配置支持：新增 `docker-compose.yml` 文件，支持本地构建和预构建镜像两种部署模式
+- 阿里云容器镜像服务集成：默认镜像地址为 `registry.cn-hangzhou.aliyuncs.com/tcwmj/migpt-cli:latest`，国内访问速度快
+- 一键部署脚本：`deploy.sh`（Linux/macOS）和 `deploy.bat`（Windows），自动检测环境并引导配置
+- Docker 配置测试脚本：`test-docker.sh`，验证 Docker 环境和配置文件
+- Docker 部署指南：`DOCKER.md`，包含快速开始、配置说明、镜像仓库、故障排查等
+- GitHub Actions 工作流：`release-aliyun.yml`，自动构建并推送到阿里云容器镜像服务
+- 环境变量配置示例：`.env.example`，包含阿里云镜像地址和配置项
+
+### Changed
+
+- 设备连接向导由三步改为五步：连接账号 → 选择设备 → 思考服务 → 语音服务 → 对话角色。原第 3 步把「思考服务（有序多选）/ 语音服务（单选）/ 对话角色」三项决策压在一屏，现按绑定依赖链逐屏推进，`canNext` 逐步判定（账号 → 设备且拉取无错 → 至少一个思考服务 → 语音服务 → 角色）
+- 思考服务步骤支持就地新建与优先级排序（上移 / 下移 / 移除），顺序对应 `Device.modelIds` 的 failover 链；语音服务与角色步骤同样支持就地新建，避免首次使用时因无可选实体而卡住
+- 向导最后一步由「完成」改为「创建并启动」：创建成功后不再直接关窗，改为展示完成页（设备名 / 账号 / 角色 / 思考服务 / 语音服务 摘要 + 启动结果），提供「直接关闭」与「查看设备服务」（跳转设备服务页并选中新建设备）两个出口
+- 启动失败不再静默：设备仍落盘（不回滚），完成页给出提示，可到设备服务页手动重启
+- README.md 更新：新增 Docker Compose 部署方式，添加阿里云容器镜像服务地址
+- .dockerignore 更新：排除 Docker 相关配置文件，避免污染构建上下文
+
+### Fixed
+
+- 向导提交后创建成功与否无法感知的问题：`useWizard.finish` 现返回创建结果供完成页展示
+
 ## [2.0.0] - 2026-10-08
 
 ### Added

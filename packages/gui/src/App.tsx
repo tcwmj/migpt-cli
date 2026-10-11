@@ -1,7 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { type View } from './constants.ts'
 import {
-  AccountsView,
+  CredentialsView,
   DevicesView,
   HomeView,
   SpeakerModelsView,
@@ -22,7 +22,7 @@ import { Sidebar } from './components/app/Sidebar.tsx'
 import { Toast } from './components/app/Toast.tsx'
 import { TopBar } from './components/app/TopBar.tsx'
 import { submitModal } from './components/app/modal-submit.ts'
-import { useAccountsCrud } from './hooks/useAccountsCrud.ts'
+import { useCredentialsCrud } from './hooks/useCredentialsCrud.ts'
 import { useAppData } from './hooks/useAppData.ts'
 import { useConfirm } from './hooks/useConfirm.ts'
 import { useDevicesCrud } from './hooks/useDevicesCrud.ts'
@@ -46,7 +46,7 @@ export function App() {
     loginErr,
     login,
     logout,
-    accounts,
+    credentials,
     devices,
     robots,
     models,
@@ -95,8 +95,8 @@ export function App() {
 
   /* ── 业务 Hook ── */
   const { confirm, confirmLeaving, setConfirm, closeConfirm } = useConfirm()
-  const acct = useAccountsCrud({
-    accounts,
+  const cred = useCredentialsCrud({
+    credentials,
     devices,
     query,
     showToast,
@@ -122,7 +122,7 @@ export function App() {
   })
   const dev = useDevicesCrud({
     devices,
-    accounts,
+    credentials,
     query,
     showToast,
     refreshAll,
@@ -166,8 +166,8 @@ export function App() {
         setSettingTab('voices')
         svc.selectVoice(id)
         break
-      case 'accounts':
-        acct.selectAcct(id)
+      case 'credentials':
+        cred.selectAcct(id)
         break
       case 'speaker-models':
         speakerModelCtl.selectModel(id)
@@ -210,7 +210,7 @@ export function App() {
 
           {view === 'home' && (
             <HomeView
-              accounts={accounts}
+              credentials={credentials}
               devices={devices}
               robots={robots}
               conversations={conversations}
@@ -234,22 +234,22 @@ export function App() {
             />
           )}
 
-          {view === 'accounts' && (
-            <AccountsView
-              filterAccounts={acct.filterAccounts}
-              accounts={accounts}
-              selAcct={acct.selAcct}
-              acctDraft={acct.acctDraft}
-              acctEdit={acct.acctEdit}
-              acctDevs={acct.acctDevs}
+          {view === 'credentials' && (
+            <CredentialsView
+              filterCredentials={cred.filterCredentials}
+              credentials={credentials}
+              selAcct={cred.selAcct}
+              credDraft={cred.credDraft}
+              credEdit={cred.credEdit}
+              credDevs={cred.credDevs}
               devices={devices}
               speakerModels={speakerModels}
-              onSelect={acct.selectAcct}
-              onDraft={acct.setAcctDraft}
-              onEdit={acct.setAcctEdit}
-              onDelete={acct.delAcct}
-              onSave={acct.saveAcct}
-              onRefreshDevs={acct.loadAcctDevs}
+              onSelect={cred.selectAcct}
+              onDraft={cred.setAcctDraft}
+              onEdit={cred.setAcctEdit}
+              onDelete={cred.delAcct}
+              onSave={cred.saveAcct}
+              onRefreshDevs={cred.loadAcctDevs}
               onGoToDevice={(d) => {
                 const mm = speakerModels.find(
                   (m) =>
@@ -264,7 +264,7 @@ export function App() {
                   alias: d.alias,
                   did: d.did,
                   speakerModel: mm?.id || '',
-                  accountId: d.accountId,
+                  credentialId: d.credentialId,
                   robotId: '',
                   modelIds: [],
                   voiceId: '',
@@ -272,7 +272,7 @@ export function App() {
                 })
                 setView('devices')
               }}
-              usage={acct.usage}
+              usage={cred.usage}
             />
           )}
 
@@ -309,7 +309,7 @@ export function App() {
               modelPickQ={dev.modelPickQ}
               models={models}
               robots={robots}
-              accounts={accounts}
+              credentials={credentials}
               conversations={conversations}
               speakerModels={speakerModels}
               voices={voices}
@@ -414,6 +414,8 @@ export function App() {
                 })
               }
               onLogout={logout}
+              showToast={showToast}
+              onDataChanged={refreshAll}
             />
           )}
         </div>
@@ -427,7 +429,7 @@ export function App() {
           robots={robots}
           models={models}
           voices={voices}
-          accounts={accounts}
+          credentials={credentials}
           speakerModels={speakerModels}
           conversations={conversations}
           onClose={dev.closeDrawer}
@@ -445,7 +447,7 @@ export function App() {
             setModal({
               kind: 'deviceBind',
               title: '编辑绑定',
-              desc: '修改这台音箱的角色与模型/语音绑定；换绑账号 / 唤醒词需重启设备。',
+              desc: '修改这台音箱的角色与模型/语音绑定；换绑凭据 / 唤醒词需重启设备。',
               payload: detail.meta,
             })
           }
@@ -456,7 +458,7 @@ export function App() {
       {modal && (
         <ModalShell
           modal={modal}
-          accounts={accounts}
+          credentials={credentials}
           robots={robots}
           models={models}
           voices={voices}
@@ -478,11 +480,11 @@ export function App() {
         />
       )}
 
-      {/* 三步向导 */}
+      {/* 五步向导 */}
       {wizard && (
         <Wizard
           step={wizard.step}
-          accounts={accounts}
+          credentials={credentials}
           robots={robots}
           models={models}
           speakerModels={speakerModels}
@@ -491,11 +493,14 @@ export function App() {
           setDraft={wz.setDraft}
           onClose={wz.closeWizard}
           onNewAccount={wz.newAccount}
-          onUpdateAccount={wz.updateAccount}
+          onUpdateAccount={wz.updateCredential}
           onNewRobot={wz.newRobot}
           onUpdateRobot={wz.updateRobot}
+          onNewThink={wz.newThink}
+          onNewVoice={wz.newVoice}
           devices={devices}
           onFinish={wz.finish}
+          onGoDevice={(id) => handleNavigate('devices', id)}
         />
       )}
 

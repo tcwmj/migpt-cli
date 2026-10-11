@@ -1,44 +1,118 @@
+/* 向导第 5 步：对话角色（人设与对话行为，必填） */
 import { useEffect, useState } from 'react'
-import Select from 'react-select'
-import { type Robot, type Model, type Voice } from '../../apis.ts'
+import { type Robot } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { avatarOf } from '../../utils.ts'
-import { Button, EmptyState, Field } from '../atoms/index.ts'
-import { multiSelectStyles } from '../atoms/selectStyles.ts'
+import { Button, EmptyState, Field, TemplatePicker } from '../atoms/index.ts'
+import {
+  type RobotTemplate,
+  composeTemplateSystemTemplate,
+} from '@migptgui/contracts'
 import type { WizardSetDraft } from './types.ts'
+
+/** 套用模板后的新建角色草稿（含模板带来的播报词与提示词） */
+type NewRobotDraft = {
+  name: string
+  profile: string
+  masterName?: string
+  masterProfile?: string
+  systemTemplate?: string
+  templateId?: string
+  onEnterAI?: string[]
+  onExitAI?: string[]
+  onAIAsking?: string[]
+  onAIReplied?: string[]
+  onAIError?: string[]
+}
+
+/** 模板 → 新建草稿（含模板携带的播报词与提示词；无语气段落时回落默认） */
+function templateToDraft(t: RobotTemplate): NewRobotDraft {
+  const d: NewRobotDraft = {
+    name: t.name,
+    profile: t.profile,
+    masterName: t.masterName,
+    systemTemplate: t.systemTemplate ?? composeTemplateSystemTemplate(t),
+    templateId: t.id,
+  }
+  if (t.onEnterAI) d.onEnterAI = t.onEnterAI
+  if (t.onExitAI) d.onExitAI = t.onExitAI
+  if (t.onAIAsking) d.onAIAsking = t.onAIAsking
+  if (t.onAIReplied) d.onAIReplied = t.onAIReplied
+  if (t.onAIError) d.onAIError = t.onAIError
+  return d
+}
+
+/** 角色侧栏列表：选中态与「新建」入口 */
+function RobotSidebar(props: {
+  robots: Robot[]
+  robotId: string
+  onSelect: (id: string) => void
+  onCreate: () => void
+}) {
+  return (
+    <aside className="slist">
+      {props.robots.length === 0 && (
+        <EmptyState
+          title="还没有对话角色"
+          desc="请新建一个角色，或到「对话角色」页先创建。"
+          style={{ padding: '16px' }}
+        />
+      )}
+      {props.robots.map((r) => (
+        <div
+          key={r.id}
+          className={'li' + (props.robotId === r.id ? ' on' : '')}
+          onClick={() => props.onSelect(r.id)}
+        >
+          <img className="pavatar" src={avatarOf(r.name)} alt={r.name} />
+          <span className="txt">
+            <b>{r.name}</b>
+            <span>{r.profile?.slice(0, 24) || '未填写角色性格'}</span>
+          </span>
+          {props.robotId === r.id && (
+            <span className="wchk">
+              <I n="check" size={15} />
+            </span>
+          )}
+        </div>
+      ))}
+      <Button
+        icon="plus"
+        style={{ justifyContent: 'center', marginTop: 4 }}
+        onClick={props.onCreate}
+      >
+        新建
+      </Button>
+    </aside>
+  )
+}
 
 export function WizardRobotStep(props: {
   active: boolean
   robots: Robot[]
   robotId: string
-  models: Model[]
-  voices: Voice[]
-  modelIds: string[]
-  voiceId: string
   setDraft: WizardSetDraft
-  onNewRobot: (d: { name: string; profile?: string }) => Promise<Robot>
+  onNewRobot: (d: Partial<Robot> & { name: string }) => Promise<Robot>
   onUpdateRobot: (id: string, d: Partial<Robot>) => Promise<Robot>
 }) {
-  const {
-    robots,
-    robotId,
-    modelIds,
-    voiceId,
-    setDraft,
-    onNewRobot,
-    onUpdateRobot,
-  } = props
+  const { robots, robotId, setDraft, onNewRobot, onUpdateRobot } = props
   const [newRobot, setNewRobot] = useState(false)
+  /** 新建角色第一步：模板选择（选完或跳过后进入表单） */
+  const [picking, setPicking] = useState(false)
   const [robotEdit, setRobotEdit] = useState(false)
-  const [nrDraft, setNrDraft] = useState<{
-    name: string
-    profile: string
-    masterName?: string
-    masterProfile?: string
-  }>({ name: '', profile: '' })
+  const [nrDraft, setNrDraft] = useState<NewRobotDraft>({
+    name: '',
+    profile: '',
+  })
   const [nrBusy, setNrBusy] = useState(false)
   const [nrErr, setNrErr] = useState('')
   const selRobot = robots.find((r) => r.id === robotId)
+
+  /** 选中模板：预填称呼、人设、播报词与提示词 */
+  const pickTemplate = (t: RobotTemplate) => {
+    setNrDraft(templateToDraft(t))
+    setPicking(false)
+  }
 
   // 列表有实体时默认选中第一个；无实体时右侧展示新建表单
   useEffect(() => {
@@ -46,32 +120,28 @@ export function WizardRobotStep(props: {
       setDraft({ robotId: robots[0].id })
   }, [props.active, robotId, robots, setDraft])
 
-  // 进入本步时预选首个思考/语音，避免用户漏选导致无法完成
-  useEffect(() => {
-    if (!props.active) return
-    const patch: Partial<{
-      modelIds: string[]
-      voiceId: string
-    }> = {}
-    if (!modelIds.length && props.models.length)
-      patch.modelIds = [props.models[0].id]
-    if (!voiceId && props.voices.length) patch.voiceId = props.voices[0].id
-    if (Object.keys(patch).length) setDraft(patch)
-  }, [props.active, props.models, props.voices, modelIds, voiceId, setDraft])
-
   const saveRobot = async () => {
     if (nrBusy) return
     setNrBusy(true)
     setNrErr('')
     try {
-      const body: {
+      const body: NewRobotDraft & {
         name: string
         profile: string
-        masterName?: string
-        masterProfile?: string
       } = { name: nrDraft.name, profile: nrDraft.profile }
       if (nrDraft.masterName) body.masterName = nrDraft.masterName
       if (nrDraft.masterProfile) body.masterProfile = nrDraft.masterProfile
+      if (nrDraft.systemTemplate !== undefined)
+        body.systemTemplate = nrDraft.systemTemplate
+      if (nrDraft.templateId) body.templateId = nrDraft.templateId
+      // 模板携带的播报词：仅在新建时下发（编辑既有角色不覆盖用户已调好的词）
+      if (!robotEdit) {
+        if (nrDraft.onEnterAI) body.onEnterAI = nrDraft.onEnterAI
+        if (nrDraft.onExitAI) body.onExitAI = nrDraft.onExitAI
+        if (nrDraft.onAIAsking) body.onAIAsking = nrDraft.onAIAsking
+        if (nrDraft.onAIReplied) body.onAIReplied = nrDraft.onAIReplied
+        if (nrDraft.onAIError) body.onAIError = nrDraft.onAIError
+      }
       if (robotEdit && selRobot) {
         await onUpdateRobot(selRobot.id, body)
         setRobotEdit(false)
@@ -96,51 +166,49 @@ export function WizardRobotStep(props: {
       profile: selRobot.profile || '',
       masterName: selRobot.masterName || '',
       masterProfile: selRobot.masterProfile || '',
+      systemTemplate: selRobot.systemTemplate,
+      templateId: selRobot.templateId,
     })
+  }
+  /** 选中侧栏角色：切回详情态 */
+  const selectRobot = (id: string) => {
+    setDraft({ robotId: id })
+    setNewRobot(false)
+    setPicking(false)
+    setRobotEdit(false)
+    setNrDraft({ name: '', profile: '' })
+  }
+  /** 点「新建」：先进模板选择态 */
+  const beginCreate = () => {
+    setNewRobot(true)
+    setPicking(true)
+    setRobotEdit(false)
+    setNrDraft({ name: '', profile: '' })
   }
   return (
     <div className={'step' + (props.active ? ' on' : '')}>
       <div className="split wsplit">
-        <aside className="slist">
-          {robots.length === 0 && (
-            <EmptyState
-              title="还没有对话角色"
-              desc="请新建一个角色，或到「对话角色」页先创建。"
-              style={{ padding: '16px' }}
-            />
-          )}
-          {robots.map((r) => (
-            <div
-              key={r.id}
-              className={'li' + (robotId === r.id ? ' on' : '')}
-              onClick={() => {
-                setDraft({ robotId: r.id })
-                setNewRobot(false)
-                setRobotEdit(false)
-                setNrDraft({ name: '', profile: '' })
-              }}
-            >
-              <img className="pavatar" src={avatarOf(r.name)} alt={r.name} />
-              <span className="txt">
-                <b>{r.name}</b>
-                <span>{r.profile?.slice(0, 24) || '未填写角色性格'}</span>
-              </span>
-            </div>
-          ))}
-          <Button
-            icon="plus"
-            style={{ justifyContent: 'center', marginTop: 4 }}
-            onClick={() => {
-              setNewRobot(true)
-              setRobotEdit(false)
-              setNrDraft({ name: '', profile: '' })
-            }}
-          >
-            新建
-          </Button>
-        </aside>
+        <RobotSidebar
+          robots={robots}
+          robotId={robotId}
+          onSelect={selectRobot}
+          onCreate={beginCreate}
+        />
         <section className="sdetail">
-          {selRobot && !newRobot && !robotEdit ? (
+          {newRobot && picking ? (
+            <div className="form-card">
+              <h3>
+                <I n="user" size={17} /> 新建对话角色
+              </h3>
+              <div className="desc">选一个模板作为起点，之后都能改。</div>
+              <TemplatePicker
+                compact
+                bare
+                onPick={pickTemplate}
+                onSkip={() => setPicking(false)}
+              />
+            </div>
+          ) : selRobot && !newRobot && !robotEdit ? (
             <div className="form-card">
               <h3>
                 <I n="user" size={17} /> 角色详情
@@ -259,46 +327,6 @@ export function WizardRobotStep(props: {
             </div>
           )}
         </section>
-      </div>
-      <div className="grp" style={{ padding: '0 16px 12px' }}>
-        <h4>关联模型与语音</h4>
-        <div className="row">
-          <Field
-            label="模型"
-            required
-            tip="按优先级排列，限额已达时自动切换下一个"
-          >
-            <Select
-              isMulti
-              options={props.models.map((s) => ({
-                value: s.id,
-                label: s.name + (s.limitReached ? '（限额）' : ''),
-              }))}
-              value={props.models
-                .filter((s) => modelIds.includes(s.id))
-                .map((s) => ({ value: s.id, label: s.name }))}
-              placeholder="未设置"
-              noOptionsMessage={() => '无可用模型'}
-              onChange={(vals) =>
-                setDraft({ modelIds: (vals || []).map((v) => v.value) })
-              }
-              styles={multiSelectStyles}
-            />
-          </Field>
-          <Field label="语音" required>
-            <select
-              value={voiceId}
-              onChange={(e) => setDraft({ voiceId: e.target.value })}
-            >
-              <option value="">未设置</option>
-              {props.voices.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
       </div>
     </div>
   )

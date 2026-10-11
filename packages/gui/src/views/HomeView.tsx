@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { I } from '../icons.tsx'
 import { Button, Tag } from '../components/atoms/index.ts'
 import type {
-  Account,
+  Credential,
   DeviceRow,
   Robot,
   Conversation,
@@ -29,7 +29,7 @@ import catImg from '../assets/avatar-cat.jpg'
 import closeImg from '../assets/speaker-close.jpg'
 
 export function HomeView(props: {
-  accounts: Account[]
+  credentials: Credential[]
   devices: DeviceRow[]
   robots: Robot[]
   conversations: Conversation[]
@@ -46,7 +46,7 @@ export function HomeView(props: {
   onStartWizard: () => void
 }) {
   const {
-    accounts,
+    credentials,
     devices,
     robots,
     conversations,
@@ -96,17 +96,17 @@ export function HomeView(props: {
         <span className="idx">{bannerIdx + 1} / 5</span>
       </div>
       <div className="kpis">
-        <button className="kpi" onClick={() => onNav('accounts')}>
+        <button className="kpi" onClick={() => onNav('credentials')}>
           <span
             className="pic"
             style={{ backgroundImage: `url(${livingImg})` }}
           />
           <div className="kv">
-            <div className="k">云端账号</div>
-            <div className="v num">{accounts.length}</div>
+            <div className="k">小米凭据</div>
+            <div className="v num">{credentials.length}</div>
           </div>
           <div className="d mut">
-            {accounts.map((a) => a.name).join(' + ') || '尚未接入'}
+            {credentials.map((a) => a.name).join(' + ') || '尚未接入'}
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
@@ -207,11 +207,11 @@ export function HomeView(props: {
           </b>
           {[
             [
-              '连接账号',
-              '选择已有云端账号，或新建并填入小米 ID 与 passToken',
+              '连接凭据',
+              '选择已有小米凭据，或新建并填入小米 ID 与 passToken',
               girlImg,
             ],
-            ['选择设备', '从云端账号拉取音箱列表，选择要接入的设备', catImg],
+            ['选择设备', '从小米凭据拉取音箱列表，选择要接入的设备', catImg],
             ['对话角色', '选择已有对话角色，或新建角色绑定角色性格', closeImg],
           ].map(([t, d, img], i) => (
             <div
@@ -261,7 +261,7 @@ export function HomeView(props: {
             style={{ justifyContent: 'center', alignSelf: 'center' }}
             onClick={onStartWizard}
           >
-            开始三步连接
+            开始五步连接
           </Button>
         </div>
         <div
@@ -273,4 +273,4 @@ export function HomeView(props: {
   )
 }
 
-/* ══ 账号设备 ══ */
+/* ══ 凭据设备 ══ */

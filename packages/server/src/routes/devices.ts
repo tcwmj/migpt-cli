@@ -8,7 +8,7 @@ import { devicesRoot } from '../paths.js'
 import {
   getDevice,
   listDevices,
-  getAccountById,
+  getCredentialById,
   assertUniqueName,
   loadDeviceConfig,
   saveDevice,
@@ -90,7 +90,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         did: string
         speakerModel?: string
         robotId?: string
-        accountId?: string
+        credentialId?: string
         modelIds?: string[]
         modelId?: string
         voiceId?: string
@@ -117,15 +117,15 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         return
       }
       const metas = await listDevices()
-      // 唯一性按「账号」维度：同账号下设备 ID 唯一（防止同一设备多套配置）；不同账号允许相同 ID/名称（支持设备切换账号）
-      const sameAcct = body.accountId
-        ? metas.filter((m) => m.accountId === body.accountId)
+      // 唯一性按「凭据」维度：同凭据下设备 ID 唯一（防止同一设备多套配置）；不同凭据允许相同 ID/名称（支持设备切换凭据）
+      const sameCred = body.credentialId
+        ? metas.filter((m) => m.credentialId === body.credentialId)
         : metas
-      if (sameAcct.some((m) => m.did === body.did)) {
-        fail(res, 409, '该账号下已接入此设备（设备 ID 相同），请勿重复配置')
+      if (sameCred.some((m) => m.did === body.did)) {
+        fail(res, 409, '该凭据下已接入此设备（设备 ID 相同），请勿重复配置')
         return
       }
-      const dup = assertUniqueName(sameAcct, body.alias, undefined, '设备名称')
+      const dup = assertUniqueName(sameCred, body.alias, undefined, '设备名称')
       if (dup) {
         fail(res, 409, dup)
         return
@@ -137,7 +137,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         did: body.did,
         speakerModel: body.speakerModel,
         robotId: body.robotId,
-        accountId: body.accountId,
+        credentialId: body.credentialId,
         modelIds: body.modelIds,
         modelId: body.modelId,
         voiceId: body.voiceId,
@@ -190,28 +190,28 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         config?: GuiConfig
       }
       if (body.meta) {
-        // 唯一性按「账号」维度校验（同账号 did 唯一 / 同账号内名称唯一），排除自身
+        // 唯一性按「凭据」维度校验（同凭据 did 唯一 / 同凭据内名称唯一），排除自身
         if (
           body.meta.alias !== undefined ||
           body.meta.did !== undefined ||
-          body.meta.accountId !== undefined
+          body.meta.credentialId !== undefined
         ) {
           const allMetas = await listDevices()
-          const nextAcct =
-            body.meta.accountId !== undefined
-              ? body.meta.accountId
-              : meta.accountId
-          const sameAcct = nextAcct
-            ? allMetas.filter((m) => m.accountId === nextAcct && m.id !== id)
+          const nextCred =
+            body.meta.credentialId !== undefined
+              ? body.meta.credentialId
+              : meta.credentialId
+          const sameCred = nextCred
+            ? allMetas.filter((m) => m.credentialId === nextCred && m.id !== id)
             : allMetas.filter((m) => m.id !== id)
           const nextDid = body.meta.did !== undefined ? body.meta.did : meta.did
-          if (sameAcct.some((m) => m.did === nextDid)) {
-            fail(res, 409, '该账号下已接入此设备（设备 ID 相同），请勿重复配置')
+          if (sameCred.some((m) => m.did === nextDid)) {
+            fail(res, 409, '该凭据下已接入此设备（设备 ID 相同），请勿重复配置')
             return
           }
           if (body.meta.alias !== undefined) {
             const dup = assertUniqueName(
-              sameAcct,
+              sameCred,
               body.meta.alias,
               id,
               '设备名称',
@@ -244,7 +244,7 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         // 绑定字段变化时重新编译投影，保证 migptgui.json 与绑定链一致
         if (
           body.meta.robotId !== undefined ||
-          body.meta.accountId !== undefined ||
+          body.meta.credentialId !== undefined ||
           body.meta.speakerModel !== undefined ||
           body.meta.did !== undefined ||
           body.meta.modelIds !== undefined ||
@@ -292,24 +292,24 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
       const deviceCwd = path.join(devicesRoot, id)
       await saveDeviceConfig(id, config)
 
-      // 账号托管：按设备归属账号自动写入 .mi.json（mina/miiot 两段）
-      const account = await getAccountById(meta.accountId)
-      if (account?.passToken) {
+      // 凭据托管：按设备归属凭据自动写入 .mi.json（mina/miiot 两段）
+      const credential = await getCredentialById(meta.credentialId)
+      if (credential?.passToken) {
         // 直接使用 passToken 登录，绕过 userId/password 生成 passToken 的步骤
         // mi-service-lite 的 getAccount 函数会先用 passToken 尝试登录，
         // 如果 passToken 有效（pass.code === 0），则不需要 password
         // 只有当 passToken 无效时才会使用 password 重新登录
         const miJson = {
           mina: {
-            userId: account.miUserId,
+            userId: credential.miUserId,
             // 虚拟密码：mi-service-lite 要求此字段存在，但 passToken 有效时不会使用
-            password: account.miPassword || 'passToken-mode',
-            pass: { passToken: account.passToken },
+            password: 'passToken-mode',
+            pass: { passToken: credential.passToken },
           },
           miiot: {
-            userId: account.miUserId,
-            password: account.miPassword || 'passToken-mode',
-            pass: { passToken: account.passToken },
+            userId: credential.miUserId,
+            password: 'passToken-mode',
+            pass: { passToken: credential.passToken },
           },
         }
         await saveDeviceCredentials(id, miJson)

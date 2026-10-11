@@ -23,24 +23,17 @@ const optStr = z.string().optional()
 const optBool = z.boolean().optional()
 const strArr = z.array(z.string())
 
+// 小米凭据（原 account 实体更名合并；miPassword 已移除——异地验证下密码登录不可用，
+// 存量数据中的该字段由迁移清理，schema 不再定义，writeJsonChecked 透传原始数据不受影响）
 export const credentialSchema = z.object({
-  miUserId: optStr,
-  miPassword: optStr,
-  passToken: optStr,
-  hasPassToken: optBool,
-})
-
-export const accountSchema = z.object({
   id: str.min(1),
   name: str.min(1),
   miUserId: str,
-  miPassword: optStr,
   passToken: optStr,
   createdAt: num,
   hasPassToken: optBool,
-  hasMiPassword: optBool,
 })
-export const accountListSchema = z.array(accountSchema)
+export const credentialListSchema = z.array(credentialSchema)
 
 export const robotSchema = z.object({
   id: str.min(1),
@@ -60,6 +53,8 @@ export const robotSchema = z.object({
   onAIError: strArr,
   exitKeepAliveAfter: num,
   conversationId: optStr,
+  systemTemplate: optStr,
+  templateId: optStr,
   builtin: optBool,
   modelId: optStr,
   modelIds: z.array(str).optional(),
@@ -131,7 +126,7 @@ export const deviceSchema = z.object({
   // 必填：设备须绑定对话角色（内置角色保证任何环境至少有一个可选角色）。
   // 旧数据由迁移 v4 回填后即满足；迁移在启动期先于任何读取执行。
   robotId: str.min(1),
-  accountId: optStr,
+  credentialId: optStr,
   modelIds: z.array(str).optional(),
   modelId: optStr,
   voiceId: optStr,

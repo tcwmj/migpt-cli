@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react'
-import { type Account } from '../../apis.ts'
+import { type Credential } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, EmptyState, Field } from '../atoms/index.ts'
 import type { WizardSetDraft } from './types.ts'
 
-export function WizardAccountStep(props: {
+export function WizardCredentialStep(props: {
   active: boolean
-  accounts: Account[]
-  accountId: string
+  credentials: Credential[]
+  credentialId: string
   setDraft: WizardSetDraft
   onNewAccount: (d: {
     name: string
     miUserId: string
     passToken: string
-  }) => Promise<Account>
-  onUpdateAccount: (id: string, d: Partial<Account>) => Promise<Account>
+  }) => Promise<Credential>
+  onUpdateAccount: (id: string, d: Partial<Credential>) => Promise<Credential>
 }) {
-  const { accounts, accountId, setDraft, onNewAccount, onUpdateAccount } = props
+  const { credentials, credentialId, setDraft, onNewAccount, onUpdateAccount } =
+    props
   const [newAcct, setNewAcct] = useState(false)
-  const [acctEdit, setAcctEdit] = useState(false)
+  const [credEdit, setAcctEdit] = useState(false)
   const [naDraft, setNaDraft] = useState({
     name: '',
     miUserId: '',
@@ -26,20 +27,20 @@ export function WizardAccountStep(props: {
   })
   const [naBusy, setNaBusy] = useState(false)
   const [naErr, setNaErr] = useState('')
-  const selAcct = accounts.find((a) => a.id === accountId)
+  const selAcct = credentials.find((a) => a.id === credentialId)
 
   // 列表有实体时默认选中第一个；无实体时右侧展示新建表单
   useEffect(() => {
-    if (props.active && !accountId && accounts.length)
-      setDraft({ accountId: accounts[0].id })
-  }, [props.active, accountId, accounts, setDraft])
+    if (props.active && !credentialId && credentials.length)
+      setDraft({ credentialId: credentials[0].id })
+  }, [props.active, credentialId, credentials, setDraft])
 
   const saveAcct = async () => {
     if (naBusy) return
     setNaBusy(true)
     setNaErr('')
     try {
-      if (acctEdit && selAcct) {
+      if (credEdit && selAcct) {
         await onUpdateAccount(selAcct.id, {
           name: naDraft.name,
           miUserId: naDraft.miUserId,
@@ -48,12 +49,12 @@ export function WizardAccountStep(props: {
         setAcctEdit(false)
       } else {
         const created = await onNewAccount(naDraft)
-        setDraft({ accountId: created.id })
+        setDraft({ credentialId: created.id })
         setNewAcct(false)
       }
       setNaDraft({ name: '', miUserId: '', passToken: '' })
     } catch (e) {
-      setNaErr((e as Error).message || '保存账号失败')
+      setNaErr((e as Error).message || '保存凭据失败')
     } finally {
       setNaBusy(false)
     }
@@ -72,19 +73,19 @@ export function WizardAccountStep(props: {
     <div className={'step' + (props.active ? ' on' : '')}>
       <div className="split wsplit">
         <aside className="slist">
-          {accounts.length === 0 && (
+          {credentials.length === 0 && (
             <EmptyState
-              title="还没有云端账号"
-              desc="请新建一个账号，或在「云端账号」页先接入。"
+              title="还没有小米凭据"
+              desc="请新建一条凭据，或在「小米凭据」页先接入。"
               style={{ padding: '16px' }}
             />
           )}
-          {accounts.map((a) => (
+          {credentials.map((a) => (
             <div
               key={a.id}
-              className={'li' + (accountId === a.id ? ' on' : '')}
+              className={'li' + (credentialId === a.id ? ' on' : '')}
               onClick={() => {
-                setDraft({ accountId: a.id })
+                setDraft({ credentialId: a.id })
                 setNewAcct(false)
                 setAcctEdit(false)
                 setNaDraft({ name: '', miUserId: '', passToken: '' })
@@ -112,17 +113,17 @@ export function WizardAccountStep(props: {
           </Button>
         </aside>
         <section className="sdetail">
-          {selAcct && !newAcct && !acctEdit ? (
+          {selAcct && !newAcct && !credEdit ? (
             <div className="form-card">
               <h3>
-                <I n="user" size={17} /> 账号详情
+                <I n="user" size={17} /> 凭据详情
               </h3>
               <div className="desc">
-                账号信息与凭据状态；凭据仅保存于本机服务端。
+                凭据信息与凭据状态；凭据仅保存于本机服务端。
               </div>
               <div className="ro">
                 <div className="rr">
-                  <span className="k">账号名称</span>
+                  <span className="k">凭据名称</span>
                   <span className="v">{selAcct.name || '—'}</span>
                 </div>
                 <div className="rr">
@@ -147,17 +148,17 @@ export function WizardAccountStep(props: {
             <div className="form-card">
               <h3>
                 <I n="user" size={17} />{' '}
-                {acctEdit && selAcct ? '编辑账号' : '新建云端账号'}
+                {credEdit && selAcct ? '编辑凭据' : '新建小米凭据'}
               </h3>
               <div className="desc">
-                {acctEdit && selAcct
-                  ? '更新名称或凭据；换绑账号后需重启受影响设备。'
+                {credEdit && selAcct
+                  ? '更新名称或凭据；换绑凭据后需重启受影响设备。'
                   : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}
               </div>
-              <Field label="账号名称" required>
+              <Field label="凭据名称" required>
                 <input
                   value={naDraft.name}
-                  placeholder="例如：默认账号"
+                  placeholder="例如：默认凭据"
                   onChange={(e) =>
                     setNaDraft({ ...naDraft, name: e.target.value })
                   }
@@ -179,7 +180,7 @@ export function WizardAccountStep(props: {
               <Field
                 label="云端会话凭证 passToken"
                 tip={
-                  acctEdit && selAcct
+                  credEdit && selAcct
                     ? '留空则保留原凭据'
                     : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'
                 }
@@ -188,7 +189,7 @@ export function WizardAccountStep(props: {
                   rows={3}
                   value={naDraft.passToken}
                   placeholder={
-                    acctEdit && selAcct && selAcct.passToken
+                    credEdit && selAcct && selAcct.passToken
                       ? '已保存 · 留空保持不变'
                       : '从米家 / 小爱获取的 token'
                   }
@@ -207,7 +208,7 @@ export function WizardAccountStep(props: {
                 <Button
                   variant="ghost"
                   onClick={() =>
-                    acctEdit && selAcct
+                    credEdit && selAcct
                       ? (setAcctEdit(false),
                         setNaDraft({
                           name: '',

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from '../apis.ts'
 import type {
-  Account,
+  Credential,
   DeviceRow,
   Robot,
   Conversation,
@@ -16,7 +16,7 @@ import type {
 export const queryKeys = {
   session: ['session'] as const,
   devices: ['devices'] as const,
-  accounts: ['accounts'] as const,
+  credentials: ['credentials'] as const,
   robots: ['robots'] as const,
   models: ['models'] as const,
   voices: ['voices'] as const,
@@ -72,8 +72,8 @@ export function useAppData(showToast: (msg: string) => void) {
     refetchInterval: 10_000,
   })
   const accountsQ = useQuery({
-    queryKey: queryKeys.accounts,
-    queryFn: api.getAccounts,
+    queryKey: queryKeys.credentials,
+    queryFn: api.getCredentials,
     enabled,
   })
   const robotsQ = useQuery({
@@ -144,7 +144,7 @@ export function useAppData(showToast: (msg: string) => void) {
         const msg = (e as Error).message
         setAuthed(false)
         if (msg === 'unauthorized') {
-          setLoginErr('用户名或密码错误（初始账号 admin，密码 123456）')
+          setLoginErr('用户名或密码错误（初始凭据 admin，密码 123456）')
         } else if (
           msg === 'Failed to fetch' ||
           msg.includes('NetworkError') ||
@@ -181,7 +181,7 @@ export function useAppData(showToast: (msg: string) => void) {
     loginErr,
     login,
     logout,
-    accounts: accountsQ.data ?? ([] as Account[]),
+    credentials: accountsQ.data ?? ([] as Credential[]),
     devices,
     robots: robotsQ.data ?? ([] as Robot[]),
     models: modelQ.data ?? ([] as Model[]),

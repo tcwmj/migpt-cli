@@ -1,14 +1,12 @@
-// ── 实体读取：credentials / accounts / robots / services / models / conversations / devices ──
+// ── 实体读取：credentials / robots / services / models / conversations / devices ──
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import fse from 'fs-extra'
-import { nanoid } from 'nanoid'
 import {
   root,
   logsDir,
   devicesRoot,
   credentialsFile,
-  accountsFile,
   robotsFile,
   modelsFile,
   voicesFile,
@@ -18,7 +16,6 @@ import {
 } from '../paths.js'
 import {
   type Credential,
-  type Account,
   type Robot,
   type Model,
   type Voice,
@@ -29,15 +26,14 @@ import {
 import { logger, sysLogBuf } from '../logger.js'
 import { readJson, writeJson } from './json.js'
 import {
-  accountListSchema,
-  accountSchema,
+  credentialListSchema,
+  credentialSchema,
   deviceSchema,
   parseEntity,
   readJsonChecked,
   readJsonListChecked,
   robotSchema,
   conversationSchema,
-  credentialSchema,
   speakerModelSchema,
   modelListSchema,
   modelSchema,
@@ -71,50 +67,21 @@ export function assertUniqueName<T extends { id: string; name?: string }>(
   return hit ? `${label}「${n}」已存在，名称需唯一` : null
 }
 
-export function getCredential(): Promise<Credential> {
-  return readJsonChecked(credentialsFile, credentialSchema, '小米凭据', {})
+// ── 小米凭据（多凭据；原 account 实体 + 旧版单对象 credentials 已合并）──
+export async function getCredentials(): Promise<Credential[]> {
+  return readJsonListChecked(credentialsFile, credentialSchema, '小米凭据')
 }
 
-// ── 多云端账号：读取（含旧 credentials.json 迁移）─────────────────
-export async function getAccounts(): Promise<Account[]> {
-  const accounts = await readJsonListChecked(
-    accountsFile,
-    accountSchema,
-    '账号',
-  )
-  if (accounts.length > 0) return accounts
-  // 兼容旧版本：credentials.json → 迁移为第一个账号
-  const old = await readJsonChecked(
-    credentialsFile,
-    credentialSchema,
-    '小米凭据',
-    {},
-  )
-  if (old.miUserId || old.passToken) {
-    const account: Account = {
-      id: nanoid(),
-      name: '默认账号',
-      miUserId: old.miUserId || '',
-      miPassword: old.miPassword,
-      passToken: old.passToken,
-      createdAt: Date.now(),
-    }
-    await writeJsonChecked(accountsFile, [account], accountListSchema, '账号')
-    return [account]
-  }
-  return []
-}
-
-// 按设备归属取账号；未指定或找不到时回退第一个账号
-export async function getAccountById(
+// 按设备归属取凭据；未指定或找不到时回退第一条凭据
+export async function getCredentialById(
   id?: string,
-): Promise<Account | undefined> {
-  const accounts = await getAccounts()
+): Promise<Credential | undefined> {
+  const list = await getCredentials()
   if (id) {
-    const found = accounts.find((a) => a.id === id)
+    const found = list.find((a) => a.id === id)
     if (found) return found
   }
-  return accounts[0]
+  return list[0]
 }
 
 // 角色：内置角色源自代码 + 用户覆盖补丁，其后拼接用户自建角色。
@@ -200,8 +167,13 @@ export async function getSpeakerModelByRef(
 
 // ── 实体写入：封装路径与 schema，路由层不再直接接触文件 ────────
 
-export async function saveAccounts(list: Account[]): Promise<void> {
-  await writeJsonChecked(accountsFile, list, accountListSchema, '账号')
+export async function saveCredentials(list: Credential[]): Promise<void> {
+  await writeJsonChecked(
+    credentialsFile,
+    list,
+    credentialListSchema,
+    '小米凭据',
+  )
 }
 
 // saveRobots / saveConversations（内置项剥离 + 覆盖补丁）见 ./overrides.js

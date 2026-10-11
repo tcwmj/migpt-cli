@@ -1,6 +1,6 @@
 import Select from 'react-select'
 import type {
-  Account,
+  Credential,
   DeviceRow,
   Robot,
   Conversation,
@@ -18,7 +18,7 @@ export function DeviceForm(props: {
   selDev: string | null
   devices: DeviceRow[]
   speakerModels: SpeakerModel[]
-  accounts: Account[]
+  credentials: Credential[]
   robots: Robot[]
   conversations: Conversation[]
   models: Model[]
@@ -30,7 +30,7 @@ export function DeviceForm(props: {
   onEdit: (e: boolean) => void
   onSelect: (id: string | null) => void
   onSave: () => void
-  onPull: (accountId: string) => void
+  onPull: (credentialId: string) => void
   onResetPull: () => void
   onPickOpen: (open: boolean) => void
   onPickQ: (q: string) => void
@@ -39,7 +39,7 @@ export function DeviceForm(props: {
   const running = props.devices.find((x) => x.id === selDev)?.running
   const model =
     props.speakerModels.find((x) => x.id === devDraft.speakerModel) || null
-  const account = props.accounts.find((a) => a.id === devDraft.accountId)
+  const cred = props.credentials.find((a) => a.id === devDraft.credentialId)
 
   const modelOptions = props.models.map((s) => ({
     value: s.id,
@@ -67,15 +67,13 @@ export function DeviceForm(props: {
           : '确认从云端带入的设备信息，配置模型与语音后保存。'}
       </div>
 
-      {/* 关联账号 */}
+      {/* 关联凭据 */}
       <div className="grp">
-        <h4>关联账号</h4>
+        <h4>关联凭据</h4>
         <div className="row">
-          <Field label="云端账号">
+          <Field label="小米凭据">
             <input
-              value={
-                account ? `${account.name}（${account.miUserId}）` : '未指定'
-              }
+              value={cred ? `${cred.name}（${cred.miUserId}）` : '未指定'}
               disabled
             />
           </Field>

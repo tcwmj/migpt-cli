@@ -6,3 +6,9 @@ dist
 .idea
 docs
 .cache
+.env
+.env.*
+docker-compose.yml
+deploy.sh
+deploy.bat
+DOCKER.md

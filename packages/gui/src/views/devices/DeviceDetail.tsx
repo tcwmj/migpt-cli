@@ -1,5 +1,5 @@
 import type {
-  Account,
+  Credential,
   DeviceRow,
   Robot,
   SpeakerModel,
@@ -13,7 +13,7 @@ export function DeviceDetail(props: {
   selDev: string
   devices: DeviceRow[]
   speakerModels: SpeakerModel[]
-  accounts: Account[]
+  credentials: Credential[]
   robots: Robot[]
   models: Model[]
   voices: Voice[]
@@ -27,7 +27,7 @@ export function DeviceDetail(props: {
   const model = ref
     ? props.speakerModels.find((x) => x.id === ref || x.name === ref) || null
     : null
-  const account = props.accounts.find((a) => a.id === dev?.accountId)
+  const cred = props.credentials.find((a) => a.id === dev?.credentialId)
   const robot = props.robots.find((r) => r.id === dev?.robotId)
   const models = (dev?.modelIds || [])
     .map((id) => props.models.find((s) => s.id === id))
@@ -47,20 +47,20 @@ export function DeviceDetail(props: {
       </h3>
       <div className="desc">设备配置信息；变更配置后需重启设备生效。</div>
       <div className="ro">
-        {/* 关联账号 */}
+        {/* 关联凭据 */}
         <div className="grp">
-          <h4>关联账号</h4>
+          <h4>关联凭据</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">云端账号</span>
+              <span className="k">小米凭据</span>
               <span className="v">
-                {account ? (
+                {cred ? (
                   <button
                     type="button"
                     className="link-btn"
-                    onClick={() => props.onNavigate?.('accounts', account.id)}
+                    onClick={() => props.onNavigate?.('credentials', cred.id)}
                   >
-                    {account.name}（{account.miUserId}）
+                    {cred.name}（{cred.miUserId}）
                   </button>
                 ) : (
                   '未指定'

@@ -1,13 +1,13 @@
 import { Field } from '../atoms/index.ts'
 import type { ModalFormProps } from './types.ts'
 
-export function AccountForm({ v, setV, isEdit }: ModalFormProps) {
+export function CredentialForm({ v, setV, isEdit }: ModalFormProps) {
   return (
     <>
-      <Field row label="账号名称" required>
+      <Field row label="凭据名称" required>
         <input
           value={v.name || ''}
-          placeholder="例如：默认账号"
+          placeholder="例如：默认凭据"
           onChange={(e) => setV({ ...v, name: e.target.value })}
         />
       </Field>

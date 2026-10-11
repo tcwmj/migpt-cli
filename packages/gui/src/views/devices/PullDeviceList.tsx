@@ -3,22 +3,22 @@ import { Button, Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
 import type { DevDraft, DevPullState } from '../drafts.ts'
 
-/** 从云端账号拉取设备列表，点击条目回填草稿 */
+/** 从小米凭据拉取设备列表，点击条目回填草稿 */
 export function PullDeviceList(props: {
   devDraft: DevDraft
   devPull: DevPullState
   models: SpeakerModel[]
   devices: DeviceRow[]
   onDraft: (d: DevDraft) => void
-  onPull: (accountId: string) => void
+  onPull: (credentialId: string) => void
 }) {
   const { devDraft, devPull } = props
   return (
     <div className="pull-dev">
       <Button
         icon="refresh"
-        onClick={() => props.onPull(devDraft.accountId)}
-        disabled={!devDraft.accountId || devPull.loading}
+        onClick={() => props.onPull(devDraft.credentialId)}
+        disabled={!devDraft.credentialId || devPull.loading}
       >
         {devPull.loading ? '拉取中…' : '拉取设备列表'}
       </Button>
@@ -35,7 +35,8 @@ export function PullDeviceList(props: {
                 x.didPrefix.toLowerCase() === (d.hardware || '').toLowerCase(),
             )
             const bound = !!props.devices.find(
-              (x) => x.accountId === devDraft.accountId && x.did === d.miotDID,
+              (x) =>
+                x.credentialId === devDraft.credentialId && x.did === d.miotDID,
             )
             return (
               <div

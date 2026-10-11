@@ -1,8 +1,15 @@
 import Select from 'react-select/creatable'
-import type { Robot, Conversation } from '../../apis.ts'
+import { type Robot, type Conversation } from '../../apis.ts'
 import { I } from '../../icons.tsx'
-import { Button, Field } from '../../components/atoms/index.ts'
+import {
+  AdvancedSection,
+  applyRobotTemplate,
+  Button,
+  Field,
+  TemplateBar,
+} from '../../components/atoms/index.ts'
 import { multiSelectStyles } from '../../components/atoms/selectStyles.ts'
+import { findRobotTemplate } from '@migptgui/contracts'
 
 /** 关键词字段：多值输入框（回车添加、点 x 删除单个值） */
 function KeywordField(props: {
@@ -58,10 +65,20 @@ export function RobotEditForm(props: {
   usage: string[]
   conversations: Conversation[]
   setF: (k: keyof Robot, v: unknown) => void
+  /** 整体替换草稿（套用模板时用：一次覆盖多个字段） */
+  onReplace?: (next: Robot) => void
   onCancel: () => void
   onSave: () => void
 }) {
   const { draft, setF } = props
+  const tpl = findRobotTemplate(draft.templateId)
+  const applyTemplate = (id: string) => {
+    const t = findRobotTemplate(id)
+    if (!t) return
+    const next = applyRobotTemplate(t, draft)
+    if (props.onReplace) props.onReplace(next)
+    else setF('profile', next.profile)
+  }
   return (
     <div className="rform redit">
       <h3>
@@ -72,6 +89,12 @@ export function RobotEditForm(props: {
           。角色性格热生效；修改唤醒词需重启设备。
         </span>
       </h3>
+      <TemplateBar templateId={draft.templateId} onApply={applyTemplate} />
+      {tpl && (
+        <div className="tplnote">
+          当前基于「{tpl.name}」：{tpl.tagline}
+        </div>
+      )}
       <div className="grp">
         <h4>身份与关系</h4>
         <div className="row">
@@ -223,6 +246,19 @@ export function RobotEditForm(props: {
           </Field>
         </div>
       </div>
+      <AdvancedSection
+        value={draft.systemTemplate}
+        onChange={(next) => setF('systemTemplate', next)}
+        refCount={props.usage.length}
+        previewVars={{
+          botName: draft.name,
+          masterName: draft.masterName || '主人',
+          botProfile: draft.profile || '(角色性格)',
+          masterProfile: draft.masterProfile || '(我的信息)',
+          roomName: '（会话群）',
+          roomIntroduction: '（群简介）',
+        }}
+      />
       <div className="acts">
         <span className="sp" />
         <Button variant="ghost" onClick={props.onCancel}>

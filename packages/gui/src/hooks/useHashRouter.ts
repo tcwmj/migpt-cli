@@ -3,7 +3,7 @@ import { type View } from '../constants.ts'
 
 const VALID_VIEWS: View[] = [
   'home',
-  'accounts',
+  'credentials',
   'devices',
   'robots',
   'conversations',

@@ -9,7 +9,7 @@ import type { ModalState } from '../../ui-types.ts'
 export function initModalValues(modal: ModalState): Record<string, string> {
   const p = (modal.payload || {}) as Record<string, unknown>
   const init: Record<string, string> = {}
-  if (modal.kind === 'account') {
+  if (modal.kind === 'credential') {
     init.name = (p.name as string) || ''
     init.miUserId = (p.miUserId as string) || ''
     init.passToken = ''
@@ -36,7 +36,7 @@ export function initModalValues(modal: ModalState): Record<string, string> {
     init.name = (p.name as string) || ''
     init.profile = (p.profile as string) || ''
   } else if (modal.kind === 'deviceBind') {
-    init.accountId = (p.accountId as string) || ''
+    init.credentialId = (p.credentialId as string) || ''
     init.robotId = (p.robotId as string) || ''
     init.speakerModel = (p.speakerModel as string) || ''
   }
@@ -51,7 +51,7 @@ export function buildModalPayload(
   v: Record<string, string>,
 ): { out?: Record<string, unknown>; err?: string } {
   let out: Record<string, unknown> = {}
-  if (modal.kind === 'account') {
+  if (modal.kind === 'credential') {
     out = { name: v.name, miUserId: v.miUserId, passToken: v.passToken }
   } else if (modal.kind === 'model') {
     out = {
@@ -96,7 +96,7 @@ export function buildModalPayload(
     }
     out = {
       robotId: v.robotId,
-      accountId: v.accountId || undefined,
+      credentialId: v.credentialId || undefined,
       speakerModel: v.speakerModel || undefined,
     }
   }

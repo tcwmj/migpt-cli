@@ -7,6 +7,7 @@ import {
   robotListSchema,
 } from '../store.js'
 import { type Robot } from '../types.js'
+import { ROBOT_TEMPLATES } from '@migptgui/contracts'
 import {
   API_PREFIX,
   asyncHandler,
@@ -68,6 +69,13 @@ export const registerRobotRoutes = createCrudRouter<Robot>({
   refRules: [deviceRefs('robotId')],
   refMessage: '该角色正被设备引用，无法删除；请先更换引用该角色的设备',
   extra: ({ app }) => {
+    // 角色模板库（只读）：新建角色的预设起点，定义随代码版本走，不落盘、不可改
+    app.get(
+      `${API_PREFIX}/robot-templates`,
+      asyncHandler(async (_req, res) => {
+        res.json(ROBOT_TEMPLATES)
+      }),
+    )
     // 重置内置角色为系统默认值（仅 builtin 可用；用户改动可随时恢复）
     app.post(
       `${API_PREFIX}/robots/:id/reset`,

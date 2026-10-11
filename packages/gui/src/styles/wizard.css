@@ -1,4 +1,4 @@
-/* ── 三步向导 ── */
+/* ── 五步向导 ── */
 .wizard {
   position: fixed;
   inset: 0;
@@ -96,11 +96,19 @@
 }
 
 .wiz .wh .wsteps {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  /* 五步后标题与步骤条容易挤在一起：改为占据标题右侧剩余空间居中 */
+  position: static;
   display: flex;
   gap: var(--sp-3);
+  margin: 0 auto;
+  padding-right: 44px;
+}
+
+@media (max-width: 1080px) {
+  /* 窄屏只保留步骤序号，避免与标题重叠 */
+  .wiz .wh .wstep .wt {
+    display: none;
+  }
 }
 
 .wiz .wh .wstep {
@@ -274,4 +282,167 @@
 .wiz .wf .r {
   display: flex;
   gap: var(--sp-4);
+}
+
+/* 完成页底部：只有右侧出口，按钮组整体靠右 */
+.wiz .wf.end {
+  justify-content: flex-end;
+}
+
+/* 列表行右侧选中标记（思考服务多选 / 语音与角色单选） */
+.slist .li .wchk {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+}
+
+.slist .li .wchk svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 已选思考服务：按优先级排序的行列表 */
+.wiz .sel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+}
+
+.wiz .sel-list .si {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  padding: var(--sp-5) var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-2);
+}
+
+.wiz .sel-list .si .no {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  background: var(--accent);
+  color: #fff;
+}
+
+.wiz .sel-list .si .txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.wiz .sel-list .si .txt b {
+  display: block;
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiz .sel-list .si .txt span {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiz .sel-list .si .ops {
+  flex: none;
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.wiz .sel-list .si .ops .icon-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.wiz .sel-list .si .ops .icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.wiz .sel-list .si .ops .icon-btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+/* 完成页：结果摘要 + 两个出口 */
+.wiz .done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-10) 22px var(--sp-9);
+  text-align: center;
+}
+
+.wiz .done .done-ic {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ok);
+  color: #fff;
+}
+
+.wiz .done .done-ic.warn {
+  background: var(--warn);
+}
+
+.wiz .done b {
+  font-size: var(--fs-xl);
+}
+
+.wiz .done .sub {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.wiz .done .done-card {
+  width: min(520px, 100%);
+  margin-top: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  padding: var(--sp-7) var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-2);
+  text-align: left;
+}
+
+.wiz .done .done-card .rr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-8);
+  font-size: var(--fs-md);
+}
+
+.wiz .done .done-card .rr .k {
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex: none;
+}
+
+.wiz .done .done-card .rr .v {
+  color: var(--ink-1);
+  text-align: right;
+  word-break: break-all;
 }

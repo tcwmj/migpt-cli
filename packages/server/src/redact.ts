@@ -3,7 +3,6 @@
 // 前端据此把「已保存 / 未配置」的展示改为读取 hasXxx 标记。
 import type { GuiConfig } from '@migptgui/options'
 import type {
-  Account,
   DeviceBindings,
   Device,
   Credential,
@@ -11,14 +10,14 @@ import type {
   Voice,
 } from './types.js'
 
-/** 账号：passToken / miPassword 为云端凭据，读接口不返回明文 */
-export function redactAccount(a: Account): Account {
-  const { passToken, miPassword, ...rest } = a
-  return { ...rest, hasPassToken: !!passToken, hasMiPassword: !!miPassword }
+/** 小米凭据：passToken 为会话凭证，读接口不返回明文 */
+export function redactCredential(a: Credential): Credential {
+  const { passToken, ...rest } = a
+  return { ...rest, hasPassToken: !!passToken }
 }
 
-export function redactAccounts(list: Account[]): Account[] {
-  return list.map(redactAccount)
+export function redactCredentials(list: Credential[]): Credential[] {
+  return list.map(redactCredential)
 }
 
 /** 模型：apiKey 为模型供应商密钥，读接口不返回明文 */
@@ -41,12 +40,7 @@ export function redactDevices(list: Device[]): Device[] {
   return list.map(redactDevice)
 }
 
-/** 旧版 credentials（无前端消费者，保留接口但同样不回传明文） */
-export function redactCredential(s: Credential): Credential {
-  return { miUserId: s.miUserId, hasPassToken: !!s.passToken }
-}
-
-/** 设备运行时配置：抹掉模型密钥 / 账号密码 / TTS 令牌（前端不消费 config 内容） */
+/** 设备运行时配置：抹掉模型密钥 / 凭据密码 / TTS 令牌（前端不消费 config 内容） */
 export function redactGuiConfig(config: GuiConfig): GuiConfig {
   const next = JSON.parse(JSON.stringify(config)) as GuiConfig
   if (next.env?.OPENAI_API_KEY) next.env.OPENAI_API_KEY = ''
@@ -65,11 +59,11 @@ export function redactGuiConfig(config: GuiConfig): GuiConfig {
   return next
 }
 
-/** 设备绑定链：账号与模型同样脱敏 */
+/** 设备绑定链：凭据与模型同样脱敏 */
 export function redactBindings(b: DeviceBindings): DeviceBindings {
   return {
     ...b,
-    account: b.account ? redactAccount(b.account) : undefined,
+    credential: b.credential ? redactCredential(b.credential) : undefined,
     model: b.model ? redactModel(b.model) : undefined,
   }
 }

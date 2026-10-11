@@ -62,7 +62,10 @@ const VOICE_OVERRIDE_FIELDS: readonly (keyof Voice)[] = [
 ]
 
 /** 内置会话可被用户覆盖的字段（id/builtin/createdAt 由框架固定，不参与覆盖） */
-const CONVERSATION_OVERRIDE_FIELDS: readonly (keyof Conversation)[] = ['name', 'description']
+const CONVERSATION_OVERRIDE_FIELDS: readonly (keyof Conversation)[] = [
+  'name',
+  'description',
+]
 
 /** 内置角色可被用户覆盖的字段（id/builtin/createdAt 由框架固定，不参与覆盖） */
 const ROBOT_OVERRIDE_FIELDS: readonly (keyof Robot)[] = [
@@ -82,6 +85,8 @@ const ROBOT_OVERRIDE_FIELDS: readonly (keyof Robot)[] = [
   'onAIError',
   'exitKeepAliveAfter',
   'conversationId',
+  'systemTemplate',
+  'templateId',
 ]
 
 /** 内置实体的用户覆盖补丁：按实体 id 存「与代码默认值不同的字段」 */
@@ -102,7 +107,8 @@ function prune(ov: Overrides): Overrides {
   if (ov.speakerModels && Object.keys(ov.speakerModels).length)
     out.speakerModels = ov.speakerModels
   if (ov.voices && Object.keys(ov.voices).length) out.voices = ov.voices
-  if (ov.conversations && Object.keys(ov.conversations).length) out.conversations = ov.conversations
+  if (ov.conversations && Object.keys(ov.conversations).length)
+    out.conversations = ov.conversations
   if (ov.robots && Object.keys(ov.robots).length) out.robots = ov.robots
   return out
 }
@@ -194,7 +200,13 @@ export function mergeBuiltinRobots(
   const builtins = BUILTIN_ROBOTS.map((d) => {
     const patch = patches?.[d.id]
     return patch
-      ? { ...d, ...patch, id: d.id, builtin: true, createdAt: BUILTIN_CREATED_AT }
+      ? {
+          ...d,
+          ...patch,
+          id: d.id,
+          builtin: true,
+          createdAt: BUILTIN_CREATED_AT,
+        }
       : { ...d, createdAt: BUILTIN_CREATED_AT }
   })
   return [...builtins, ...customs]
@@ -306,7 +318,9 @@ export async function resetBuiltinVoice(
   return def
 }
 
-export async function resetBuiltinConversation(id: string): Promise<Conversation | undefined> {
+export async function resetBuiltinConversation(
+  id: string,
+): Promise<Conversation | undefined> {
   const def = builtinConversationDefault(id)
   if (!def) return undefined
   const prev = await getOverrides()
@@ -370,8 +384,7 @@ export async function splitBuiltinEntities(): Promise<void> {
     const def = builtinVoiceDefault(v.id)
     if (!def) continue
     // 旧版内置语音名「小米内置」等同于默认名，不作为覆盖记录
-    const norm: Voice =
-      v.name === '小米内置' ? { ...v, name: def.name } : v
+    const norm: Voice = v.name === '小米内置' ? { ...v, name: def.name } : v
     const patch = diffFields(norm, def, VOICE_OVERRIDE_FIELDS)
     if (patch) voices[v.id] = patch
   }
@@ -383,12 +396,7 @@ export async function splitBuiltinEntities(): Promise<void> {
       speakerModelListSchema,
       '型号',
     ),
-    writeJsonChecked(
-      voicesFile,
-      customVoices,
-      voiceListSchema,
-      '语音',
-    ),
+    writeJsonChecked(voicesFile, customVoices, voiceListSchema, '语音'),
   ])
   await persist(prev, { ...prev, speakerModels, voices })
   logger.info(
@@ -408,7 +416,9 @@ export async function splitBuiltinRobotsConversations(): Promise<void> {
     readJson<Robot[]>(robotsFile, []),
     getOverrides(),
   ])
-  const conversations: Record<string, Partial<Conversation>> = { ...(prev.conversations ?? {}) }
+  const conversations: Record<string, Partial<Conversation>> = {
+    ...(prev.conversations ?? {}),
+  }
   const robots: Record<string, Partial<Robot>> = { ...(prev.robots ?? {}) }
 
   const customConversations: Conversation[] = []
@@ -436,7 +446,12 @@ export async function splitBuiltinRobotsConversations(): Promise<void> {
   }
 
   await Promise.all([
-    writeJsonChecked(conversationsFile, customConversations, conversationListSchema, '会话'),
+    writeJsonChecked(
+      conversationsFile,
+      customConversations,
+      conversationListSchema,
+      '会话',
+    ),
     writeJsonChecked(robotsFile, customRobots, robotListSchema, '角色'),
   ])
   await persist(prev, { ...prev, conversations, robots })

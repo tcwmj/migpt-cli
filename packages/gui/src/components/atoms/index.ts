@@ -9,3 +9,5 @@ export {
   ProviderLogo,
   ProviderBadge,
 } from './ProviderPicker.tsx'
+export { TemplatePicker, applyRobotTemplate } from './TemplatePicker.tsx'
+export { AdvancedSection, TemplateBar } from './AdvancedSection.tsx'

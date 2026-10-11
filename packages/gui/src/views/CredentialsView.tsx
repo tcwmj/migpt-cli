@@ -1,4 +1,4 @@
-/* ══ AccountsView ══ */
+/* ══ CredentialsView ══ */
 import { I } from '../icons.tsx'
 import {
   Button,
@@ -7,16 +7,16 @@ import {
   Field,
   Tag,
 } from '../components/atoms/index.ts'
-import type { Account, DeviceRow, SpeakerModel } from '../apis.ts'
-import type { AccountDraft, AcctDevState } from './drafts.ts'
+import type { Credential, DeviceRow, SpeakerModel } from '../apis.ts'
+import type { AccountDraft, CredDevState } from './drafts.ts'
 
-export function AccountsView(props: {
-  filterAccounts: Account[]
-  accounts: Account[]
+export function CredentialsView(props: {
+  filterCredentials: Credential[]
+  credentials: Credential[]
   selAcct: string | null
-  acctDraft: AccountDraft | null
-  acctEdit: boolean
-  acctDevs: Record<string, AcctDevState>
+  credDraft: AccountDraft | null
+  credEdit: boolean
+  credDevs: Record<string, CredDevState>
   devices: DeviceRow[]
   speakerModels: SpeakerModel[]
   onSelect: (id: string | null) => void
@@ -26,7 +26,7 @@ export function AccountsView(props: {
   onSave: () => void
   onRefreshDevs: (id: string) => void
   onGoToDevice: (d: {
-    accountId: string
+    credentialId: string
     did: string
     alias: string
     hardware: string
@@ -34,12 +34,12 @@ export function AccountsView(props: {
   usage: (id: string) => string[]
 }) {
   const {
-    filterAccounts,
-    accounts,
+    filterCredentials,
+    credentials,
     selAcct,
-    acctDraft,
-    acctEdit,
-    acctDevs,
+    credDraft,
+    credEdit,
+    credDevs,
     devices,
     speakerModels,
     onSelect,
@@ -51,14 +51,14 @@ export function AccountsView(props: {
     usage,
   } = props
   return (
-    <section data-view="accounts" className="on">
+    <section data-view="credentials" className="on">
       <div className="filters">
-        <Chip on>全部账号 {accounts.length}</Chip>
+        <Chip on>全部凭据 {credentials.length}</Chip>
         <span className="sp" />
       </div>
       <div className="split">
         <aside className="slist">
-          {filterAccounts.map((a) => (
+          {filterCredentials.map((a) => (
             <div
               key={a.id}
               className={'li' + (a.id === selAcct ? ' on' : '')}
@@ -70,14 +70,14 @@ export function AccountsView(props: {
               <span className="txt">
                 <b>{a.name}</b>
                 <span>
-                  {a.miUserId} · {a === accounts[0] ? '默认' : '备用'}
+                  {a.miUserId} · {a === credentials[0] ? '默认' : '备用'}
                 </span>
               </span>
               <span
                 className="badge"
-                title={`已接入数/设备总数：${usage(a.id).length}/${acctDevs[a.id]?.list?.length ?? '—'}`}
+                title={`已接入数/设备总数：${usage(a.id).length}/${credDevs[a.id]?.list?.length ?? '—'}`}
               >
-                {usage(a.id).length}/{acctDevs[a.id]?.list?.length ?? '—'}
+                {usage(a.id).length}/{credDevs[a.id]?.list?.length ?? '—'}
               </span>
             </div>
           ))}
@@ -91,13 +91,13 @@ export function AccountsView(props: {
         </aside>
         <section
           className="sdetail"
-          key={'acct-' + (selAcct || 'new') + (acctEdit ? '-e' : '-r')}
+          key={'cred-' + (selAcct || 'new') + (credEdit ? '-e' : '-r')}
         >
-          {filterAccounts.length === 0 && !acctDraft ? (
+          {filterCredentials.length === 0 && !credDraft ? (
             <EmptyState
               icon="user"
-              title="还没有云端账号"
-              desc="一个账号管理一个家庭；添加后将可在设备向导中直接选择。"
+              title="还没有小米凭据"
+              desc="一条凭据管理一个家庭；添加后将可在设备向导中直接选择。"
               action={
                 <Button
                   variant="primary"
@@ -108,28 +108,28 @@ export function AccountsView(props: {
                 </Button>
               }
             />
-          ) : selAcct && !acctEdit ? (
+          ) : selAcct && !credEdit ? (
             <div className="form-card rform">
               <h3>
-                <I n="user" size={17} /> 账号详情
+                <I n="user" size={17} /> 凭据详情
               </h3>
               <div className="desc">
-                账号信息与凭据状态；凭据仅保存于本机服务端。
+                凭据信息与凭据状态；凭据仅保存于本机服务端。
               </div>
               <div className="ro">
                 <div className="grp">
                   <h4>基本信息</h4>
                   <div className="row">
                     <div className="rr">
-                      <span className="k">账号名称</span>
+                      <span className="k">凭据名称</span>
                       <span className="v">
-                        {accounts.find((a) => a.id === selAcct)?.name || '—'}
+                        {credentials.find((a) => a.id === selAcct)?.name || '—'}
                       </span>
                     </div>
                     <div className="rr">
                       <span className="k">小米 ID</span>
                       <span className="v">
-                        {accounts.find((a) => a.id === selAcct)?.miUserId ||
+                        {credentials.find((a) => a.id === selAcct)?.miUserId ||
                           '—'}
                       </span>
                     </div>
@@ -141,7 +141,7 @@ export function AccountsView(props: {
                     <div className="rr">
                       <span className="k">passToken</span>
                       <span className="v">
-                        {accounts.find((a) => a.id === selAcct)?.hasPassToken
+                        {credentials.find((a) => a.id === selAcct)?.hasPassToken
                           ? '已配置'
                           : '未配置'}
                       </span>
@@ -160,8 +160,8 @@ export function AccountsView(props: {
                   </div>
                 </div>
               </div>
-              <h3 className="acct-dev">
-                <I n="speaker" size={17} /> 账号设备
+              <h3 className="cred-dev">
+                <I n="speaker" size={17} /> 凭据设备
                 <span className="sp" />
                 <button
                   className="icbtn"
@@ -172,7 +172,7 @@ export function AccountsView(props: {
                 </button>
               </h3>
               {(() => {
-                const st = selAcct ? acctDevs[selAcct] : undefined
+                const st = selAcct ? credDevs[selAcct] : undefined
                 if (!st || st.loading)
                   return (
                     <div className="dev-pull loading">
@@ -188,7 +188,7 @@ export function AccountsView(props: {
                   )
                 if (!st.list.length)
                   return (
-                    <div className="dev-pull empty">该账号下暂无音箱设备</div>
+                    <div className="dev-pull empty">该凭据下暂无音箱设备</div>
                   )
                 return (
                   <div className="dev-pull">
@@ -202,7 +202,8 @@ export function AccountsView(props: {
                             d.hardware.startsWith(m.didPrefix)),
                       )
                       const bound = devices.find(
-                        (x) => x.accountId === selAcct && x.did === d.miotDID,
+                        (x) =>
+                          x.credentialId === selAcct && x.did === d.miotDID,
                       )
                       return (
                         <div className="pd-row" key={d.miotDID || d.deviceID}>
@@ -236,7 +237,7 @@ export function AccountsView(props: {
                               className="go-integrate"
                               onClick={() =>
                                 props.onGoToDevice({
-                                  accountId: selAcct!,
+                                  credentialId: selAcct!,
                                   did: d.miotDID,
                                   alias: d.alias || d.name,
                                   hardware: d.hardware,
@@ -270,25 +271,25 @@ export function AccountsView(props: {
                 </Button>
               </div>
             </div>
-          ) : acctDraft ? (
+          ) : credDraft ? (
             <div className="form-card">
               <h3>
-                <I n="user" size={17} /> {selAcct ? '编辑账号' : '新建云端账号'}
+                <I n="user" size={17} /> {selAcct ? '编辑凭据' : '新建小米凭据'}
               </h3>
               <div className="desc">
                 {selAcct
-                  ? '更新名称或凭据；换绑账号后需重启受影响设备。'
+                  ? '更新名称或凭据；换绑凭据后需重启受影响设备。'
                   : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}
               </div>
               <div className="grp">
                 <h4>基本信息</h4>
                 <div className="row">
-                  <Field label="账号名称" required>
+                  <Field label="凭据名称" required>
                     <input
-                      value={acctDraft.name}
-                      placeholder="例如：默认账号"
+                      value={credDraft.name}
+                      placeholder="例如：默认凭据"
                       onChange={(e) =>
-                        onDraft({ ...acctDraft, name: e.target.value })
+                        onDraft({ ...credDraft, name: e.target.value })
                       }
                     />
                   </Field>
@@ -298,10 +299,10 @@ export function AccountsView(props: {
                     tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
                   >
                     <input
-                      value={acctDraft.miUserId}
+                      value={credDraft.miUserId}
                       placeholder="例如：1234567890"
                       onChange={(e) =>
-                        onDraft({ ...acctDraft, miUserId: e.target.value })
+                        onDraft({ ...credDraft, miUserId: e.target.value })
                       }
                     />
                   </Field>
@@ -321,14 +322,14 @@ export function AccountsView(props: {
                   >
                     <textarea
                       rows={4}
-                      value={acctDraft.passToken}
+                      value={credDraft.passToken}
                       placeholder={
-                        accounts.find((a) => a.id === selAcct)?.hasPassToken
+                        credentials.find((a) => a.id === selAcct)?.hasPassToken
                           ? '已配置 · 留空保持不变'
                           : '从米家 / 小爱获取的 token'
                       }
                       onChange={(e) =>
-                        onDraft({ ...acctDraft, passToken: e.target.value })
+                        onDraft({ ...credDraft, passToken: e.target.value })
                       }
                     />
                   </Field>
@@ -341,8 +342,8 @@ export function AccountsView(props: {
                   onClick={() =>
                     selAcct
                       ? onEdit(false)
-                      : accounts.length
-                        ? onSelect(accounts[0].id)
+                      : credentials.length
+                        ? onSelect(credentials[0].id)
                         : onDraft(null)
                   }
                 >
@@ -353,10 +354,10 @@ export function AccountsView(props: {
                   icon="check"
                   onClick={onSave}
                   disabled={
-                    !acctDraft.name ||
-                    !acctDraft.miUserId ||
-                    (!acctDraft.passToken &&
-                      !accounts.find((a) => a.id === selAcct)?.hasPassToken)
+                    !credDraft.name ||
+                    !credDraft.miUserId ||
+                    (!credDraft.passToken &&
+                      !credentials.find((a) => a.id === selAcct)?.hasPassToken)
                   }
                 >
                   保存

@@ -11,8 +11,8 @@ const _rawHome =
   path.join(os.homedir(), '.migptgui')
 export const root = path.resolve(_rawHome)
 export const devicesRoot = path.join(root, 'devices')
+// 小米凭据列表（多凭据，原 accounts.json + 旧版单对象 credentials.json 已合并至此）
 export const credentialsFile = path.join(root, 'credentials.json')
-export const accountsFile = path.join(root, 'accounts.json')
 export const robotsFile = path.join(root, 'robots.json')
 export const modelsFile = path.join(root, 'models.json')
 export const voicesFile = path.join(root, 'voices.json')

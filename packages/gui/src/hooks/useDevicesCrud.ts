@@ -1,20 +1,21 @@
 /* ══ 设备：选中/草稿/保存/删除/重启/解绑 + 详情抽屉 + 云端拉取 + 过滤 ══ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as api from '../apis.ts'
-import type { Account, DeviceDetail, DeviceRow } from '../apis.ts'
+import type { Credential, DeviceDetail, DeviceRow } from '../apis.ts'
 import type { ConfirmState } from '../ui-types.ts'
 import type { DevDraft, DevPullState } from '../views/drafts.ts'
 import { errText } from '../components/app/errText.ts'
 
 export function useDevicesCrud(opts: {
   devices: DeviceRow[]
-  accounts: Account[]
+  credentials: Credential[]
   query: string
   showToast: (msg: string) => void
   refreshAll: () => void
   setConfirm: (c: ConfirmState) => void
 }) {
-  const { devices, accounts, query, showToast, refreshAll, setConfirm } = opts
+  const { devices, credentials, query, showToast, refreshAll, setConfirm } =
+    opts
   const [detail, setDetail] = useState<DeviceDetail | null>(null)
   const [, setDrawerBusy] = useState(false)
   const [selDev, setSelDev] = useState<string | null>(null)
@@ -33,7 +34,7 @@ export function useDevicesCrud(opts: {
     alias: d.alias,
     did: d.did,
     speakerModel: d.speakerModel || '',
-    accountId: d.accountId || '',
+    credentialId: d.credentialId || '',
     robotId: d.robotId || '',
     modelIds: d.modelIds || [],
     voiceId: d.voiceId || '',
@@ -43,7 +44,7 @@ export function useDevicesCrud(opts: {
     alias: '',
     did: '',
     speakerModel: '',
-    accountId: '',
+    credentialId: '',
     robotId: '',
     modelIds: [],
     voiceId: '',
@@ -84,7 +85,7 @@ export function useDevicesCrud(opts: {
             alias: devDraft.alias,
             did: devDraft.did,
             speakerModel: devDraft.speakerModel || undefined,
-            accountId: devDraft.accountId || undefined,
+            credentialId: devDraft.credentialId || undefined,
             robotId: devDraft.robotId,
             modelIds: devDraft.modelIds.length ? devDraft.modelIds : undefined,
             voiceId: devDraft.voiceId || undefined,
@@ -98,7 +99,7 @@ export function useDevicesCrud(opts: {
           alias: devDraft.alias,
           did: devDraft.did,
           speakerModel: devDraft.speakerModel || undefined,
-          accountId: devDraft.accountId || undefined,
+          credentialId: devDraft.credentialId || undefined,
           robotId: devDraft.robotId,
           modelIds: devDraft.modelIds.length ? devDraft.modelIds : undefined,
           voiceId: devDraft.voiceId || undefined,
@@ -138,7 +139,7 @@ export function useDevicesCrud(opts: {
   const restartDevice = async (id: string) => {
     try {
       await api.startDevice(id)
-      showToast('已重启设备，账号信息约 1 小时后更新')
+      showToast('已重启设备，凭据信息约 1 小时后更新')
       refreshAll()
     } catch (e) {
       showToast((e as Error).message || '重启失败')
@@ -173,17 +174,17 @@ export function useDevicesCrud(opts: {
   )
   const closeDrawer = useCallback(() => setDetail(null), [])
 
-  /* 从云端账号拉取音箱设备列表（新建设备 / 三步向导复用） */
-  const doPullDev = async (accountId: string) => {
-    if (!accountId) return
+  /* 从小米凭据拉取音箱设备列表（新建设备 / 五步向导复用） */
+  const doPullDev = async (credentialId: string) => {
+    if (!credentialId) return
     setDevPull({ loading: true, err: '', list: null })
     try {
-      const r = await api.pullDevices(accountId)
+      const r = await api.pullDevices(credentialId)
       const list = r.devices || []
       if (!list.length) {
         setDevPull({
           loading: false,
-          err: '该账号下未发现音箱设备，请确认小米 ID 与 passToken 正确',
+          err: '该凭据下未发现音箱设备，请确认小米 ID 与 passToken 正确',
           list: [],
         })
         return
@@ -208,7 +209,7 @@ export function useDevicesCrud(opts: {
   const filterDevices = useMemo(() => {
     let list = devices
     if (devAcctFilter !== 'all')
-      list = list.filter((d) => d.accountId === devAcctFilter)
+      list = list.filter((d) => d.credentialId === devAcctFilter)
     if (query) {
       const q = query.toLowerCase()
       list = list.filter((d) => (d.alias + d.did).toLowerCase().includes(q))
@@ -219,15 +220,16 @@ export function useDevicesCrud(opts: {
   const devAcctGroups = useMemo(() => {
     const ids: string[] = []
     devices.forEach((d) => {
-      if (d.accountId && !ids.includes(d.accountId)) ids.push(d.accountId)
+      if (d.credentialId && !ids.includes(d.credentialId))
+        ids.push(d.credentialId)
     })
     return ids
       .map((id) => ({
         id,
-        name: accounts.find((a) => a.id === id)?.name || id,
+        name: credentials.find((a) => a.id === id)?.name || id,
       }))
       .filter((g) => !!g.name)
-  }, [devices, accounts])
+  }, [devices, credentials])
 
   return {
     detail,

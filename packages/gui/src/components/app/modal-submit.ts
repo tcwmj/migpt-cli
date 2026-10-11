@@ -1,12 +1,6 @@
 /* ══ 弹窗提交分发：按弹窗类型调用对应接口，成功后刷新数据 ══ */
 import * as api from '../../apis.ts'
-import type {
-  Account,
-  Device,
-  Robot,
-  Model,
-  Voice,
-} from '../../apis.ts'
+import type { Credential, Device, Robot, Model, Voice } from '../../apis.ts'
 import type { ModalState } from '../../ui-types.ts'
 import { errText } from './errText.ts'
 
@@ -20,23 +14,20 @@ export async function submitModal(opts: {
 }): Promise<void> {
   const { modal, values, showToast, refreshAll, openDevice, detailOpen } = opts
   try {
-    if (modal.kind === 'account') {
-      const payload = (modal.payload || {}) as Account
+    if (modal.kind === 'credential') {
+      const payload = (modal.payload || {}) as Credential
       if (payload.id) {
-        await api.updateAccount(payload.id, values as Partial<Account>)
-        showToast('账号已更新，换绑账号需重启受影响设备')
+        await api.updateCredential(payload.id, values as Partial<Credential>)
+        showToast('凭据已更新，换绑凭据需重启受影响设备')
       } else {
-        await api.createAccount(values as Partial<Account>)
-        showToast('账号已连接')
+        await api.createCredential(values as Partial<Credential>)
+        showToast('凭据已连接')
       }
       refreshAll()
     } else if (modal.kind === 'model') {
       const payload = (modal.payload || {}) as Model
       if (payload.id) {
-        await api.updateModel(
-          payload.id,
-          values as Partial<Model>,
-        )
+        await api.updateModel(payload.id, values as Partial<Model>)
         showToast('模型已更新，热生效')
       } else {
         await api.createModel(values as Partial<Model>)
@@ -46,10 +37,7 @@ export async function submitModal(opts: {
     } else if (modal.kind === 'voice') {
       const payload = (modal.payload || {}) as Voice
       if (payload.id) {
-        await api.updateVoice(
-          payload.id,
-          values as Partial<Voice>,
-        )
+        await api.updateVoice(payload.id, values as Partial<Voice>)
         showToast('语音已更新，音色热切')
       } else {
         await api.createVoice(values as Partial<Voice>)

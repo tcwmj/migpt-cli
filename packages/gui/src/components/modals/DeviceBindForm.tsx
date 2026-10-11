@@ -6,7 +6,7 @@ import type { DeviceBindFormProps } from './types.ts'
 export function DeviceBindForm({
   v,
   setV,
-  accounts,
+  credentials,
   robots,
   speakerModels,
   conversations,
@@ -18,13 +18,13 @@ export function DeviceBindForm({
   )
   return (
     <>
-      <Field row label="所属账号">
+      <Field row label="所属凭据">
         <select
-          value={v.accountId || ''}
-          onChange={(e) => setV({ ...v, accountId: e.target.value })}
+          value={v.credentialId || ''}
+          onChange={(e) => setV({ ...v, credentialId: e.target.value })}
         >
           <option value="">（保持当前）</option>
-          {accounts.map((a) => (
+          {credentials.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name} {a.miUserId}
             </option>

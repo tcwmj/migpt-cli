@@ -1,7 +1,7 @@
 /* ══ ModalShell ══ */
 import { useState } from 'react'
 import {
-  type Account,
+  type Credential,
   type Robot,
   type Conversation,
   type SpeakerModel,
@@ -11,7 +11,7 @@ import {
 import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
 import type { ModalState } from '../ui-types.ts'
-import { AccountForm } from './modals/AccountForm.tsx'
+import { CredentialForm } from './modals/CredentialForm.tsx'
 import { DeviceBindForm } from './modals/DeviceBindForm.tsx'
 import { PwdForm } from './modals/PwdForm.tsx'
 import { RobotForm } from './modals/RobotForm.tsx'
@@ -21,7 +21,7 @@ import { buildModalPayload, initModalValues } from './modals/values.ts'
 
 export function ModalShell(props: {
   modal: ModalState
-  accounts: Account[]
+  credentials: Credential[]
   robots: Robot[]
   models: Model[]
   voices: Voice[]
@@ -82,7 +82,7 @@ export function ModalShell(props: {
         </h3>
         <div className="desc">{modal.desc}</div>
 
-        {modal.kind === 'account' && <AccountForm {...formProps} />}
+        {modal.kind === 'credential' && <CredentialForm {...formProps} />}
         {modal.kind === 'model' && <ModelForm {...formProps} />}
         {modal.kind === 'voice' && <VoiceForm {...formProps} />}
         {modal.kind === 'robot' && (
@@ -96,13 +96,13 @@ export function ModalShell(props: {
         {modal.kind === 'deviceBind' &&
           (noticeOnly ? (
             <div className="notice">
-              <I n="warning" size={15} /> 换绑账号、修改唤醒词或 did
+              <I n="warning" size={15} /> 换绑凭据、修改唤醒词或 did
               必须重启设备；角色内容、模型（模型 / 温度）热生效；语音支持热切。
             </div>
           ) : (
             <DeviceBindForm
               {...formProps}
-              accounts={props.accounts}
+              credentials={props.credentials}
               robots={props.robots}
               models={props.models}
               voices={props.voices}

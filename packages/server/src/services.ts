@@ -2,14 +2,14 @@
 import { createHash } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import {
-  type Account,
+  type Credential,
   type Robot,
   type Device,
   type CloudDevice,
   type DeviceBindings,
 } from './types.js'
 import {
-  getAccounts,
+  getCredentials,
   getRobots,
   getModels,
   getVoices,
@@ -19,11 +19,11 @@ import {
 } from './store.js'
 import { type GuiConfig } from '@migptgui/options'
 
-// ── 小米 micoapi：凭 小米ID + passToken 拉取账号下音箱设备列表 ──
-// 协议（已用真实账号冒烟验证）：
+// ── 小米 micoapi：凭 小米ID + passToken 拉取凭据下音箱设备列表 ──
+// 协议（已用真实凭据冒烟验证）：
 //   ① serviceLogin?sid=micoapi&_json=true 携带 cookie{userId, passToken} 免密建立登录态
 //   ② clientSign=SHA1(nonce+ssecurity) 换取 serviceToken
-//   ③ api2.mina.mi.com/admin/v2/device_list 返回账号下小爱音箱列表
+//   ③ api2.mina.mi.com/admin/v2/device_list 返回凭据下小爱音箱列表
 // GET 请求文本响应（全局 fetch）；redirect 手动处理——换取 serviceToken 的
 // 跳转必须停在 302 上读 set-cookie，默认跟随会丢失目标 Cookie。
 async function _fetchText(
@@ -141,7 +141,7 @@ export async function pullMicoDevices(
  */
 export function buildConfigFromRobot(
   robot: Robot,
-  account?: Account,
+  credential?: Credential,
 ): GuiConfig {
   return {
     config: {
@@ -150,14 +150,19 @@ export function buildConfigFromRobot(
         profile: robot.profile.replace(/\\n/g, '\n'),
       },
       master: {
-        name: '主人',
-        profile: '',
+        // 角色可自定义对用户的称呼与人设；未填写时回落到 mi-gpt 惯例值
+        name: robot.masterName || '主人',
+        profile: (robot.masterProfile || '').replace(/\\n/g, '\n'),
       },
+      // 系统提示词三态：undefined 时整键不写，交给 mi-gpt 回落内置默认模板
+      ...(robot.systemTemplate === undefined
+        ? {}
+        : { systemTemplate: robot.systemTemplate }),
       speaker: {
-        userId: account?.miUserId || '',
+        userId: credential?.miUserId || '',
         // 直接使用 passToken 登录，绕过密码验证
         // mi-service-lite 会先用 passToken 尝试，有效则不需要 password
-        password: account?.miPassword || 'passToken-mode',
+        password: 'passToken-mode',
         switchSpeakerKeywords: ['把声音换成'],
         callAIKeywords: robot.callAIKeywords,
         wakeUpKeywords: robot.wakeUpKeywords,
@@ -181,16 +186,17 @@ export function buildConfigFromRobot(
   }
 }
 
-/** 解析一台设备的完整绑定链（账号/角色/模型/语音/会话 + 来源标注） */
+/** 解析一台设备的完整绑定链（凭据/角色/模型/语音/会话 + 来源标注） */
 export async function resolveBindings(meta: Device): Promise<DeviceBindings> {
   // 单次并行读取全部关联集合
-  const [accounts, robots, models, voices] = await Promise.all([
-    getAccounts(),
+  const [credentials, robots, models, voices] = await Promise.all([
+    getCredentials(),
     getRobots(),
     getModels(),
     getVoices(),
   ])
-  const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
+  const credential =
+    credentials.find((a) => a.id === meta.credentialId) || credentials[0]
   const robot = meta.robotId
     ? robots.find((r) => r.id === meta.robotId)
     : undefined
@@ -240,10 +246,10 @@ export async function resolveBindings(meta: Device): Promise<DeviceBindings> {
 
   const rows = [
     {
-      key: 'account' as const,
-      label: '云端账号',
-      name: account?.name || '未绑定',
-      detail: account?.miUserId,
+      key: 'credential' as const,
+      label: '云端凭据',
+      name: credential?.name || '未绑定',
+      detail: credential?.miUserId,
       source: 'device' as const,
       sourceLabel: '设备指定',
     },
@@ -285,7 +291,7 @@ export async function resolveBindings(meta: Device): Promise<DeviceBindings> {
     },
   ]
 
-  return { account, robot, model, voice, conversation, rows }
+  return { credential, robot, model, voice, conversation, rows }
 }
 
 /**
@@ -302,12 +308,12 @@ export async function buildRunConfig(
     resolveBindings(meta),
     getSpeakerModelByRef(meta.speakerModel),
   ])
-  const { account, robot, model, voice, conversation } = bindings
+  const { credential, robot, model, voice, conversation } = bindings
   // 对话角色必填：缺失说明设备未绑定角色（或角色已被删除），无法编译人设配置
   if (!robot) {
     throw new Error('设备未绑定对话角色，无法编译运行配置')
   }
-  const config = buildConfigFromRobot(robot, account)
+  const config = buildConfigFromRobot(robot, credential)
 
   // 保留已有设备的 GUI 字段（publicURL / ttsProvider / speakerModel 等）
   if (existingConfig?.gui) {

@@ -20,7 +20,7 @@ jest.mock('../paths.js', () => {
     root,
     devicesRoot: p.join(root, 'devices'),
     credentialsFile: p.join(root, 'credentials.json'),
-    accountsFile: p.join(root, 'accounts.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     robotsFile: p.join(root, 'robots.json'),
     modelsFile: p.join(root, 'models.json'),
     voicesFile: p.join(root, 'voices.json'),
@@ -37,11 +37,12 @@ jest.mock('../paths.js', () => {
 })
 
 import * as paths from '../paths.js'
-import type { Account, Device, Model } from '../types.js'
+import type { Credential, Device, Model } from '../types.js'
 import { DataValidationError } from './schemas.js'
 import {
   BACKUP_FORMAT,
   BACKUP_FORMAT_VERSION,
+  BACKUP_ZIP_ENTRY,
   applyBackup,
   assertBundle,
   buildBundle,
@@ -58,7 +59,7 @@ const write = async (file: string, data: unknown) => {
 const read = async <T>(file: string): Promise<T> =>
   JSON.parse(await fs.readFile(file, 'utf-8')) as T
 
-const account = (id: string, name: string, passToken?: string): Account => ({
+const cred = (id: string, name: string, passToken?: string): Credential => ({
   id,
   name,
   miUserId: `u-${id}`,
@@ -108,18 +109,18 @@ afterAll(async () => {
 
 describe('buildBundle · 导出', () => {
   test('未脱敏：保留明文凭据', async () => {
-    await write(paths.accountsFile, [account('a', '一', 'tk-1')])
+    await write(paths.credentialsFile, [cred('a', '一', 'tk-1')])
     await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-1')])
     const bundle = await buildBundle(false)
     expect(bundle.format).toBe(BACKUP_FORMAT)
     expect(bundle.formatVersion).toBe(BACKUP_FORMAT_VERSION)
     expect(bundle.redacted).toBe(false)
-    expect(bundle.data.accounts[0].passToken).toBe('tk-1')
+    expect(bundle.data.credentials[0].passToken).toBe('tk-1')
     expect(bundle.data.models[0].apiKey).toBe('sk-1')
   })
 
   test('脱敏：抹除账号/模型/设备/语音/覆盖补丁中的明文凭据', async () => {
-    await write(paths.accountsFile, [account('a', '一', 'tk-1')])
+    await write(paths.credentialsFile, [cred('a', '一', 'tk-1')])
     await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-1')])
     await write(paths.voicesFile, [
       {
@@ -141,7 +142,7 @@ describe('buildBundle · 导出', () => {
 
     const bundle = await buildBundle(true)
     expect(bundle.redacted).toBe(true)
-    const a = bundle.data.accounts[0]
+    const a = bundle.data.credentials[0]
     expect(a.passToken).toBeUndefined()
     expect(a.hasPassToken).toBe(true)
     expect(bundle.data.models[0].apiKey).toBe('')
@@ -211,11 +212,11 @@ describe('applyBackup · 导入', () => {
   })
 
   test('未脱敏包：同 id 覆盖、缺失补齐', async () => {
-    await write(paths.accountsFile, [account('a', '旧名', 'tk-old')])
+    await write(paths.credentialsFile, [cred('a', '旧名', 'tk-old')])
     const bundle = await buildBundle(false)
-    bundle.data.accounts = [account('a', '新名', 'tk-new'), account('b', '乙')]
+    bundle.data.credentials = [cred('a', '新名', 'tk-new'), cred('b', '乙')]
     await applyBackup(bundle)
-    const list = await read<Account[]>(paths.accountsFile)
+    const list = await read<Credential[]>(paths.credentialsFile)
     expect(list.map((x) => [x.id, x.name, x.passToken])).toEqual([
       ['a', '新名', 'tk-new'],
       ['b', '乙', undefined],
@@ -223,14 +224,14 @@ describe('applyBackup · 导入', () => {
   })
 
   test('脱敏包：按 id 保留本机既有凭据', async () => {
-    await write(paths.accountsFile, [account('a', '一', 'tk-old')])
+    await write(paths.credentialsFile, [cred('a', '一', 'tk-old')])
     await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-old')])
     const redacted = await buildBundle(true)
     // 本机凭据在导出后被更新
-    await write(paths.accountsFile, [account('a', '一', 'tk-new')])
+    await write(paths.credentialsFile, [cred('a', '一', 'tk-new')])
     await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-new')])
     await applyBackup(redacted)
-    expect((await read<Account[]>(paths.accountsFile))[0].passToken).toBe(
+    expect((await read<Credential[]>(paths.credentialsFile))[0].passToken).toBe(
       'tk-new',
     )
     expect((await read<Model[]>(paths.modelsFile))[0].apiKey).toBe('sk-new')
@@ -339,7 +340,15 @@ describe('createBackupFile / listBackups', () => {
     expect(path.dirname(file)).toBe(paths.backupsRoot)
     const files = await listBackups()
     expect(files).toHaveLength(1)
-    const bundle = await read<{ format: string; redacted: boolean }>(file)
+    // 备份文件为 ZIP：解包读出内嵌 backup.json 再校验
+    const { readZip } = await import('./zip.js')
+    const entries = readZip(await fs.readFile(file))
+    const data = entries.find((e) => e.name === BACKUP_ZIP_ENTRY)
+    expect(data).toBeDefined()
+    const bundle = JSON.parse(data!.data.toString('utf8')) as {
+      format: string
+      redacted: boolean
+    }
     expect(bundle.format).toBe(BACKUP_FORMAT)
     expect(bundle.redacted).toBe(false)
   })
@@ -348,7 +357,7 @@ describe('createBackupFile / listBackups', () => {
     await fs.mkdir(paths.backupsRoot, { recursive: true })
     for (let i = 0; i < 5; i++) {
       await fs.writeFile(
-        path.join(paths.backupsRoot, `backup-old-${i}.json`),
+        path.join(paths.backupsRoot, `backup-old-${i}.zip`),
         '{}',
       )
     }

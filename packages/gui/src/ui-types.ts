@@ -1,6 +1,6 @@
 /* ── App 内多处共用的 UI 状态类型 ── */
 export interface ModalState {
-  kind: 'account' | 'model' | 'voice' | 'robot' | 'pwd' | 'deviceBind'
+  kind: 'credential' | 'model' | 'voice' | 'robot' | 'pwd' | 'deviceBind'
   title: string
   desc: string
   payload?: unknown

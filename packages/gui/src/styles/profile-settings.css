@@ -146,6 +146,19 @@
   color: var(--accent);
 }
 
+.pi.click.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.pi.click.disabled:hover {
+  background: none;
+}
+
+.pi.click.disabled:hover .val {
+  color: var(--ink-3);
+}
+
 .pi.danger .lbl {
   color: #c0392b;
 }

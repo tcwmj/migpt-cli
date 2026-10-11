@@ -1,13 +1,12 @@
 import { GuiConfig } from '@migptgui/options'
 import type { TTSConfig } from 'mi-gpt-tts'
 import type {
-  Account,
+  Credential,
   DeviceBindings,
   Device,
   CloudDevice,
   Robot,
   Conversation as ContractRoom,
-  Credential,
   SpeakerModel,
   Model,
   Voice,
@@ -17,13 +16,12 @@ const API = '/api/v1'
 
 // 契约单一事实源：@migptgui/contracts（与 server 共享，修改契约两端同时生效）
 export type {
-  Account,
+  Credential,
   BindingRow,
   DeviceBindings,
   Device,
   CloudDevice,
   Robot,
-  Credential,
   SpeakerModel,
   Model,
   Voice,
@@ -126,49 +124,39 @@ export interface DeviceDetail {
   bindings: DeviceBindings
 }
 
-// ── 状态与账号 ───────────────────────────────────────────────
+// ── 状态 ─────────────────────────────────────────────────────
 export const getStatusAll = () =>
   fetch(api('/status'), { headers: headers(false) }).then((r) =>
     j<{ devices: DeviceRow[] }>(r),
   )
 
-export const getCredential = () =>
-  fetch(api('/settings'), { headers: headers(false) }).then((r) =>
-    j<Credential>(r),
+// ── 小米凭据（多凭据；原「云端账号 Account」实体并入）──────────────
+export const getCredentials = () =>
+  fetch(api('/credentials'), { headers: headers(false) }).then((r) =>
+    j<Credential[]>(r),
   )
 
-export const saveCredential = (s: Credential) =>
-  fetch(api('/settings'), {
-    method: 'PUT',
-    headers: headers(true),
-    body: JSON.stringify(s),
-  }).then((r) => j<{ success: boolean }>(r))
+export const createCredential = (a: Partial<Credential>) =>
+  post<Credential>(api('/credentials'), a)
 
-// ── 云端账号（多账号）─────────────────────────────────────────
-export const getAccounts = () =>
-  fetch(api('/accounts'), { headers: headers(false) }).then((r) =>
-    j<Account[]>(r),
-  )
-
-export const createAccount = (a: Partial<Account>) =>
-  post<Account>(api('/accounts'), a)
-
-export const updateAccount = (id: string, a: Partial<Account>) =>
-  fetch(api(`/accounts/${id}`), {
+export const updateCredential = (id: string, a: Partial<Credential>) =>
+  fetch(api(`/credentials/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(a),
-  }).then((r) => j<Account>(r))
+  }).then((r) => j<Credential>(r))
 
-export const deleteAccount = (id: string) =>
-  fetch(api(`/accounts/${id}`), {
+export const deleteCredential = (id: string) =>
+  fetch(api(`/credentials/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
-// 凭 小米ID + passToken 拉取账号下音箱设备列表（三步连接 Step2 与设备添加复用）
-export const pullDevices = (accountId: string) =>
-  post<{ devices: CloudDevice[] }>(api(`/accounts/${accountId}/pull-devices`))
+// 凭 小米ID + passToken 拉取凭据下音箱设备列表（五步连接 Step2 与设备添加复用）
+export const pullDevices = (credentialId: string) =>
+  post<{ devices: CloudDevice[] }>(
+    api(`/credentials/${credentialId}/pull-devices`),
+  )
 
 // ── AI 角色 ─────────────────────────────────────────────────
 export const getRobots = () =>
@@ -320,7 +308,7 @@ export const createDevice = (d: {
   did: string
   speakerModel?: string
   robotId: string
-  accountId?: string
+  credentialId?: string
   modelIds?: string[]
   voiceId?: string
 }) => post<{ id: string }>(api('/devices'), d)
@@ -578,4 +566,70 @@ export async function getStats(params: {
   }
 
   return response.json()
+}
+
+// ── 数据备份：导出 / 导入（个人中心 · 快速备份与恢复）─────────────
+/** 导入结果：各实体恢复条目数（与服务端 ImportResult 对齐） */
+export interface ImportCounts {
+  credentials: number
+  robots: number
+  models: number
+  voices: number
+  speakerModels: number
+  conversations: number
+  devices: number
+}
+
+/** 从 Content-Disposition 解析服务端生成的导出文件名（含兜底） */
+function parseFilename(cd: string | null): string {
+  const m = cd && /filename="?([^";]+)"?/.exec(cd)
+  return m
+    ? m[1]
+    : `migptgui-export-${new Date().toISOString().replace(/[:.]/g, '-')}.zip`
+}
+
+/**
+ * 导出用户数据（全明文完整包：含 passToken / apiKey / ttsSecret 等凭据，
+ * 导入新环境即可直接运行；文件须妥善保管、勿随意分享）。
+ * 服务端直接回流 JSON 附件，这里触发浏览器下载。
+ */
+export async function exportBackupData(): Promise<void> {
+  const res = await fetch(api('/backup/export'), { headers: headers(false) })
+  if (!res.ok) throw new Error('导出失败：HTTP ' + res.status)
+  const blob = await res.blob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = parseFilename(res.headers.get('Content-Disposition'))
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(a.href)
+}
+
+/**
+ * 导入备份包（ZIP 或裸 JSON 二进制原样上传，由服务端做完整格式与 CRC 校验）。
+ * 浏览器端只做轻量预检：首字节判断是 zip（PK..）还是 JSON（'{'），
+ * 不合法直接本地报错，避免把明显错误的文件传给服务端。
+ * 包非法时服务端回 400，错误经 j() 透出 message。
+ */
+export async function importBackupData(
+  file: File,
+): Promise<{ imported: ImportCounts }> {
+  const buf = await file.arrayBuffer()
+  const bytes = new Uint8Array(buf)
+  const isZip = bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b
+  const isJson =
+    !isZip &&
+    String.fromCharCode(...bytes.subarray(0, 32))
+      .trimStart()
+      .startsWith('{')
+  if (!isZip && !isJson)
+    throw new Error(
+      '文件既不是 zip 也不是 JSON 备份包，请选择本面板导出的备份文件',
+    )
+  return fetch(api('/backup/import'), {
+    method: 'POST',
+    headers: { 'Content-Type': isZip ? 'application/zip' : 'application/json' },
+    body: buf,
+  }).then((r) => j<{ success: boolean; imported: ImportCounts }>(r))
 }

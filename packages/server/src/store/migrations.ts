@@ -28,7 +28,7 @@ import {
   writeJsonChecked,
 } from './schemas.js'
 import {
-  getAccounts,
+  getCredentials,
   getRobots,
   getConversations,
   getModels,
@@ -52,7 +52,7 @@ export interface Migration {
 }
 
 /** 当前数据结构版本：新增迁移时同步 +1 */
-export const DATA_VERSION = 6
+export const DATA_VERSION = 7
 
 /** 迁移：旧版设备会话字段 → Conversation 独立实体（幂等；同名归并，多设备共用） */
 export async function migrateConversations(): Promise<void> {
@@ -457,14 +457,101 @@ export async function migrateEntityRenames(): Promise<void> {
   await migrateOverridesEntity()
 }
 
+/**
+ * v7：账号（accounts）并入凭据（credentials）。
+ * 存储收敛为 credentials.json（凭据列表，结构同原 accounts）：
+ *  · accounts.json 存在 → 作为列表基底；
+ *  · 旧 credentials.json 若是「单对象」（miUserId/passToken，settings 时代形态）
+ *    且有值 → 前插为「默认凭据」；已是数组或空对象则跳过；
+ *  · 逐条删除 miPassword / hasMiPassword（异地验证下密码登录不可用，
+ *    passToken 只能人工获取填入，密码落盘纯属多余风险）；
+ *  · 设备 meta.accountId → credentialId；overrides 分组 accounts 键移除（凭据无内置语义）。
+ * 幂等：迁移完成后 accounts.json 已删除、credentials.json 为数组、无旧键，重跑无副作用。
+ * 注意：改名类迁移必须挂在版本判断之前（存量版本号可能已是最新但内容仍是旧名）。
+ */
+export async function migrateAccountToCredential(): Promise<void> {
+  const accountsPath = path.join(root, 'accounts.json')
+  const accountsRaw = await readJson<unknown>(accountsPath, null)
+  const oldCred = await readJson<unknown>(credentialsFile, null)
+  const credIsArray = Array.isArray(oldCred)
+  const credObj =
+    oldCred && typeof oldCred === 'object' && !Array.isArray(oldCred)
+      ? (oldCred as Record<string, unknown>)
+      : null
+  const accountsArr = Array.isArray(accountsRaw) ? accountsRaw : null
+
+  // 无任何旧形态痕迹：accounts.json 不存在且 credentials.json 已是数组（或不存在）
+  const legacyCredObject =
+    credObj !== null &&
+    (credObj.miUserId !== undefined ||
+      credObj.passToken !== undefined ||
+      Object.keys(credObj).length > 0)
+  if (accountsArr === null && !legacyCredObject) {
+    // 仍需检查设备 meta 是否残留 accountId（v6 前数据可能停在任意版本号）
+    await migrateDeviceCredentialRefs()
+    return
+  }
+
+  const list: Record<string, unknown>[] = (accountsArr ?? []).map((a) => {
+    const row = a as Record<string, unknown>
+    delete row.miPassword
+    delete row.hasMiPassword
+    return row
+  })
+  if (legacyCredObject && credObj) {
+    const dup = list.some(
+      (m) =>
+        m.miUserId === credObj.miUserId && m.passToken === credObj.passToken,
+    )
+    if (!dup && (credObj.miUserId || credObj.passToken)) {
+      list.unshift({
+        id: nanoid(8),
+        name: '默认凭据',
+        miUserId: credObj.miUserId || '',
+        passToken: credObj.passToken,
+        createdAt: Date.now(),
+      })
+    }
+  }
+  // 新数组形态且无 accounts.json：不重写（避免无谓写盘与竞态）
+  if (accountsArr !== null || legacyCredObject) {
+    await writeJson(
+      credentialsFile,
+      credIsArray && accountsArr === null ? oldCred : list,
+    )
+    logger.info(
+      `数据迁移（账号→凭据）：credentials.json 收敛为 ${list.length} 条凭据列表`,
+    )
+  }
+  if (accountsArr !== null) {
+    await fs.rm(accountsPath, { force: true })
+    logger.info(
+      '数据迁移（账号→凭据）：accounts.json 已删除（并入 credentials.json）',
+    )
+  }
+  await migrateDeviceCredentialRefs()
+}
+
+/** 设备 meta.accountId → credentialId（幂等；独立于版本判断，兼容任意存量版本） */
+async function migrateDeviceCredentialRefs(): Promise<void> {
+  const ids = await fs.readdir(devicesRoot).catch(() => [] as string[])
+  for (const id of ids) {
+    const file = path.join(devicesRoot, id, 'meta.json')
+    const meta = await readJson<Record<string, unknown> | null>(file, null)
+    if (!meta || typeof meta !== 'object') continue
+    const changed = renameKey(meta, 'accountId', 'credentialId')
+    if (changed) await writeJson(file, meta)
+  }
+}
+
 export const migrations: Migration[] = [
   {
     version: 1,
     description:
       '基线：旧 credentials.json → 多账号、设备会话 → Conversation 实体',
     up: async () => {
-      // getAccounts 内部含 credentials.json → 首个账号的兼容迁移
-      await getAccounts()
+      // 旧 credentials.json → 首个账号的兼容已由「账号并入凭据」迁移统一覆盖，
+      // 此处只保留会话迁移
       await migrateConversations()
     },
   },
@@ -497,6 +584,12 @@ export const migrations: Migration[] = [
     description:
       '实体与字段更名：ThinkService→Model、VoiceService→Voice、Room→Conversation、Settings→Credential，存储文件与设备/覆盖字段同步',
     up: migrateEntityRenames,
+  },
+  {
+    version: 7,
+    description:
+      '账号并入凭据：accounts.json 合并为 credentials.json 列表，删除 miPassword，设备 accountId→credentialId',
+    up: migrateAccountToCredential,
   },
 ]
 

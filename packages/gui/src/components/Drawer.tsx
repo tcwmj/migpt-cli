@@ -1,7 +1,7 @@
 /* ══ Drawer ══ */
 import { useState } from 'react'
 import {
-  type Account,
+  type Credential,
   type BindingRow,
   type DeviceDetail,
   type Robot,
@@ -20,7 +20,7 @@ export function Drawer(props: {
   robots: Robot[]
   models: Model[]
   voices: Voice[]
-  accounts: Account[]
+  credentials: Credential[]
   speakerModels: SpeakerModel[]
   conversations: Conversation[]
   onClose: () => void
@@ -41,7 +41,7 @@ export function Drawer(props: {
   const m = detail.meta
   const rows: BindingRow[] = detail.bindings?.rows || []
   const rowIcon = (key: BindingRow['key']) =>
-    key === 'account'
+    key === 'credential'
       ? 'user'
       : key === 'robot'
         ? 'chat'
@@ -134,10 +134,10 @@ export function Drawer(props: {
                 </span>
               </div>
               <div className="kr">
-                <span className="k">所属账号</span>
+                <span className="k">所属凭据</span>
                 <span className="vv">
-                  {props.accounts.find((a) => a.id === m.accountId)?.name ||
-                    '未绑定'}
+                  {props.credentials.find((a) => a.id === m.credentialId)
+                    ?.name || '未绑定'}
                 </span>
               </div>
               <div className="kr">

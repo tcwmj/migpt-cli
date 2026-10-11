@@ -19,7 +19,7 @@ jest.mock('../paths.js', () => {
     root,
     devicesRoot: p.join(root, 'devices'),
     credentialsFile: p.join(root, 'credentials.json'),
-    accountsFile: p.join(root, 'accounts.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     robotsFile: p.join(root, 'robots.json'),
     modelsFile: p.join(root, 'models.json'),
     voicesFile: p.join(root, 'voices.json'),
@@ -73,13 +73,26 @@ const makeRes = () => {
 }
 
 beforeEach(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  // maxRetries：Windows 下 pino-roll 日志流可能仍在异步落盘，
+  // 立即递归删除会撞 ENOTEMPTY/EBUSY，交给 fs.rm 内置重试
+  const rmOpts = {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  }
+  await fs.rm(paths.root, rmOpts)
   await fs.mkdir(paths.root, { recursive: true })
   jest.mocked(listDevices).mockResolvedValue([])
 })
 
 afterAll(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  await fs.rm(paths.root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  })
 })
 
 describe('pick', () => {

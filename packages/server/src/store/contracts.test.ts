@@ -6,11 +6,10 @@ jest.mock('../store.js', () => ({ listDevices: jest.fn(async () => []) }))
 
 import { ENTITY_FIELDS } from '@migptgui/contracts'
 import {
-  accountSchema,
+  credentialSchema,
   deviceSchema,
   robotSchema,
   conversationSchema,
-  credentialSchema,
   speakerModelSchema,
   modelSchema,
   voiceSchema,
@@ -24,10 +23,9 @@ import {
   VOICE_FIELDS,
 } from '../routes/shared.js'
 import {
-  redactAccount,
+  redactCredential,
   redactModel,
   redactDevice,
-  redactCredential,
   redactVoice,
   redactGuiConfig,
 } from '../redact.js'
@@ -40,9 +38,8 @@ const schemaKeys = (schema: { shape: Record<string, unknown> }) =>
 describe('契约 ↔ 存储 schema 一致性', () => {
   test('各实体 zod schema 字段与契约清单严格一致', () => {
     expect(schemaKeys(credentialSchema)).toEqual(
-      sorted(ENTITY_FIELDS.credentials),
+      sorted(ENTITY_FIELDS.credential),
     )
-    expect(schemaKeys(accountSchema)).toEqual(sorted(ENTITY_FIELDS.account))
     expect(schemaKeys(robotSchema)).toEqual(sorted(ENTITY_FIELDS.robot))
     expect(schemaKeys(modelSchema)).toEqual(sorted(ENTITY_FIELDS.model))
     expect(schemaKeys(voiceSchema)).toEqual(sorted(ENTITY_FIELDS.voice))
@@ -79,15 +76,15 @@ describe('契约 ↔ 路由写白名单一致性', () => {
 const SECRET = 'SUPER_SECRET_VALUE_12345'
 
 describe('响应脱敏一致性', () => {
-  test('账号凭据（passToken / miPassword）不回传明文', () => {
+  test('凭据 passToken 不回传明文', () => {
     const out = JSON.stringify(
-      redactAccount({
+      redactCredential({
         id: 'a',
         name: 'x',
         miUserId: 'u',
         passToken: SECRET,
-        miPassword: SECRET,
-      } as never),
+        createdAt: 1,
+      }),
     )
     expect(out).not.toContain(SECRET)
   })
@@ -102,13 +99,6 @@ describe('响应脱敏一致性', () => {
   test('设备 ttsSecret 不回传明文', () => {
     const out = JSON.stringify(
       redactDevice({ id: 'd', alias: 'x', ttsSecret: SECRET } as never),
-    )
-    expect(out).not.toContain(SECRET)
-  })
-
-  test('旧版 credentials passToken 不回传明文', () => {
-    const out = JSON.stringify(
-      redactCredential({ miUserId: 'u', passToken: SECRET } as never),
     )
     expect(out).not.toContain(SECRET)
   })
@@ -143,7 +133,6 @@ describe('响应脱敏一致性', () => {
     // 与备份导出脱敏（SECRET_KEYS）对应的凭据字段集：任一 redact* 函数都必须抹除这些字段。
     const secretKeys = [
       'passToken',
-      'miPassword',
       'apiKey',
       'ttsSecret',
       'trustedToken',

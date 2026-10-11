@@ -7,7 +7,7 @@ import { PROVIDER_BASE_URLS } from '@migptgui/contracts'
  */
 export type View =
   | 'home'
-  | 'accounts'
+  | 'credentials'
   | 'devices'
   | 'robots'
   | 'conversations'
@@ -22,7 +22,7 @@ export type View =
 
 export const TITLES: Record<View, string> = {
   home: '首页',
-  accounts: '云端账号',
+  credentials: '小米凭据',
   devices: '设备服务',
   robots: '对话角色',
   conversations: '会话',
@@ -38,8 +38,8 @@ export const TITLES: Record<View, string> = {
 
 /** 各菜单页顶部搜索输入框的提示信息（切换菜单后动态切换） */
 export const SEARCH_HINT: Record<View, string> = {
-  home: '搜索账号 / 设备 / 角色 / 模型 / 语音',
-  accounts: '搜索账号名称 / 小米 ID',
+  home: '搜索凭据 / 设备 / 角色 / 模型 / 语音',
+  credentials: '搜索凭据名称 / 小米 ID',
   devices: '搜索设备名称 / did',
   robots: '搜索角色名称 / 人设关键词',
   conversations: '搜索会话名称 / 描述',

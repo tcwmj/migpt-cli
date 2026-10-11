@@ -21,7 +21,7 @@ jest.mock('../paths.js', () => {
     root,
     devicesRoot: p.join(root, 'devices'),
     credentialsFile: p.join(root, 'credentials.json'),
-    accountsFile: p.join(root, 'accounts.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     robotsFile: p.join(root, 'robots.json'),
     modelsFile: p.join(root, 'models.json'),
     voicesFile: p.join(root, 'voices.json'),
@@ -40,8 +40,8 @@ jest.mock('../paths.js', () => {
 import * as paths from '../paths.js'
 import {
   assertUniqueName,
-  getAccounts,
-  getAccountById,
+  getCredentials,
+  getCredentialById,
   getRobots,
   getDevice,
   listDevices,
@@ -59,12 +59,24 @@ beforeAll(() => {
 })
 
 beforeEach(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  // maxRetries：Windows 下 pino-roll 日志流可能仍在异步落盘，
+  // 立即递归删除会撞 ENOTEMPTY/EBUSY，交给 fs.rm 内置重试
+  await fs.rm(paths.root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  })
   await fs.mkdir(paths.root, { recursive: true })
 })
 
 afterAll(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  await fs.rm(paths.root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  })
 })
 
 describe('assertUniqueName', () => {
@@ -93,47 +105,39 @@ describe('assertUniqueName', () => {
   })
 })
 
-describe('getAccounts / getAccountById', () => {
+describe('getCredentials / getCredentialById', () => {
   test('无任何文件时返回空数组', async () => {
-    expect(await getAccounts()).toEqual([])
+    expect(await getCredentials()).toEqual([])
   })
 
-  test('从旧 credentials.json 迁移出首个账号并落盘', async () => {
+  test('凭据文件为列表时直接读取', async () => {
+    await write(paths.credentialsFile, [
+      { id: 'a1', name: '主凭据', miUserId: 'u9', createdAt: 1 },
+    ])
+    const credentials = await getCredentials()
+    expect(credentials).toEqual([
+      { id: 'a1', name: '主凭据', miUserId: 'u9', createdAt: 1 },
+    ])
+  })
+
+  test('旧单对象形态凭据读为空（兼容归并属迁移层职责）', async () => {
     await write(paths.credentialsFile, { miUserId: 'u1', passToken: 'tk' })
-    const accounts = await getAccounts()
-    expect(accounts).toHaveLength(1)
-    expect(accounts[0]).toMatchObject({
-      name: '默认账号',
-      miUserId: 'u1',
-      passToken: 'tk',
-    })
-    // 迁移结果已写回 accounts.json
-    expect(await getAccounts()).toEqual(accounts)
+    // getCredentials 只认数组；对象形态由 runMigrations 归并为列表
+    expect(await getCredentials()).toEqual([])
   })
 
-  test('已有 accounts.json 时直接返回，不再迁移', async () => {
-    await write(paths.accountsFile, [
-      { id: 'a1', name: '主账号', miUserId: 'u9', createdAt: 1 },
-    ])
-    await write(paths.credentialsFile, { miUserId: 'old' })
-    const accounts = await getAccounts()
-    expect(accounts).toEqual([
-      { id: 'a1', name: '主账号', miUserId: 'u9', createdAt: 1 },
-    ])
-  })
-
-  test('getAccountById：命中 id / 回落首个 / 空列表为 undefined', async () => {
-    await write(paths.accountsFile, [
+  test('getCredentialById：命中 id / 回落首个 / 空列表为 undefined', async () => {
+    await write(paths.credentialsFile, [
       { id: 'a1', name: '一', miUserId: 'u1', createdAt: 1 },
       { id: 'a2', name: '二', miUserId: 'u2', createdAt: 2 },
     ])
-    expect((await getAccountById('a2'))?.name).toBe('二')
-    expect((await getAccountById('missing'))?.name).toBe('一')
-    expect((await getAccountById())?.name).toBe('一')
+    expect((await getCredentialById('a2'))?.name).toBe('二')
+    expect((await getCredentialById('missing'))?.name).toBe('一')
+    expect((await getCredentialById())?.name).toBe('一')
   })
 
-  test('账号为空时 getAccountById 返回 undefined', async () => {
-    expect(await getAccountById()).toBeUndefined()
+  test('账号为空时 getCredentialById 返回 undefined', async () => {
+    expect(await getCredentialById()).toBeUndefined()
   })
 })
 

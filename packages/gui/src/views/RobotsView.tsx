@@ -1,10 +1,17 @@
 /* ══ RobotsView ══ */
 import { useEffect, useState } from 'react'
 import { type Robot, type Conversation, type DeviceRow } from '../apis.ts'
-import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
+import {
+  applyRobotTemplate,
+  Button,
+  Chip,
+  EmptyState,
+  TemplatePicker,
+} from '../components/atoms/index.ts'
 import { RobotDetail } from './robots/RobotDetail.tsx'
 import { RobotEditForm } from './robots/RobotEditForm.tsx'
 import { RobotList } from './robots/RobotList.tsx'
+import { type RobotTemplate } from '@migptgui/contracts'
 
 export function RobotsView(props: {
   robots: Robot[]
@@ -23,6 +30,8 @@ export function RobotsView(props: {
   const [draft, setDraft] = useState<Robot | null>(sel)
   const [edit, setEdit] = useState(false)
   const [creating, setCreating] = useState(false)
+  /** 新建第一步：模板选择态（选完或跳过后进入表单） */
+  const [picking, setPicking] = useState(false)
   const blankRobot = (): Robot => ({
     id: '',
     name: '',
@@ -56,17 +65,30 @@ export function RobotsView(props: {
     setSelId(id)
     setCreating(false)
     setEdit(false)
+    setPicking(false)
   }
   const startCreate = () => {
     setSelId(null)
     setCreating(true)
     setEdit(true)
+    setPicking(true) // 先进模板选择态
     setDraft(blankRobot())
   }
+  /** 选中模板：套用后进入表单，模板名作为角色称呼的默认值 */
+  const pickTemplate = (t: RobotTemplate) => {
+    const base = draft || blankRobot()
+    const next = applyRobotTemplate(t, base)
+    if (!next.name) next.name = t.name
+    setDraft(next)
+    setPicking(false)
+  }
+  /** 跳过模板：直接进入空白表单 */
+  const skipTemplate = () => setPicking(false)
   const cancelEdit = () => {
     if (creating) {
       setCreating(false)
       setEdit(false)
+      setPicking(false)
       if (!sel) setSelId(props.robots[0]?.id || null)
       else setDraft(sel)
     } else {
@@ -81,6 +103,7 @@ export function RobotsView(props: {
         setSelId(c.id)
         setCreating(false)
         setEdit(false)
+        setPicking(false)
       }
     } else {
       props.onSave(draft)
@@ -88,20 +111,28 @@ export function RobotsView(props: {
     }
   }
 
+  const emptyState = (
+    <EmptyState
+      icon="chat"
+      title="还没有对话角色"
+      desc="创建角色后，可在设备向导中为每台音箱选择角色性格。"
+      action={
+        <Button variant="primary" icon="plus" onClick={startCreate}>
+          新建
+        </Button>
+      }
+    />
+  )
+
   if (props.robots.length === 0) {
     return (
       <section data-view="robots" className="on">
         <div className="panel">
-          <EmptyState
-            icon="chat"
-            title="还没有对话角色"
-            desc="创建角色后，可在设备向导中为每台音箱选择角色性格。"
-            action={
-              <Button variant="primary" icon="plus" onClick={startCreate}>
-                新建
-              </Button>
-            }
-          />
+          {picking && draft ? (
+            <TemplatePicker onPick={pickTemplate} onSkip={skipTemplate} />
+          ) : (
+            emptyState
+          )}
         </div>
       </section>
     )
@@ -133,7 +164,14 @@ export function RobotsView(props: {
             onNavigate={props.onNavigate}
           />
         )}
-        {draft && (edit || creating) && (
+        {creating && picking && (
+          <TemplatePicker
+            key={'tpl-new'}
+            onPick={pickTemplate}
+            onSkip={skipTemplate}
+          />
+        )}
+        {draft && (edit || creating) && !picking && (
           <RobotEditForm
             key={'robot-e-' + (creating ? 'new' : sel?.id || 'new')}
             draft={draft}
@@ -141,6 +179,7 @@ export function RobotsView(props: {
             usage={usage}
             conversations={props.conversations}
             setF={setF}
+            onReplace={setDraft}
             onCancel={cancelEdit}
             onSave={doSave}
           />

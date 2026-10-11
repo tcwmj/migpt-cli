@@ -19,6 +19,7 @@ jest.mock('../paths.js', () => {
     root,
     devicesRoot: p.join(root, 'devices'),
     credentialsFile: p.join(root, 'credentials.json'),
+    // accounts.json 已废弃，但迁移测试需要构造旧文件路径验证 v7 合并
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
     modelsFile: p.join(root, 'models.json'),
@@ -95,11 +96,60 @@ describe('runMigrations', () => {
     expect(await runMigrations()).toBe(0)
   })
 
-  test('旧版 credentials.json 迁移为账号（v1 基线）', async () => {
+  test('v7：旧版单对象 credentials.json 归并为凭据列表', async () => {
     await write(paths.credentialsFile, { miUserId: 'u1', passToken: 'tk' })
     await runMigrations()
-    const accounts = await read<{ name: string }[]>(paths.accountsFile)
-    expect(accounts[0].name).toBe('默认账号')
+    const credentials = await read<{ name: string }[]>(paths.credentialsFile)
+    expect(Array.isArray(credentials)).toBe(true)
+    expect(credentials[0].name).toBe('默认凭据')
+    expect(credentials[0].miUserId).toBe('u1')
+  })
+
+  test('v7：accounts.json 并入 credentials.json，miPassword 清除，accountId→credentialId', async () => {
+    // 旧形态：账号列表（含密码）+ 设备 accountId + 旧单对象凭据缺失
+    await write(paths.accountsFile, [
+      {
+        id: 'ac1',
+        name: '家里号',
+        miUserId: 'u7',
+        passToken: 'tk7',
+        miPassword: 'pw-should-drop',
+        hasMiPassword: true,
+        createdAt: 5,
+      },
+    ])
+    await fs.mkdir(path.join(paths.root, 'devices', 'd1'), { recursive: true })
+    await write(path.join(paths.root, 'devices', 'd1', 'meta.json'), {
+      id: 'd1',
+      alias: '音箱',
+      did: 'D1',
+      robotId: 'r1',
+      accountId: 'ac1',
+      ttsSecret: '',
+      createdAt: 6,
+    })
+    await runMigrations()
+    // credentials.json 为列表，密码字段被清除
+    const credentials = await read<Record<string, unknown>[]>(
+      paths.credentialsFile,
+    )
+    expect(credentials).toHaveLength(1)
+    expect(credentials[0]).toMatchObject({
+      id: 'ac1',
+      name: '家里号',
+      miUserId: 'u7',
+      passToken: 'tk7',
+    })
+    expect(credentials[0].miPassword).toBeUndefined()
+    expect(credentials[0].hasMiPassword).toBeUndefined()
+    // accounts.json 已删除
+    await expect(fs.access(paths.accountsFile)).rejects.toThrow()
+    // 设备字段改名
+    const meta = await read<Record<string, unknown>>(
+      path.join(paths.root, 'devices', 'd1', 'meta.json'),
+    )
+    expect(meta.credentialId).toBe('ac1')
+    expect(meta.accountId).toBeUndefined()
   })
 
   test('v2 把旧内置型号移出可写文件', async () => {
