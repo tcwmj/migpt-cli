@@ -19,6 +19,11 @@
 FROM node:24.21.0-alpine3.23 AS build
 WORKDIR /app
 
+# Prisma（mi-gpt 依赖）在 Alpine 上需要 OpenSSL 与 glibc 兼容层：
+# 缺失时 npm ci 阶段 mi-gpt 的 postinstall（prisma migrate）报
+# "prisma:warn Prisma failed to detect the libssl/openssl version to use"
+RUN apk add --no-cache openssl libc6-compat
+
 # 国内镜像加速（lock 文件中的 resolved 也已改写为 npmmirror）
 RUN npm config set registry https://registry.npmmirror.com
 
@@ -36,6 +41,8 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=36597 \
     HOME=/home/node
+# 运行时同样依赖 OpenSSL / glibc 兼容层（Prisma 引擎为 musl 动态链接库）
+RUN apk add --no-cache openssl libc6-compat
 COPY --from=build /app/ .
 # 非 root 运行（node 用户），数据目录挂载到 /home/node/.migptgui
 USER node
