@@ -24,6 +24,12 @@ WORKDIR /app
 # "prisma:warn Prisma failed to detect the libssl/openssl version to use"
 RUN apk add --no-cache openssl libc6-compat
 
+# 关闭彩色输出：群晖 Container Manager 日志查看器不渲染 ANSI 转义序列，
+# npm/nx 的颜色码（ESC[0m、ESC[91m 等）会显示成方块+乱码文本。
+# TERM=dumb 让 npm 自动禁用颜色，npm_config_color=false 双保险。
+ENV TERM=dumb \
+    npm_config_color=false
+
 # 国内镜像加速（lock 文件中的 resolved 也已改写为 npmmirror）
 RUN npm config set registry https://registry.npmmirror.com
 
@@ -40,7 +46,8 @@ FROM node:24.21.0-alpine3.23
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=36597 \
-    HOME=/home/node
+    HOME=/home/node \
+    TERM=dumb
 # 运行时同样依赖 OpenSSL / glibc 兼容层（Prisma 引擎为 musl 动态链接库）
 RUN apk add --no-cache openssl libc6-compat
 COPY --from=build /app/ .
