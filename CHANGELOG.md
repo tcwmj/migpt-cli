@@ -10,6 +10,11 @@
 
 ### Added
 
+- 对话角色模板库：`@migptgui/contracts` 新增只读 `ROBOT_TEMPLATES`（8 个）——默认模板 / 台湾甜妹 / 高冷御姐 / 毒舌伙伴 / 简洁助手 / 暖心陪伴 / 知性学姐 / 冷面管家；模板为「数据」非实体，不落盘、不做 CRUD，套用即把称呼、人设、播报词与提示词摊平写入新建角色，此后与模板解耦（`templateId` 仅记出处）。新建流程（角色页 + 五步向导两处一致）先进入模板选择态，可选中预填或跳过空白；编辑既有角色时顶部「套用模板」横条可随时重套
+- 自有系统提示词基线：`DEFAULT_SYSTEM_TEMPLATE` 融合 mi-gpt 默认模板与 Lero 模板的优点——保留 mi-gpt 的 `<start>/<end>` 分区块结构（模型对分区上下文识别更稳），吸收「最高优先级（答准 > 人设）/ 语音识别容错 / 回答长度分级 / 纯口语输出（禁 Markdown、禁时间戳前缀、禁确认套话）」四组硬约束；变量名严格沿用 mi-gpt 键名（`{{botName}}` 等 9 个）以保证替换生效。模板只写「语气与措辞」增量，共性规则由基线单点承载避免漂移；`毒舌伙伴` 例外，显式写明安全边界
+- 角色高级提示词编辑（lerio 式折叠区）：角色新建/编辑页底部新增默认收起的「展示高级功能」，展开后可编辑系统提示词（三态：留空跟随内置默认 / 清空关闭 / 填文本自定义），提供可用变量 chips、「写入默认模板」、「预览效果」（把 `{{var}}` 替换为当前角色取值）与「恢复默认」；角色详情页展示提示词状态与「基于模板」
+- 只读模板列表接口 `GET /api/v1/robot-templates`
+- 备份双格式：新增零依赖 zip 模块（`store/zip.ts`，deflate + CRC32），导出改为 `.zip`；导入同时支持 zip 与 json，并做完整结构与内容校验（EOCD / 签名 / 长度 / CRC / 包格式）
 - Docker Compose 配置支持：新增 `docker-compose.yml` 文件，支持本地构建和预构建镜像两种部署模式
 - 阿里云容器镜像服务集成：默认镜像地址为 `registry.cn-hangzhou.aliyuncs.com/tcwmj/migpt-cli:latest`，国内访问速度快
 - 一键部署脚本：`deploy.sh`（Linux/macOS）和 `deploy.bat`（Windows），自动检测环境并引导配置
@@ -24,12 +29,22 @@
 - 思考服务步骤支持就地新建与优先级排序（上移 / 下移 / 移除），顺序对应 `Device.modelIds` 的 failover 链；语音服务与角色步骤同样支持就地新建，避免首次使用时因无可选实体而卡住
 - 向导最后一步由「完成」改为「创建并启动」：创建成功后不再直接关窗，改为展示完成页（设备名 / 账号 / 角色 / 思考服务 / 语音服务 摘要 + 启动结果），提供「直接关闭」与「查看设备服务」（跳转设备服务页并选中新建设备）两个出口
 - 启动失败不再静默：设备仍落盘（不回滚），完成页给出提示，可到设备服务页手动重启
+- 角色运行配置编译修正：`buildConfigFromRobot` 此前把 `master.name` 硬编码为「主人」、`master.profile` 恒为空，导致角色上的 `masterName` / `masterProfile` 存而未用；现改为读取角色值（未填写时回落「主人」），并透传 `systemTemplate`（`undefined` 时整键不写，交 mi-gpt 回落内置默认模板）
 - README.md 更新：新增 Docker Compose 部署方式，添加阿里云容器镜像服务地址
 - .dockerignore 更新：排除 Docker 相关配置文件，避免污染构建上下文
+
+### Removed
+
+- **BREAKING**：移除 `miPassword` / `hasMiPassword`——异地登录验证下密码登录不可用，`passToken` 只能人工获取填入，密码不再落盘；设备启动统一使用 `passToken-mode`
+- **BREAKING**：云端账号（Account）并入凭据（Credential）——实体 / API / 出入参 / 存储全链路更名（`credentials.json` 列表、`/api/v1/credentials`、`Device.credentialId`），移除旧 `/settings` 兼容路由与 `routes/accounts.ts`
 
 ### Fixed
 
 - 向导提交后创建成功与否无法感知的问题：`useWizard.finish` 现返回创建结果供完成页展示
+
+### Migration
+
+- 迁移 v7（`DATA_VERSION` 7）：`accounts.json` 与旧「单对象」凭据（`settings` 时代形态）归并为 `credentials.json` 凭据列表，逐条清除密码字段，设备 `accountId` → `credentialId`；迁移幂等、可重入，且挂在版本判断之前以覆盖存量数据版本号已最新但内容仍旧的场景
 
 ## [2.0.0] - 2026-10-08
 
