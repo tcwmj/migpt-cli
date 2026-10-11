@@ -7,6 +7,7 @@ jest.mock('./paths.js', () => {
   const root = f.mkdtempSync(p.join(os.tmpdir(), 'migpt-mw-'))
   return {
     root,
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
   }

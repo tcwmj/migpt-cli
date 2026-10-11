@@ -1,5 +1,5 @@
 import Select from 'react-select/creatable'
-import type { Robot, Room } from '../../apis.ts'
+import type { Robot, Conversation } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Field } from '../../components/atoms/index.ts'
 import { multiSelectStyles } from '../../components/atoms/selectStyles.ts'
@@ -56,7 +56,7 @@ export function RobotEditForm(props: {
   draft: Robot
   creating: boolean
   usage: string[]
-  rooms: Room[]
+  conversations: Conversation[]
   setF: (k: keyof Robot, v: unknown) => void
   onCancel: () => void
   onSave: () => void
@@ -90,7 +90,7 @@ export function RobotEditForm(props: {
           </Field>
         </div>
         <div className="row">
-          <Field label="角色性格" tip="供思考服务理解人格 · 热生效">
+          <Field label="角色性格" tip="供模型理解人格 · 热生效">
             <textarea
               value={draft.profile}
               onChange={(e) => setF('profile', e.target.value)}
@@ -106,15 +106,15 @@ export function RobotEditForm(props: {
         </div>
         <div className="row">
           <Field
-            label="会话群"
+            label="会话"
             tip="对话记忆的上下文归属；多台设备共用同一角色时共享对话记忆"
           >
             <select
-              value={draft.roomRef || ''}
-              onChange={(e) => setF('roomRef', e.target.value)}
+              value={draft.conversationId || ''}
+              onChange={(e) => setF('conversationId', e.target.value)}
             >
               <option value="">未设置</option>
-              {props.rooms.map((rm) => (
+              {props.conversations.map((rm) => (
                 <option key={rm.id} value={rm.id}>
                   {rm.name}
                 </option>

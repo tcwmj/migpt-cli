@@ -8,10 +8,10 @@ export type MultiOption = { value: string; label: string }
  *
  * 目标：外观与表单内单值原生 `input` / `select` 完全一致——
  *   高度 / 内边距 / 边框 / 圆角 / 背景 / 字号 / 悬停与聚焦反馈 / 光标，
- * 使「思考服务」（多选）与「语音服务」（单选）并排时视觉统一；
+ * 使「模型」（多选）与「语音」（单选）并排时视觉统一；
  * 多值以主题色胶囊呈现，与 `.chip.on` / `.tag.accent` 同一色系。
  *
- * 被「设备」思考服务多选、向导「关联服务」多选、角色关键词输入共用。
+ * 被「设备」模型多选、向导「关联模型与语音」多选、角色关键词输入共用。
  */
 export const multiSelectStyles: StylesConfig<MultiOption, true> = {
   container: (base) => ({

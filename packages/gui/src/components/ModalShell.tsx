@@ -3,10 +3,10 @@ import { useState } from 'react'
 import {
   type Account,
   type Robot,
-  type Room,
+  type Conversation,
   type SpeakerModel,
-  type ThinkService,
-  type VoiceService,
+  type Model,
+  type Voice,
 } from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
@@ -15,7 +15,7 @@ import { AccountForm } from './modals/AccountForm.tsx'
 import { DeviceBindForm } from './modals/DeviceBindForm.tsx'
 import { PwdForm } from './modals/PwdForm.tsx'
 import { RobotForm } from './modals/RobotForm.tsx'
-import { ThinkForm } from './modals/ThinkForm.tsx'
+import { ModelForm } from './modals/ModelForm.tsx'
 import { VoiceForm } from './modals/VoiceForm.tsx'
 import { buildModalPayload, initModalValues } from './modals/values.ts'
 
@@ -23,10 +23,10 @@ export function ModalShell(props: {
   modal: ModalState
   accounts: Account[]
   robots: Robot[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
-  models: SpeakerModel[]
-  rooms: Room[]
+  models: Model[]
+  voices: Voice[]
+  speakerModels: SpeakerModel[]
+  conversations: Conversation[]
   onClose: () => void
   onDone: (values: Record<string, unknown>) => void
 }) {
@@ -68,7 +68,7 @@ export function ModalShell(props: {
             n={
               modal.kind === 'pwd'
                 ? 'lock'
-                : modal.kind === 'think'
+                : modal.kind === 'model'
                   ? 'bolt'
                   : modal.kind === 'voice'
                     ? 'mic'
@@ -83,13 +83,13 @@ export function ModalShell(props: {
         <div className="desc">{modal.desc}</div>
 
         {modal.kind === 'account' && <AccountForm {...formProps} />}
-        {modal.kind === 'think' && <ThinkForm {...formProps} />}
+        {modal.kind === 'model' && <ModelForm {...formProps} />}
         {modal.kind === 'voice' && <VoiceForm {...formProps} />}
         {modal.kind === 'robot' && (
           <RobotForm
             {...formProps}
-            thinkSvcs={props.thinkSvcs}
-            voiceSvcs={props.voiceSvcs}
+            models={props.models}
+            voices={props.voices}
           />
         )}
         {modal.kind === 'pwd' && <PwdForm {...formProps} />}
@@ -97,18 +97,17 @@ export function ModalShell(props: {
           (noticeOnly ? (
             <div className="notice">
               <I n="warning" size={15} /> 换绑账号、修改唤醒词或 did
-              必须重启设备；角色内容、思考服务（模型 /
-              温度）热生效；语音服务支持热切。
+              必须重启设备；角色内容、模型（模型 / 温度）热生效；语音支持热切。
             </div>
           ) : (
             <DeviceBindForm
               {...formProps}
               accounts={props.accounts}
               robots={props.robots}
-              thinkSvcs={props.thinkSvcs}
-              voiceSvcs={props.voiceSvcs}
               models={props.models}
-              rooms={props.rooms}
+              voices={props.voices}
+              speakerModels={props.speakerModels}
+              conversations={props.conversations}
             />
           ))}
 

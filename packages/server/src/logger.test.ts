@@ -10,9 +10,10 @@ jest.mock('./paths.js', () => {
   const root = f.mkdtempSync(p.join(os.tmpdir(), 'migpt-logger-'))
   return {
     root,
-    systemLogFile: p.join(root, 'system.log'),
-    systemLogPrefix: p.join(root, 'system'),
-    conversationsDir: p.join(root, 'conversations'),
+    logsDir: p.join(root, 'logs'),
+    systemLogFile: p.join(root, 'logs', 'system.log'),
+    systemLogPrefix: p.join(root, 'logs', 'system'),
+    chatLogsDir: p.join(root, 'chatlogs'),
   }
 })
 
@@ -48,8 +49,8 @@ describe('logger 结构化输出', () => {
   })
 })
 
-describe('系统日志落盘（pino-roll 按天轮转）', () => {
-  const root = p.dirname(paths.systemLogFile)
+describe('系统日志落盘（按天，logs/system.<日期>.log）', () => {
+  const root = paths.logsDir
   const listLogs = async () =>
     (await fs.readdir(root)).filter((n) =>
       /^system(\.\d{8}\.\d+)?\.log(\.\d+)?$/.test(n),
@@ -109,7 +110,7 @@ describe('设备日志缓冲', () => {
     expect(logRows.get('d2')).toHaveLength(1000)
     // WriteStream 异步打开 + 异步写入，等待落盘后再查文件
     await wait(500)
-    const convDir = paths.conversationsDir
+    const convDir = paths.chatLogsDir
     const files = await fs.readdir(convDir)
     const target = files.filter(
       (n) => n.startsWith('d2.') && n.endsWith('.log'),
@@ -125,7 +126,7 @@ describe('设备日志缓冲', () => {
     clearDeviceLog('d3')
     expect(logBuffers.has('d3')).toBe(false)
     expect(logRows.has('d3')).toBe(false)
-    const convDir = paths.conversationsDir
+    const convDir = paths.chatLogsDir
     const files = await fs.readdir(convDir)
     expect(files.some((n) => n.startsWith('d3.'))).toBe(false)
   })

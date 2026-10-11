@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import * as api from '../apis.ts'
 import type { DeviceRow, SpeakerModel } from '../apis.ts'
 import type { ConfirmState } from '../ui-types.ts'
-import type { ModelDraft } from '../views/drafts.ts'
+import type { SpeakerModelDraft } from '../views/drafts.ts'
 import { errText } from '../components/app/errText.ts'
 
 export type ModelFilter = 'all' | 'consec' | 'plain'
@@ -19,7 +19,7 @@ function sortModels(list: SpeakerModel[]): SpeakerModel[] {
   return [...builtin, ...custom]
 }
 
-export function useModelsCrud(opts: {
+export function useSpeakerModelsCrud(opts: {
   models: SpeakerModel[]
   devices: DeviceRow[]
   query: string
@@ -31,43 +31,49 @@ export function useModelsCrud(opts: {
   const [selModel, setSelModel] = useState<string | null>(null)
   const [modelEdit, setModelEdit] = useState(false)
   const [modelFilter, setModelFilter] = useState<ModelFilter>('all')
-  const [modelDraft, setModelDraft] = useState<ModelDraft | null>(null)
+  const [modelDraft, setSpeakerModelDraft] = useState<SpeakerModelDraft | null>(
+    null,
+  )
 
   const selectModel = (id: string | null) => {
     setSelModel(id)
     setModelEdit(false)
     if (!id) {
-      setModelDraft({
+      setSpeakerModelDraft({
         name: '',
-        did: '',
-        desc: '',
+        didPrefix: '',
+        description: '',
         imageUrl: '',
         ttsCommand: ['', ''],
         wakeUpCommand: ['', ''],
         playingCommand: ['', '', ''],
-        consecutive: true,
+        continuousDialogue: true,
       })
       return
     }
     const m = models.find((x) => x.id === id)
-    setModelDraft(
+    setSpeakerModelDraft(
       m
         ? {
             name: m.name,
-            did: m.did,
-            desc: m.desc || '',
+            didPrefix: m.didPrefix,
+            description: m.description || '',
             imageUrl: m.imageUrl || '',
             ttsCommand: (m.ttsCommand || []).map(String),
             wakeUpCommand: (m.wakeUpCommand || []).map(String),
             playingCommand: (m.playingCommand || []).map(String),
-            consecutive: m.consecutive ?? true,
+            continuousDialogue: m.continuousDialogue ?? true,
           }
         : null,
     )
   }
 
   const saveModel = async () => {
-    if (!modelDraft || !modelDraft.name.trim() || !modelDraft.did.trim()) {
+    if (
+      !modelDraft ||
+      !modelDraft.name.trim() ||
+      !modelDraft.didPrefix.trim()
+    ) {
       showToast('名称与型号标识必填')
       return
     }
@@ -76,13 +82,13 @@ export function useModelsCrud(opts: {
         arr.map(Number).filter((n) => Number.isFinite(n))
       const out = {
         name: modelDraft.name.trim(),
-        did: modelDraft.did.trim(),
-        desc: modelDraft.desc.trim(),
+        didPrefix: modelDraft.didPrefix.trim(),
+        description: modelDraft.description.trim(),
         imageUrl: modelDraft.imageUrl.trim(),
         ttsCommand: toNums(modelDraft.ttsCommand),
         wakeUpCommand: toNums(modelDraft.wakeUpCommand),
         playingCommand: toNums(modelDraft.playingCommand),
-        consecutive: modelDraft.consecutive,
+        continuousDialogue: modelDraft.continuousDialogue,
       }
       if (selModel) {
         await api.updateSpeakerModel(selModel, out)
@@ -125,7 +131,7 @@ export function useModelsCrud(opts: {
           await api.deleteSpeakerModel(id)
           showToast('型号已删除')
           setSelModel(null)
-          setModelDraft(null)
+          setSpeakerModelDraft(null)
           setModelEdit(false)
           refreshAll()
         } catch (e) {
@@ -147,7 +153,7 @@ export function useModelsCrud(opts: {
         try {
           await api.resetSpeakerModel(id)
           showToast('已恢复为系统内置默认配置')
-          setModelDraft(null)
+          setSpeakerModelDraft(null)
           setModelEdit(false)
           refreshAll()
         } catch (e) {
@@ -160,9 +166,9 @@ export function useModelsCrud(opts: {
   const filterModels = useMemo(() => {
     const q = query.toLowerCase()
     const list = models.filter((m) => {
-      if (q && !(m.name + m.did).toLowerCase().includes(q)) return false
-      if (modelFilter === 'consec' && !m.consecutive) return false
-      if (modelFilter === 'plain' && m.consecutive) return false
+      if (q && !(m.name + m.didPrefix).toLowerCase().includes(q)) return false
+      if (modelFilter === 'consec' && !m.continuousDialogue) return false
+      if (modelFilter === 'plain' && m.continuousDialogue) return false
       return true
     })
     return sortModels(list)
@@ -181,16 +187,16 @@ export function useModelsCrud(opts: {
     setModelFilter(f)
     const q = query.toLowerCase()
     const list = models.filter((m) => {
-      if (q && !(m.name + m.did).toLowerCase().includes(q)) return false
-      if (f === 'consec' && !m.consecutive) return false
-      if (f === 'plain' && m.consecutive) return false
+      if (q && !(m.name + m.didPrefix).toLowerCase().includes(q)) return false
+      if (f === 'consec' && !m.continuousDialogue) return false
+      if (f === 'plain' && m.continuousDialogue) return false
       return true
     })
     const first = sortModels(list)[0]
     if (first) {
       setSelModel(first.id)
       setModelEdit(false)
-      setModelDraft(null)
+      setSpeakerModelDraft(null)
     }
   }
 
@@ -200,7 +206,7 @@ export function useModelsCrud(opts: {
     modelEdit,
     modelFilter,
     filterModels,
-    setModelDraft,
+    setSpeakerModelDraft,
     setModelEdit,
     selectModel,
     saveModel,

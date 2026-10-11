@@ -18,14 +18,15 @@ jest.mock('../paths.js', () => {
   return {
     root,
     devicesRoot: p.join(root, 'devices'),
-    settingsFile: p.join(root, 'settings.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
-    thinkServicesFile: p.join(root, 'thinkServices.json'),
-    voiceServicesFile: p.join(root, 'voiceServices.json'),
+    modelsFile: p.join(root, 'models.json'),
+    voicesFile: p.join(root, 'voices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
-    roomsFile: p.join(root, 'rooms.json'),
+    conversationsFile: p.join(root, 'conversations.json'),
     authFile: p.join(root, 'auth.json'),
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
   }
@@ -36,13 +37,13 @@ jest.mock('../store.js', () => {
     '../store/entities.js',
   )
   return {
-    listDeviceMetas: jest.fn(async () => []),
+    listDevices: jest.fn(async () => []),
     loadDeviceConfig: actual.loadDeviceConfig,
   }
 })
 
 import * as paths from '../paths.js'
-import { listDeviceMetas } from '../store.js'
+import { listDevices } from '../store.js'
 import { logger } from '../logger.js'
 import {
   pick,
@@ -74,7 +75,7 @@ const makeRes = () => {
 beforeEach(async () => {
   await fs.rm(paths.root, { recursive: true, force: true })
   await fs.mkdir(paths.root, { recursive: true })
-  jest.mocked(listDeviceMetas).mockResolvedValue([])
+  jest.mocked(listDevices).mockResolvedValue([])
 })
 
 afterAll(async () => {
@@ -173,7 +174,7 @@ describe('loadDeviceConfig', () => {
 
 describe('findDeviceBySecret', () => {
   test('按 ttsSecret 命中设备', async () => {
-    jest.mocked(listDeviceMetas).mockResolvedValue([
+    jest.mocked(listDevices).mockResolvedValue([
       {
         id: 'd1',
         alias: 'A',

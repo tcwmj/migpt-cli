@@ -6,10 +6,10 @@ import type {
   Account,
   DeviceRow,
   Robot,
-  Room,
+  Conversation,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../apis.ts'
 import { type View } from '../constants.ts'
 import bannerHomeImg from '../assets/banner-home.jpg'
@@ -18,7 +18,7 @@ import bannerStudyImg from '../assets/banner-study.jpg'
 import bannerKitchenImg from '../assets/banner-kitchen.jpg'
 import bannerBalconyImg from '../assets/banner-balcony.jpg'
 import livingImg from '../assets/scene-living.jpg'
-import roomImg from '../assets/speaker-room.jpg'
+import roomImg from '../assets/speaker-conversation.jpg'
 import robotImg from '../assets/kpi-robot.jpg'
 import studyImg from '../assets/scene-study.jpg'
 import heroImg from '../assets/speaker-hero-multi.jpg'
@@ -32,16 +32,16 @@ export function HomeView(props: {
   accounts: Account[]
   devices: DeviceRow[]
   robots: Robot[]
-  rooms: Room[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
-  models: SpeakerModel[]
+  conversations: Conversation[]
+  models: Model[]
+  voices: Voice[]
+  speakerModels: SpeakerModel[]
   runningCount: number
-  builtinModelCount: number
-  customModelCount: number
+  builtinSpeakerModelCount: number
+  customSpeakerModelCount: number
   logCount: number
   onNav: (v: View) => void
-  onOpenThink: () => void
+  onOpenModel: () => void
   onOpenVoice: () => void
   onStartWizard: () => void
 }) {
@@ -49,16 +49,16 @@ export function HomeView(props: {
     accounts,
     devices,
     robots,
-    rooms,
-    thinkSvcs,
-    voiceSvcs,
+    conversations,
     models,
+    voices,
+    speakerModels,
     runningCount,
-    builtinModelCount,
-    customModelCount,
+    builtinSpeakerModelCount,
+    customSpeakerModelCount,
     logCount,
     onNav,
-    onOpenThink,
+    onOpenModel,
     onOpenVoice,
     onStartWizard,
   } = props
@@ -142,31 +142,31 @@ export function HomeView(props: {
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
-        <button className="kpi" onClick={() => onNav('rooms')}>
+        <button className="kpi" onClick={() => onNav('conversations')}>
           <span
             className="pic"
             style={{ backgroundImage: `url(${studyImg})` }}
           />
           <div className="kv">
-            <div className="k">会话群</div>
-            <div className="v num">{rooms.length}</div>
+            <div className="k">会话</div>
+            <div className="v num">{conversations.length}</div>
           </div>
           <div className="d mut">
-            {rooms.map((r) => r.name).join(' · ') || '尚未创建'}
+            {conversations.map((r) => r.name).join(' · ') || '尚未创建'}
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
-        <button className="kpi" onClick={onOpenThink}>
+        <button className="kpi" onClick={onOpenModel}>
           <span
             className="pic"
             style={{ backgroundImage: `url(${heroImg})` }}
           />
           <div className="kv">
-            <div className="k">思考服务</div>
-            <div className="v num">{thinkSvcs.length}</div>
+            <div className="k">模型</div>
+            <div className="v num">{models.length}</div>
           </div>
           <div className="d mut">
-            {thinkSvcs.map((t) => t.name).join(' · ') || '尚未配置'}
+            {models.map((t) => t.name).join(' · ') || '尚未配置'}
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
@@ -176,25 +176,25 @@ export function HomeView(props: {
             style={{ backgroundImage: `url(${voiceImg})` }}
           />
           <div className="kv">
-            <div className="k">语音服务</div>
-            <div className="v num">{voiceSvcs.length}</div>
+            <div className="k">语音</div>
+            <div className="v num">{voices.length}</div>
           </div>
           <div className="d mut">
-            {voiceSvcs.map((v) => v.name).join(' · ') || '尚未配置'}
+            {voices.map((v) => v.name).join(' · ') || '尚未配置'}
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
-        <button className="kpi" onClick={() => onNav('models')}>
+        <button className="kpi" onClick={() => onNav('speaker-models')}>
           <span
             className="pic"
             style={{ backgroundImage: `url(${modelsImg})` }}
           />
           <div className="kv">
-            <div className="k">设备型号</div>
-            <div className="v num">{models.length}</div>
+            <div className="k">音箱型号</div>
+            <div className="v num">{speakerModels.length}</div>
           </div>
           <div className="d mut">
-            内置 {builtinModelCount} · 自定义 {customModelCount}
+            内置 {builtinSpeakerModelCount} · 自定义 {customSpeakerModelCount}
           </div>
           <I n="arrowR" className="go" size={14} />
         </button>
@@ -212,7 +212,7 @@ export function HomeView(props: {
               girlImg,
             ],
             ['选择设备', '从云端账号拉取音箱列表，选择要接入的设备', catImg],
-            ['对话服务', '选择已有对话角色，或新建角色绑定角色性格', closeImg],
+            ['对话角色', '选择已有对话角色，或新建角色绑定角色性格', closeImg],
           ].map(([t, d, img], i) => (
             <div
               key={t}

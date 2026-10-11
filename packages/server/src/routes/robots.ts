@@ -53,6 +53,7 @@ export const registerRobotRoutes = createCrudRouter<Robot>({
       profile: normProfile(body.profile),
       // 内置标记只由代码注册表（store/builtins）决定，禁止客户端伪造 builtin:true
       builtin: false,
+      createdAt: Date.now(),
     }) as Robot,
   applyUpdate: (list, idx, body) => {
     list[idx] = {

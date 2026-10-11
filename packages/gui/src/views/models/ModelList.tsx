@@ -1,21 +1,21 @@
-import type { ThinkService } from '../../apis.ts'
+import type { Model } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderLogo } from '../../components/atoms/index.ts'
-import { THINK_PROVIDERS } from '../../constants.ts'
+import { MODEL_PROVIDERS } from '../../constants.ts'
 
-export function ThinkServiceList(props: {
-  services: ThinkService[]
-  selThink: string | null
+export function ModelList(props: {
+  models: Model[]
+  selModel: string | null
   onSelect: (id: string | null) => void
 }) {
   return (
     <aside className="slist">
-      {props.services.map((s) => {
-        const p = THINK_PROVIDERS[s.provider]
+      {props.models.map((s) => {
+        const p = MODEL_PROVIDERS[s.provider]
         return (
           <div
             key={s.id}
-            className={'li' + (s.id === props.selThink ? ' on' : '')}
+            className={'li' + (s.id === props.selModel ? ' on' : '')}
             onClick={() => props.onSelect(s.id)}
           >
             {p ? (

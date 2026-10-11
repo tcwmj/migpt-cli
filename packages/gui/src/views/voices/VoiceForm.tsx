@@ -1,4 +1,4 @@
-import type { VoiceService } from '../../apis.ts'
+import type { Voice } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { VOICE_PROVIDERS } from '../../constants.ts'
 import {
@@ -9,10 +9,10 @@ import {
 } from '../../components/atoms/index.ts'
 import type { VoiceDraft } from '../drafts.ts'
 
-export function VoiceServiceForm(props: {
+export function VoiceForm(props: {
   voiceDraft: VoiceDraft
   selVoice: string | null
-  voiceSvcs: VoiceService[]
+  voices: Voice[]
   usageVoice: (id: string) => number
   onDraft: (d: VoiceDraft | null) => void
   onEdit: (e: boolean) => void
@@ -24,13 +24,13 @@ export function VoiceServiceForm(props: {
   const {
     voiceDraft,
     selVoice,
-    voiceSvcs,
+    voices,
     usageVoice,
     onDraft,
     onEdit,
     onSelect,
   } = props
-  const currentSvc = selVoice ? voiceSvcs.find((s) => s.id === selVoice) : null
+  const currentSvc = selVoice ? voices.find((s) => s.id === selVoice) : null
   const isBuiltin = currentSvc?.builtin === true
   const p = VOICE_PROVIDERS[voiceDraft.provider]
   const engine = p?.engine || 'edge'
@@ -39,7 +39,7 @@ export function VoiceServiceForm(props: {
   return (
     <div className="form-card">
       <h3>
-        <I n="mic" size={17} /> {selVoice ? '编辑语音服务' : '新建语音服务'}
+        <I n="mic" size={17} /> {selVoice ? '编辑语音' : '新建语音'}
         <span className="refs">
           {selVoice
             ? `被 ${usageVoice(selVoice)} 台设备引用 · 支持热切「把声音换成…」`
@@ -54,7 +54,7 @@ export function VoiceServiceForm(props: {
       <div className="grp">
         <h4>基本信息</h4>
         <div className="row">
-          <Field label="服务名称" required>
+          <Field label="语音名称" required>
             <input
               value={voiceDraft.name}
               placeholder="例如：豆包语音"
@@ -219,11 +219,11 @@ export function VoiceServiceForm(props: {
               >
                 <>
                   <input
-                    value={voiceDraft.voiceId}
+                    value={voiceDraft.timbreId}
                     list={`voices-${voiceDraft.provider || 'edge'}`}
                     placeholder="例如：zh-CN-XiaoxiaoNeural"
                     onChange={(e) =>
-                      onDraft({ ...voiceDraft, voiceId: e.target.value })
+                      onDraft({ ...voiceDraft, timbreId: e.target.value })
                     }
                   />
                   {!!p?.voices?.length && (
@@ -307,10 +307,10 @@ export function VoiceServiceForm(props: {
             <input
               type="number"
               min="0"
-              value={voiceDraft.tokenInputUsed ?? ''}
+              value={voiceDraft.inputTokensUsed ?? ''}
               placeholder="0"
               onChange={(e) =>
-                onDraft({ ...voiceDraft, tokenInputUsed: e.target.value })
+                onDraft({ ...voiceDraft, inputTokensUsed: e.target.value })
               }
             />
           </Field>
@@ -318,10 +318,10 @@ export function VoiceServiceForm(props: {
             <input
               type="number"
               min="0"
-              value={voiceDraft.tokenOutputUsed ?? ''}
+              value={voiceDraft.outputTokensUsed ?? ''}
               placeholder="0"
               onChange={(e) =>
-                onDraft({ ...voiceDraft, tokenOutputUsed: e.target.value })
+                onDraft({ ...voiceDraft, outputTokensUsed: e.target.value })
               }
             />
           </Field>
@@ -331,10 +331,10 @@ export function VoiceServiceForm(props: {
             <input
               type="number"
               min="0"
-              value={voiceDraft.tokenUsed ?? ''}
+              value={voiceDraft.totalTokensUsed ?? ''}
               placeholder="0"
               onChange={(e) =>
-                onDraft({ ...voiceDraft, tokenUsed: e.target.value })
+                onDraft({ ...voiceDraft, totalTokensUsed: e.target.value })
               }
             />
           </Field>
@@ -379,8 +379,8 @@ export function VoiceServiceForm(props: {
           onClick={() =>
             selVoice
               ? onEdit(false)
-              : voiceSvcs.length
-                ? onSelect(voiceSvcs[0].id)
+              : voices.length
+                ? onSelect(voices[0].id)
                 : onDraft(null)
           }
         >

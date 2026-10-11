@@ -1,31 +1,31 @@
-import type { ThinkService, DeviceRow, Robot } from '../../apis.ts'
+import type { Model, DeviceRow, Robot } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
-import { THINK_PROVIDERS } from '../../constants.ts'
+import { MODEL_PROVIDERS } from '../../constants.ts'
 
-export function ThinkServiceDetail(props: {
-  selThink: string
-  thinkSvcs: ThinkService[]
+export function ModelDetail(props: {
+  selModel: string
+  models: Model[]
   devices: DeviceRow[]
   robots: Robot[]
-  usageThink: (id: string) => number
+  usageModel: (id: string) => number
   onDelete: (id: string) => void
   onEdit: () => void
   onNavigate?: (view: string, id: string) => void
 }) {
-  const svc = props.thinkSvcs.find((s) => s.id === props.selThink)
+  const svc = props.models.find((s) => s.id === props.selModel)
 
-  // 找到使用该服务的设备
+  // 找到使用该模型的设备
   const boundDevices = props.devices.filter((d) =>
-    d.thinkServiceIds?.includes(props.selThink),
+    d.modelIds?.includes(props.selModel),
   )
 
   return (
     <div className="form-card">
       <h3>
-        <I n="bolt" size={17} /> 思考服务详情
+        <I n="bolt" size={17} /> 模型详情
         <span className="refs">
-          被 {props.usageThink(props.selThink)} 台设备引用 · 修改模型 /
+          被 {props.usageModel(props.selModel)} 台设备引用 · 修改模型 /
           温度后热生效
         </span>
       </h3>
@@ -35,7 +35,7 @@ export function ThinkServiceDetail(props: {
           <h4>基本信息</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">服务名称</span>
+              <span className="k">模型名称</span>
               <span className="v">{svc?.name || '—'}</span>
             </div>
           </div>
@@ -47,8 +47,8 @@ export function ThinkServiceDetail(props: {
               <span className="k">供应商</span>
               <span className="v">
                 {svc ? (
-                  THINK_PROVIDERS[svc.provider] ? (
-                    <ProviderBadge p={THINK_PROVIDERS[svc.provider]} />
+                  MODEL_PROVIDERS[svc.provider] ? (
+                    <ProviderBadge p={MODEL_PROVIDERS[svc.provider]} />
                   ) : (
                     svc.provider
                   )
@@ -85,9 +85,12 @@ export function ThinkServiceDetail(props: {
             {svc?.tokenLimit ? (
               <span
                 className="aside"
-                title={`Token 已使用 ${(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%（${(svc.tokenUsed ?? 0).toLocaleString()} / ${svc.tokenLimit.toLocaleString()}）`}
+                title={`Token 已使用 ${(((svc.totalTokensUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%（${(svc.totalTokensUsed ?? 0).toLocaleString()} / ${svc.tokenLimit.toLocaleString()}）`}
               >
-                {(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%
+                {(((svc.totalTokensUsed ?? 0) / svc.tokenLimit) * 100).toFixed(
+                  1,
+                )}
+                %
               </span>
             ) : null}
             {svc?.limitReached && <Tag tone="bad">限额已达</Tag>}
@@ -96,19 +99,19 @@ export function ThinkServiceDetail(props: {
             <div className="rr">
               <span className="k">输入 Token</span>
               <span className="v">
-                {(svc?.tokenInputUsed ?? 0).toLocaleString()}
+                {(svc?.inputTokensUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
               <span className="k">输出 Token</span>
               <span className="v">
-                {(svc?.tokenOutputUsed ?? 0).toLocaleString()}
+                {(svc?.outputTokensUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
               <span className="k">合计 Token</span>
               <span className="v">
-                {(svc?.tokenUsed ?? 0).toLocaleString()}
+                {(svc?.totalTokensUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
@@ -120,7 +123,7 @@ export function ThinkServiceDetail(props: {
           </div>
         </div>
         <div className="grp">
-          <h4>关联服务</h4>
+          <h4>关联模型与语音</h4>
           <div className="row">
             <div className="rr">
               <span className="k">设备服务</span>
@@ -151,7 +154,7 @@ export function ThinkServiceDetail(props: {
         <Button
           variant="danger"
           icon="trash"
-          onClick={() => props.onDelete(props.selThink)}
+          onClick={() => props.onDelete(props.selModel)}
         >
           删除
         </Button>

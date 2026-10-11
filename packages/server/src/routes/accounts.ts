@@ -1,4 +1,4 @@
-// ── 云端账号（多账号）+ 旧版 settings 兼容读写 ───────────────────
+// ── 云端账号（多账号）+ 旧版 credentials 兼容读写 ───────────────────
 import { nanoid } from 'nanoid'
 import {
   getAccounts,
@@ -7,8 +7,8 @@ import {
   saveAccounts,
 } from '../store.js'
 import { pullMicoDevices } from '../services.js'
-import { redactAccount, redactAccounts, redactSettings } from '../redact.js'
-import type { Account, Settings } from '../types.js'
+import { redactAccount, redactAccounts, redactCredential } from '../redact.js'
+import type { Account, Credential } from '../types.js'
 import { logger } from '../logger.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
 import { API_PREFIX, ok, fail, asyncHandler } from './shared.js'
@@ -77,14 +77,14 @@ export const registerAccountRoutes = createCrudRouter<Account>({
       }),
     )
 
-    // 兼容旧版：/api/settings 读写第一个（默认）账号
+    // 兼容旧版：/api/credentials 读写第一个（默认）账号
     app.get(
-      `${API_PREFIX}/settings`,
+      `${API_PREFIX}/credentials`,
       asyncHandler(async (req, res) => {
         const account = await getAccountById()
         res.json(
           account
-            ? redactSettings({
+            ? redactCredential({
                 miUserId: account.miUserId,
                 miPassword: account.miPassword,
                 passToken: account.passToken,
@@ -95,9 +95,9 @@ export const registerAccountRoutes = createCrudRouter<Account>({
     )
 
     app.put(
-      `${API_PREFIX}/settings`,
+      `${API_PREFIX}/credentials`,
       asyncHandler(async (req, res) => {
-        const body = req.body as Settings
+        const body = req.body as Credential
         const accounts = await getAccounts()
         // 脱敏后前端不再回读明文：未传的凭据字段保持原值，避免误清空
         if (accounts.length > 0) {

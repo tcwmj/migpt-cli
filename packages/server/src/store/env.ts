@@ -11,6 +11,10 @@ const envSchema = z.object({
   AUTH_USER: z.string().min(1).default('admin'),
   AUTH_PASSWORD: z.string().optional(),
   MIGPT_DEMO_LOGS: z.coerce.boolean().default(false),
+  // 数据根目录覆盖：挂载到任意路径 / rootless / 多实例部署用。
+  // MIGPTGUI_HOME 优先于 DATA_DIR，二者均未设置时回落 $HOME/.migptgui。
+  MIGPTGUI_HOME: z.string().min(1).optional(),
+  DATA_DIR: z.string().min(1).optional(),
 })
 
 export type EnvConfig = z.infer<typeof envSchema>

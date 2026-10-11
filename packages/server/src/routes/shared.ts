@@ -6,8 +6,8 @@ import type {
   RequestHandler,
   Response,
 } from 'express'
-import { listDeviceMetas } from '../store.js'
-import type { DeviceMeta } from '../types.js'
+import { listDevices } from '../store.js'
+import type { Device } from '../types.js'
 
 // 从 store 层重新导出，保持既有导入面不变
 export { loadDeviceConfig } from '../store.js'
@@ -72,59 +72,59 @@ export const ROBOT_FIELDS = [
   'onAIReplied',
   'onAIError',
   'exitKeepAliveAfter',
-  'roomRef',
-  'thinkServiceId',
-  'thinkServiceIds',
+  'conversationId',
+  'modelId',
+  'modelIds',
   'voiceId',
 ] as const
-export const THINK_FIELDS = [
+export const MODEL_FIELDS = [
   'name',
   'provider',
   'model',
   'apiKey',
   'baseUrl',
   'temperature',
-  'tokenInputUsed',
-  'tokenOutputUsed',
-  'tokenUsed',
+  'inputTokensUsed',
+  'outputTokensUsed',
+  'totalTokensUsed',
   'tokenLimit',
   'limitReached',
 ] as const
 export const VOICE_FIELDS = [
   'name',
   'provider',
-  'voiceId',
+  'timbreId',
   'ttsCommand',
   'tts',
-  'tokenInputUsed',
-  'tokenOutputUsed',
-  'tokenUsed',
+  'inputTokensUsed',
+  'outputTokensUsed',
+  'totalTokensUsed',
   'tokenLimit',
   'limitReached',
 ] as const
-export const MODEL_FIELDS = [
+export const SPEAKER_MODEL_FIELDS = [
   'name',
-  'did',
-  'desc',
+  'didPrefix',
+  'description',
   'ttsCommand',
   'wakeUpCommand',
   'playingCommand',
-  'consecutive',
+  'continuousDialogue',
   'imageUrl',
 ] as const
-export const ROOM_FIELDS = ['name', 'description'] as const
-export const DEVICE_META_FIELDS = [
+export const CONVERSATION_FIELDS = ['name', 'description'] as const
+export const DEVICE_FIELDS = [
   'alias',
   'did',
   'speakerModel',
   'robotId',
   'accountId',
-  'thinkServiceIds',
-  'thinkServiceId',
+  'modelIds',
+  'modelId',
   'voiceId',
-  'roomRef',
-  'roomName',
-  'roomDescription',
+  'conversationRef',
+  'conversationName',
+  'conversationDescription',
   'ttsSecret',
 ] as const
 
@@ -133,8 +133,8 @@ export const normProfile = (s?: string) => (s || '').replace(/\\n/g, '\n')
 
 export async function findDeviceBySecret(
   secret: string,
-): Promise<DeviceMeta | undefined> {
-  const metas = await listDeviceMetas()
+): Promise<Device | undefined> {
+  const metas = await listDevices()
   return metas.find((m) => m.ttsSecret === secret)
 }
 

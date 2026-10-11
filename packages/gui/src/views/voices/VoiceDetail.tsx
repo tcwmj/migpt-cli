@@ -1,12 +1,12 @@
-import type { VoiceService, DeviceRow, Robot } from '../../apis.ts'
+import type { Voice, DeviceRow, Robot } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderBadge, Tag } from '../../components/atoms/index.ts'
 import { VOICE_PROVIDERS } from '../../constants.ts'
 
-export function VoiceServiceDetail(props: {
+export function VoiceDetail(props: {
   selVoice: string
-  selVoiceObj: VoiceService | null
-  voiceSvcs: VoiceService[]
+  selVoiceObj: Voice | null
+  voices: Voice[]
   devices: DeviceRow[]
   robots: Robot[]
   usageVoice: (id: string) => number
@@ -15,9 +15,9 @@ export function VoiceServiceDetail(props: {
   onEdit: () => void
   onNavigate?: (view: string, id: string) => void
 }) {
-  const svc = props.voiceSvcs.find((s) => s.id === props.selVoice)
+  const svc = props.voices.find((s) => s.id === props.selVoice)
 
-  // 找到使用该服务的设备
+  // 找到使用该语音的设备
   const boundDevices = props.devices.filter((d) => d.voiceId === props.selVoice)
 
   // 获取引擎类型和 TTS 配置
@@ -35,7 +35,7 @@ export function VoiceServiceDetail(props: {
   return (
     <div className="form-card">
       <h3>
-        <I n="mic" size={17} /> 语音服务详情
+        <I n="mic" size={17} /> 语音详情
         <span className="refs">
           被 {props.usageVoice(props.selVoice)} 台设备引用 ·
           支持热切「把声音换成…」
@@ -49,7 +49,7 @@ export function VoiceServiceDetail(props: {
           <h4>基本信息</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">服务名称</span>
+              <span className="k">语音名称</span>
               <span className="v">{svc?.name || '—'}</span>
             </div>
           </div>
@@ -124,7 +124,7 @@ export function VoiceServiceDetail(props: {
             <div className="row">
               <div className="rr">
                 <span className="k">音色 ID</span>
-                <span className="v">{svc?.voiceId || '默认音色'}</span>
+                <span className="v">{svc?.timbreId || '默认音色'}</span>
               </div>
             </div>
           )}
@@ -156,9 +156,12 @@ export function VoiceServiceDetail(props: {
             {svc?.tokenLimit ? (
               <span
                 className="aside"
-                title={`Token 已使用 ${(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%（${(svc.tokenUsed ?? 0).toLocaleString()} / ${svc.tokenLimit.toLocaleString()}）`}
+                title={`Token 已使用 ${(((svc.totalTokensUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%（${(svc.totalTokensUsed ?? 0).toLocaleString()} / ${svc.tokenLimit.toLocaleString()}）`}
               >
-                {(((svc.tokenUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%
+                {(((svc.totalTokensUsed ?? 0) / svc.tokenLimit) * 100).toFixed(
+                  1,
+                )}
+                %
               </span>
             ) : null}
             {svc?.limitReached && <Tag tone="bad">限额已达</Tag>}
@@ -167,19 +170,19 @@ export function VoiceServiceDetail(props: {
             <div className="rr">
               <span className="k">输入 Token</span>
               <span className="v">
-                {(svc?.tokenInputUsed ?? 0).toLocaleString()}
+                {(svc?.inputTokensUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
               <span className="k">输出 Token</span>
               <span className="v">
-                {(svc?.tokenOutputUsed ?? 0).toLocaleString()}
+                {(svc?.outputTokensUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
               <span className="k">合计 Token</span>
               <span className="v">
-                {(svc?.tokenUsed ?? 0).toLocaleString()}
+                {(svc?.totalTokensUsed ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="rr">
@@ -191,7 +194,7 @@ export function VoiceServiceDetail(props: {
           </div>
         </div>
         <div className="grp">
-          <h4>关联服务</h4>
+          <h4>关联模型与语音</h4>
           <div className="row">
             <div className="rr">
               <span className="k">设备服务</span>
@@ -233,7 +236,7 @@ export function VoiceServiceDetail(props: {
           icon="trash"
           disabled={!!props.selVoiceObj?.builtin}
           onClick={() => props.onDelete(props.selVoice)}
-          title={props.selVoiceObj?.builtin ? '内置语音服务不可删除' : ''}
+          title={props.selVoiceObj?.builtin ? '内置语音不可删除' : ''}
         >
           删除
         </Button>

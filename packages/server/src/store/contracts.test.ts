@@ -2,33 +2,33 @@ import { jest, describe, test, expect } from '@jest/globals'
 
 // 本用例只读 shared.ts 里的写字段白名单常量；shared.ts 运行期会拉入 ../store.js（整个门面），
 // 按既有惯例 mock 掉，避免加载无关模块与真实数据目录。
-jest.mock('../store.js', () => ({ listDeviceMetas: jest.fn(async () => []) }))
+jest.mock('../store.js', () => ({ listDevices: jest.fn(async () => []) }))
 
 import { ENTITY_FIELDS } from '@migptgui/contracts'
 import {
   accountSchema,
-  deviceMetaSchema,
+  deviceSchema,
   robotSchema,
-  roomSchema,
-  settingsSchema,
+  conversationSchema,
+  credentialSchema,
   speakerModelSchema,
-  thinkServiceSchema,
-  voiceServiceSchema,
+  modelSchema,
+  voiceSchema,
 } from './schemas.js'
 import {
-  DEVICE_META_FIELDS,
-  MODEL_FIELDS,
+  DEVICE_FIELDS,
+  SPEAKER_MODEL_FIELDS,
   ROBOT_FIELDS,
-  ROOM_FIELDS,
-  THINK_FIELDS,
+  CONVERSATION_FIELDS,
+  MODEL_FIELDS,
   VOICE_FIELDS,
 } from '../routes/shared.js'
 import {
   redactAccount,
-  redactThinkService,
-  redactDeviceMeta,
-  redactSettings,
-  redactVoiceService,
+  redactModel,
+  redactDevice,
+  redactCredential,
+  redactVoice,
   redactGuiConfig,
 } from '../redact.js'
 import * as backupNs from './backup.js'
@@ -39,22 +39,20 @@ const schemaKeys = (schema: { shape: Record<string, unknown> }) =>
 
 describe('契约 ↔ 存储 schema 一致性', () => {
   test('各实体 zod schema 字段与契约清单严格一致', () => {
-    expect(schemaKeys(settingsSchema)).toEqual(sorted(ENTITY_FIELDS.settings))
+    expect(schemaKeys(credentialSchema)).toEqual(
+      sorted(ENTITY_FIELDS.credentials),
+    )
     expect(schemaKeys(accountSchema)).toEqual(sorted(ENTITY_FIELDS.account))
     expect(schemaKeys(robotSchema)).toEqual(sorted(ENTITY_FIELDS.robot))
-    expect(schemaKeys(thinkServiceSchema)).toEqual(
-      sorted(ENTITY_FIELDS.thinkService),
-    )
-    expect(schemaKeys(voiceServiceSchema)).toEqual(
-      sorted(ENTITY_FIELDS.voiceService),
-    )
+    expect(schemaKeys(modelSchema)).toEqual(sorted(ENTITY_FIELDS.model))
+    expect(schemaKeys(voiceSchema)).toEqual(sorted(ENTITY_FIELDS.voice))
     expect(schemaKeys(speakerModelSchema)).toEqual(
       sorted(ENTITY_FIELDS.speakerModel),
     )
-    expect(schemaKeys(roomSchema)).toEqual(sorted(ENTITY_FIELDS.room))
-    expect(schemaKeys(deviceMetaSchema)).toEqual(
-      sorted(ENTITY_FIELDS.deviceMeta),
+    expect(schemaKeys(conversationSchema)).toEqual(
+      sorted(ENTITY_FIELDS.conversation),
     )
+    expect(schemaKeys(deviceSchema)).toEqual(sorted(ENTITY_FIELDS.device))
   })
 })
 
@@ -62,11 +60,11 @@ describe('契约 ↔ 路由写白名单一致性', () => {
   test('写接口白名单均为契约字段的子集（受控字段不可由客户端写入）', () => {
     const pairs: [readonly string[], readonly string[]][] = [
       [ROBOT_FIELDS, ENTITY_FIELDS.robot],
-      [THINK_FIELDS, ENTITY_FIELDS.thinkService],
-      [VOICE_FIELDS, ENTITY_FIELDS.voiceService],
-      [MODEL_FIELDS, ENTITY_FIELDS.speakerModel],
-      [ROOM_FIELDS, ENTITY_FIELDS.room],
-      [DEVICE_META_FIELDS, ENTITY_FIELDS.deviceMeta],
+      [MODEL_FIELDS, ENTITY_FIELDS.model],
+      [VOICE_FIELDS, ENTITY_FIELDS.voice],
+      [SPEAKER_MODEL_FIELDS, ENTITY_FIELDS.speakerModel],
+      [CONVERSATION_FIELDS, ENTITY_FIELDS.conversation],
+      [DEVICE_FIELDS, ENTITY_FIELDS.device],
     ]
     for (const [whitelist, fields] of pairs) {
       const unknown = whitelist.filter((f) => !fields.includes(f))
@@ -94,30 +92,30 @@ describe('响应脱敏一致性', () => {
     expect(out).not.toContain(SECRET)
   })
 
-  test('思考服务 apiKey 不回传明文', () => {
+  test('模型 apiKey 不回传明文', () => {
     const out = JSON.stringify(
-      redactThinkService({ id: 't', name: 'x', apiKey: SECRET } as never),
+      redactModel({ id: 't', name: 'x', apiKey: SECRET } as never),
     )
     expect(out).not.toContain(SECRET)
   })
 
   test('设备 ttsSecret 不回传明文', () => {
     const out = JSON.stringify(
-      redactDeviceMeta({ id: 'd', alias: 'x', ttsSecret: SECRET } as never),
+      redactDevice({ id: 'd', alias: 'x', ttsSecret: SECRET } as never),
     )
     expect(out).not.toContain(SECRET)
   })
 
-  test('旧版 settings passToken 不回传明文', () => {
+  test('旧版 credentials passToken 不回传明文', () => {
     const out = JSON.stringify(
-      redactSettings({ miUserId: 'u', passToken: SECRET } as never),
+      redactCredential({ miUserId: 'u', passToken: SECRET } as never),
     )
     expect(out).not.toContain(SECRET)
   })
 
-  test('语音服务 TTS 令牌（edge/volcano/openai）不回传明文', () => {
+  test('语音 TTS 令牌（edge/volcano/openai）不回传明文', () => {
     const out = JSON.stringify(
-      redactVoiceService({
+      redactVoice({
         id: 'v',
         name: 'x',
         tts: {

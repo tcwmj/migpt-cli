@@ -14,12 +14,12 @@ jest.mock('../store.js', () => {
     assertUniqueName: entities.assertUniqueName,
     assertEntity: schemas.assertEntity,
     getRobots: jest.fn(async () => []),
-    listDeviceMetas: jest.fn(async () => []),
+    listDevices: jest.fn(async () => []),
   }
 })
 
 import { z } from 'zod'
-import { getRobots, listDeviceMetas } from '../store.js'
+import { getRobots, listDevices } from '../store.js'
 import { DataValidationError } from '../store/schemas.js'
 import type { Robot } from '../types.js'
 import {
@@ -95,7 +95,7 @@ const register = (over: Partial<CrudConfig<Item>> = {}) => {
 
 beforeEach(() => {
   jest.mocked(getRobots).mockResolvedValue([])
-  jest.mocked(listDeviceMetas).mockResolvedValue([])
+  jest.mocked(listDevices).mockResolvedValue([])
 })
 
 describe('createCrudRouter · GET', () => {
@@ -319,7 +319,7 @@ describe('collectRefs', () => {
 
 describe('deviceRefs', () => {
   test('按字段 id 命中，byName 时兼容名称', async () => {
-    jest.mocked(listDeviceMetas).mockResolvedValue([
+    jest.mocked(listDevices).mockResolvedValue([
       {
         id: 'd1',
         alias: '客厅',
@@ -353,10 +353,10 @@ describe('deviceRefs', () => {
 describe('robotRefs', () => {
   test('按角色字段命中并返回角色名', async () => {
     jest.mocked(getRobots).mockResolvedValue([
-      { id: 'r1', name: '傻妞', thinkServiceId: 't1' },
-      { id: 'r2', name: '助手', thinkServiceId: 't2' },
+      { id: 'r1', name: '傻妞', modelId: 't1' },
+      { id: 'r2', name: '助手', modelId: 't2' },
     ] as unknown as Robot[])
-    const rule = robotRefs('thinkServiceId')
+    const rule = robotRefs('modelId')
     expect(rule.key).toBe('robots')
     expect(await rule.find('t1', {})).toEqual(['傻妞'])
     expect(await rule.find('t9', {})).toEqual([])

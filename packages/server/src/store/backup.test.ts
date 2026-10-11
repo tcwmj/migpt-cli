@@ -19,14 +19,15 @@ jest.mock('../paths.js', () => {
   return {
     root,
     devicesRoot: p.join(root, 'devices'),
-    settingsFile: p.join(root, 'settings.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
-    thinkServicesFile: p.join(root, 'thinkServices.json'),
-    voiceServicesFile: p.join(root, 'voiceServices.json'),
+    modelsFile: p.join(root, 'models.json'),
+    voicesFile: p.join(root, 'voices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
-    roomsFile: p.join(root, 'rooms.json'),
+    conversationsFile: p.join(root, 'conversations.json'),
     authFile: p.join(root, 'auth.json'),
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
     overridesFile: p.join(root, 'overrides.json'),
@@ -36,7 +37,7 @@ jest.mock('../paths.js', () => {
 })
 
 import * as paths from '../paths.js'
-import type { Account, DeviceMeta, ThinkService } from '../types.js'
+import type { Account, Device, Model } from '../types.js'
 import { DataValidationError } from './schemas.js'
 import {
   BACKUP_FORMAT,
@@ -65,7 +66,7 @@ const account = (id: string, name: string, passToken?: string): Account => ({
   createdAt: 1,
 })
 
-const think = (id: string, name: string, apiKey?: string): ThinkService => ({
+const modelFixture = (id: string, name: string, apiKey?: string): Model => ({
   id,
   name,
   provider: 'openai',
@@ -74,7 +75,7 @@ const think = (id: string, name: string, apiKey?: string): ThinkService => ({
   createdAt: 2,
 })
 
-const device = (id: string, alias: string, ttsSecret?: string): DeviceMeta => ({
+const device = (id: string, alias: string, ttsSecret?: string): Device => ({
   id,
   alias,
   did: `D-${id}`,
@@ -95,19 +96,19 @@ afterAll(async () => {
 describe('buildBundle · 导出', () => {
   test('未脱敏：保留明文凭据', async () => {
     await write(paths.accountsFile, [account('a', '一', 'tk-1')])
-    await write(paths.thinkServicesFile, [think('t', '脑', 'sk-1')])
+    await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-1')])
     const bundle = await buildBundle(false)
     expect(bundle.format).toBe(BACKUP_FORMAT)
     expect(bundle.formatVersion).toBe(BACKUP_FORMAT_VERSION)
     expect(bundle.redacted).toBe(false)
     expect(bundle.data.accounts[0].passToken).toBe('tk-1')
-    expect(bundle.data.thinkServices[0].apiKey).toBe('sk-1')
+    expect(bundle.data.models[0].apiKey).toBe('sk-1')
   })
 
-  test('脱敏：抹除账号/思考服务/设备/语音/覆盖补丁中的明文凭据', async () => {
+  test('脱敏：抹除账号/模型/设备/语音/覆盖补丁中的明文凭据', async () => {
     await write(paths.accountsFile, [account('a', '一', 'tk-1')])
-    await write(paths.thinkServicesFile, [think('t', '脑', 'sk-1')])
-    await write(paths.voiceServicesFile, [
+    await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-1')])
+    await write(paths.voicesFile, [
       {
         id: 'v',
         name: '声',
@@ -130,11 +131,11 @@ describe('buildBundle · 导出', () => {
     const a = bundle.data.accounts[0]
     expect(a.passToken).toBeUndefined()
     expect(a.hasPassToken).toBe(true)
-    expect(bundle.data.thinkServices[0].apiKey).toBe('')
-    expect(bundle.data.thinkServices[0].hasApiKey).toBe(true)
+    expect(bundle.data.models[0].apiKey).toBe('')
+    expect(bundle.data.models[0].hasApiKey).toBe(true)
     expect(bundle.data.devices[0].ttsSecret).toBe('')
     expect(bundle.data.devices[0].hasTtsSecret).toBe(true)
-    const tts = bundle.data.voiceServices[0].tts as {
+    const tts = bundle.data.voices[0].tts as {
       edge?: { trustedToken?: string }
     }
     expect(tts.edge?.trustedToken).toBe('')
@@ -168,6 +169,7 @@ describe('applyBackup · 导入', () => {
         onAIReplied: [],
         onAIError: [],
         exitKeepAliveAfter: 30,
+        createdAt: 1,
       },
     ]
     delete legacy.data.robots
@@ -209,18 +211,16 @@ describe('applyBackup · 导入', () => {
 
   test('脱敏包：按 id 保留本机既有凭据', async () => {
     await write(paths.accountsFile, [account('a', '一', 'tk-old')])
-    await write(paths.thinkServicesFile, [think('t', '脑', 'sk-old')])
+    await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-old')])
     const redacted = await buildBundle(true)
     // 本机凭据在导出后被更新
     await write(paths.accountsFile, [account('a', '一', 'tk-new')])
-    await write(paths.thinkServicesFile, [think('t', '脑', 'sk-new')])
+    await write(paths.modelsFile, [modelFixture('t', '脑', 'sk-new')])
     await applyBackup(redacted)
     expect((await read<Account[]>(paths.accountsFile))[0].passToken).toBe(
       'tk-new',
     )
-    expect(
-      (await read<ThinkService[]>(paths.thinkServicesFile))[0].apiKey,
-    ).toBe('sk-new')
+    expect((await read<Model[]>(paths.modelsFile))[0].apiKey).toBe('sk-new')
   })
 
   test('非法包抛 DataValidationError', async () => {
@@ -244,7 +244,7 @@ describe('applyBackup · 导入', () => {
     const bundle = await buildBundle(false)
     bundle.data.devices = [device('d9', '书房', 'sec')]
     await applyBackup(bundle)
-    const meta = await read<DeviceMeta>(
+    const meta = await read<Device>(
       path.join(paths.devicesRoot, 'd9', 'meta.json'),
     )
     expect(meta.alias).toBe('书房')
@@ -255,7 +255,7 @@ describe('applyBackup · 导入', () => {
     // 内置实体的用户修改存 overrides.json；导入必须还原它，
     // 否则「可编辑」的内置改动会在迁移/恢复后静默丢失（变相回到初始数据）。
     await write(paths.overridesFile, {
-      models: { 'xiaomi-pro': { name: '我的小爱 Pro' } },
+      speakerModels: { 'xiaomi-pro': { name: '我的小爱 Pro' } },
     })
     const bundle = await buildBundle(false)
     // 模拟迁出：本机覆盖被清空后导入应还原
@@ -265,8 +265,11 @@ describe('applyBackup · 导入', () => {
       bundle.data.overrides as unknown,
     )
     expect(
-      (await read<{ models?: Record<string, unknown> }>(paths.overridesFile))
-        .models?.['xiaomi-pro'],
+      (
+        await read<{ speakerModels?: Record<string, unknown> }>(
+          paths.overridesFile,
+        )
+      ).speakerModels?.['xiaomi-pro'],
     ).toEqual({
       name: '我的小爱 Pro',
     })

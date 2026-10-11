@@ -1,6 +1,6 @@
-/* ══ RoomsView ══ */
+/* ══ ConversationsView ══ */
 import { useEffect, useState } from 'react'
-import { type DeviceRow, type Robot, type Room } from '../apis.ts'
+import { type DeviceRow, type Robot, type Conversation } from '../apis.ts'
 import { I } from '../icons.tsx'
 import {
   Button,
@@ -10,18 +10,20 @@ import {
   Tag,
 } from '../components/atoms/index.ts'
 
-export function RoomsView(props: {
-  rooms: Room[]
-  allRooms: Room[]
+export function ConversationsView(props: {
+  conversations: Conversation[]
+  allRooms: Conversation[]
   devices: DeviceRow[]
   robots: Robot[]
-  onSave: (r: Room) => void
-  onCreate: (r: Partial<Room>) => Promise<Room | null> | void
+  onSave: (r: Conversation) => void
+  onCreate: (r: Partial<Conversation>) => Promise<Conversation | null> | void
   onDelete: (id: string) => void
   onReset: (id: string) => void
   onNavigate?: (view: string, id: string) => void
 }) {
-  const [selId, setSelId] = useState<string | null>(props.rooms[0]?.id || null)
+  const [selId, setSelId] = useState<string | null>(
+    props.conversations[0]?.id || null,
+  )
   const sel = props.allRooms.find((r) => r.id === selId) || null
   const [draft, setDraft] = useState<{ name: string; description: string }>({
     name: sel?.name || '',
@@ -31,8 +33,8 @@ export function RoomsView(props: {
   const [creating, setCreating] = useState(false)
   // 刷新/首屏时列表数据异步到达，useState 初值为空 → 数据就绪后补选第一项（与 RobotsView 一致）
   useEffect(() => {
-    setSelId((s) => s || props.rooms[0]?.id || null)
-  }, [props.rooms])
+    setSelId((s) => s || props.conversations[0]?.id || null)
+  }, [props.conversations])
   useEffect(() => {
     setDraft({ name: sel?.name || '', description: sel?.description || '' })
     setEdit(false)
@@ -57,7 +59,7 @@ export function RoomsView(props: {
   const save = async () => {
     const name = draft.name.trim()
     if (!name) {
-      window.alert('会话群名称必填')
+      window.alert('会话名称必填')
       return
     }
     if (creating) {
@@ -82,15 +84,17 @@ export function RoomsView(props: {
     }
   }
   return (
-    <section data-view="rooms" className="on">
+    <section data-view="conversations" className="on">
       <div className="filters">
-        <Chip on>全部会话群 {props.rooms.length}</Chip>
+        <Chip on>全部会话 {props.conversations.length}</Chip>
         <span className="sp" />
       </div>
       <div className="split">
         <aside className="slist">
-          {props.rooms.map((r) => {
-            const used = props.robots.filter((d) => d.roomRef === r.id).length
+          {props.conversations.map((r) => {
+            const used = props.robots.filter(
+              (d) => d.conversationId === r.id,
+            ).length
             return (
               <div
                 key={r.id}
@@ -125,13 +129,13 @@ export function RoomsView(props: {
         </aside>
         <section
           className="sdetail"
-          key={'room-' + (selId || 'new') + (edit ? '-e' : '-r')}
+          key={'conversation-' + (selId || 'new') + (edit ? '-e' : '-r')}
         >
-          {props.rooms.length === 0 && !creating ? (
+          {props.conversations.length === 0 && !creating ? (
             <EmptyState
               icon="chats"
-              title="还没有会话群"
-              desc="会话群是对话记忆的上下文归属，多个角色可共用同一会话群；创建后在「对话角色」中关联。"
+              title="还没有会话"
+              desc="会话是对话记忆的上下文归属，多个角色可共用同一会话；创建后在「对话角色」中关联。"
               action={
                 <Button variant="primary" icon="plus" onClick={startCreate}>
                   新建
@@ -141,18 +145,17 @@ export function RoomsView(props: {
           ) : edit ? (
             <div className="form-card">
               <h3>
-                <I n="chats" size={17} />{' '}
-                {creating ? '新建会话群' : '编辑会话群'}
+                <I n="chats" size={17} /> {creating ? '新建会话' : '编辑会话'}
               </h3>
               <div className="desc">
                 {creating
-                  ? '创建后可到「对话角色」中为角色关联此会话群。'
-                  : '修改会话群信息；关联角色重启后生效。'}
+                  ? '创建后可到「对话角色」中为角色关联此会话。'
+                  : '修改会话信息；关联角色重启后生效。'}
               </div>
               <div className="grp">
                 <h4>基本信息</h4>
                 <div className="row">
-                  <Field label="会话群名称" required>
+                  <Field label="会话名称" required>
                     <input
                       value={draft.name}
                       placeholder="例如：客厅会话"
@@ -161,7 +164,7 @@ export function RoomsView(props: {
                       }
                     />
                   </Field>
-                  <Field label="会话群描述">
+                  <Field label="会话描述">
                     <input
                       value={draft.description}
                       placeholder="例如：家庭日常闲聊场景"
@@ -190,9 +193,9 @@ export function RoomsView(props: {
           ) : sel ? (
             <div className="form-card">
               <h3>
-                <I n="chats" size={17} /> 会话群详情
+                <I n="chats" size={17} /> 会话详情
                 <span className="refs">
-                  多个角色共用同一会话群，共享对话记忆；变更后需重启关联角色生效。
+                  多个角色共用同一会话，共享对话记忆；变更后需重启关联角色生效。
                 </span>
               </h3>
               <div className="desc">
@@ -203,11 +206,11 @@ export function RoomsView(props: {
                   <h4>基本信息</h4>
                   <div className="row">
                     <div className="rr">
-                      <span className="k">会话群名称</span>
+                      <span className="k">会话名称</span>
                       <span className="v">{sel.name}</span>
                     </div>
                     <div className="rr">
-                      <span className="k">会话群描述</span>
+                      <span className="k">会话描述</span>
                       <span className="v">{sel.description || '—'}</span>
                     </div>
                   </div>
@@ -220,7 +223,7 @@ export function RoomsView(props: {
                       <span className="v">
                         {(() => {
                           const used = props.robots.filter(
-                            (d) => d.roomRef === sel.id,
+                            (d) => d.conversationId === sel.id,
                           )
                           return used.length ? (
                             <div className="link-list">
@@ -262,7 +265,7 @@ export function RoomsView(props: {
                   icon="trash"
                   disabled={!!sel.builtin}
                   onClick={() => props.onDelete(sel.id)}
-                  title={sel.builtin ? '系统内置会话群不可删除' : ''}
+                  title={sel.builtin ? '系统内置会话不可删除' : ''}
                 >
                   删除
                 </Button>

@@ -4,12 +4,16 @@
  * 使用方法: npx tsx scripts/diagnose-device.ts [设备ID]
  */
 
-import { readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 
-// 数据目录
-const dataDir = join(homedir(), '.migptgui')
+// 数据目录：与运行时一致，支持 MIGPTGUI_HOME / DATA_DIR 环境变量覆盖（前者优先），
+// 便于在挂载到自定义路径的部署上直接诊断
+const dataDir = resolve(
+  (process.env.MIGPTGUI_HOME || process.env.DATA_DIR || '').trim() ||
+    join(homedir(), '.migptgui'),
+)
 
 // 读取设备配置
 function readJSON(path: string): any {
@@ -81,7 +85,9 @@ async function diagnoseDevice(deviceId: string) {
   if (!config.config?.speaker?.password) {
     console.error('   ❌ speaker.password 未配置')
   } else {
-    console.log(`   speaker.password: ${config.config.speaker.password ? '***' : '空'}`)
+    console.log(
+      `   speaker.password: ${config.config.speaker.password ? '***' : '空'}`,
+    )
   }
 
   // 检查思考服务配置
@@ -89,7 +95,9 @@ async function diagnoseDevice(deviceId: string) {
   if (!config.env?.OPENAI_API_KEY) {
     console.error('   ❌ OPENAI_API_KEY 未配置')
   } else {
-    console.log(`   OPENAI_API_KEY: ${config.env.OPENAI_API_KEY.substring(0, 10)}...`)
+    console.log(
+      `   OPENAI_API_KEY: ${config.env.OPENAI_API_KEY.substring(0, 10)}...`,
+    )
   }
 
   if (!config.env?.OPENAI_MODEL) {
@@ -117,11 +125,17 @@ async function diagnoseDevice(deviceId: string) {
     // 检查 mina 配置
     if (miJson.mina) {
       console.log(`   mina.userId: ${miJson.mina.userId || '❌ 缺失'}`)
-      console.log(`   mina.password: ${miJson.mina.password ? '✅ 已设置' : '❌ 缺失'}`)
-      console.log(`   mina.pass.passToken: ${miJson.mina.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`)
+      console.log(
+        `   mina.password: ${miJson.mina.password ? '✅ 已设置' : '❌ 缺失'}`,
+      )
+      console.log(
+        `   mina.pass.passToken: ${miJson.mina.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`,
+      )
 
       if (miJson.mina.pass?.passToken) {
-        console.log(`   passToken 前 20 字符: ${miJson.mina.pass.passToken.substring(0, 20)}...`)
+        console.log(
+          `   passToken 前 20 字符: ${miJson.mina.pass.passToken.substring(0, 20)}...`,
+        )
       }
     } else {
       console.error('   ❌ mina 配置缺失')
@@ -130,18 +144,25 @@ async function diagnoseDevice(deviceId: string) {
     // 检查 miiot 配置
     if (miJson.miiot) {
       console.log(`   miiot.userId: ${miJson.miiot.userId || '❌ 缺失'}`)
-      console.log(`   miiot.password: ${miJson.miiot.password ? '✅ 已设置' : '❌ 缺失'}`)
-      console.log(`   miiot.pass.passToken: ${miJson.miiot.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`)
+      console.log(
+        `   miiot.password: ${miJson.miiot.password ? '✅ 已设置' : '❌ 缺失'}`,
+      )
+      console.log(
+        `   miiot.pass.passToken: ${miJson.miiot.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`,
+      )
     } else {
       console.error('   ❌ miiot 配置缺失')
     }
 
     // 检查是否使用 passToken 模式
-    const isPassTokenMode = miJson.mina?.password === 'passToken-mode' ||
-                           miJson.miiot?.password === 'passToken-mode'
+    const isPassTokenMode =
+      miJson.mina?.password === 'passToken-mode' ||
+      miJson.miiot?.password === 'passToken-mode'
     if (isPassTokenMode) {
       console.log('\n   ✅ 使用 passToken 直接登录模式')
-      console.log('   说明: 如果 passToken 有效，将直接使用它登录，不需要真实密码')
+      console.log(
+        '   说明: 如果 passToken 有效，将直接使用它登录，不需要真实密码',
+      )
     }
   }
 
@@ -240,7 +261,6 @@ function listDevices() {
     return []
   }
 
-  const { readdirSync } = require('node:fs')
   const devices = readdirSync(devicesDir).filter((name: string) => {
     const metaPath = join(devicesDir, name, 'meta.json')
     return existsSync(metaPath)

@@ -1,10 +1,10 @@
 import type {
   Account,
   Robot,
-  Room,
+  Conversation,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../../apis.ts'
 import type { ModalState } from '../../ui-types.ts'
 
@@ -16,18 +16,18 @@ export interface ModalFormProps {
   isEdit: boolean
 }
 
-/** 角色表单额外需要思考/语音服务列表做下拉选项 */
+/** 角色表单额外需要思考/语音列表做下拉选项 */
 export interface RobotFormProps extends ModalFormProps {
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
+  models: Model[]
+  voices: Voice[]
 }
 
 /** 设备绑定表单额外需要各实体列表做下拉选项 */
 export interface DeviceBindFormProps extends ModalFormProps {
   accounts: Account[]
   robots: Robot[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
-  models: SpeakerModel[]
-  rooms: Room[]
+  models: Model[]
+  voices: Voice[]
+  speakerModels: SpeakerModel[]
+  conversations: Conversation[]
 }

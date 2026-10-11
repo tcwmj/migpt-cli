@@ -1,4 +1,4 @@
-/* ══ SysLogsView ══ */
+/* ══ SystemLogsView ══ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../apis.ts'
 import { I } from '../icons.tsx'
@@ -74,7 +74,7 @@ const LOGS_QUICK_ITEMS: QuickRangeItem[] = [
   },
 ]
 
-export function SysLogsView(props: {
+export function SystemLogsView(props: {
   query?: string
   onToast?: (msg: string) => void
 }) {

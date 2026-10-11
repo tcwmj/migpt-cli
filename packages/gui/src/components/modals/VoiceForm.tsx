@@ -9,7 +9,7 @@ export function VoiceForm({ v, setV }: ModalFormProps) {
   const dlId = `voice-models-${v.provider || 'custom'}`
   return (
     <>
-      <Field row label="服务名称" required>
+      <Field row label="语音名称" required>
         <input
           value={v.name || ''}
           placeholder="例如：豆包语音"

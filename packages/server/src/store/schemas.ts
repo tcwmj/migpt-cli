@@ -23,7 +23,7 @@ const optStr = z.string().optional()
 const optBool = z.boolean().optional()
 const strArr = z.array(z.string())
 
-export const settingsSchema = z.object({
+export const credentialSchema = z.object({
   miUserId: optStr,
   miPassword: optStr,
   passToken: optStr,
@@ -59,15 +59,16 @@ export const robotSchema = z.object({
   onAIReplied: strArr,
   onAIError: strArr,
   exitKeepAliveAfter: num,
-  roomRef: optStr,
+  conversationId: optStr,
   builtin: optBool,
-  thinkServiceId: optStr,
-  thinkServiceIds: z.array(str).optional(),
+  modelId: optStr,
+  modelIds: z.array(str).optional(),
   voiceId: optStr,
+  createdAt: num,
 })
 export const robotListSchema = z.array(robotSchema)
 
-export const thinkServiceSchema = z.object({
+export const modelSchema = z.object({
   id: str.min(1),
   name: str.min(1),
   provider: str,
@@ -75,59 +76,59 @@ export const thinkServiceSchema = z.object({
   apiKey: str,
   baseUrl: optStr,
   temperature: num.optional(),
-  tokenInputUsed: num.optional(),
-  tokenOutputUsed: num.optional(),
-  tokenUsed: num.optional(),
+  inputTokensUsed: num.optional(),
+  outputTokensUsed: num.optional(),
+  totalTokensUsed: num.optional(),
   tokenLimit: num.optional(),
   limitReached: z.boolean().optional(),
   createdAt: num,
   hasApiKey: optBool,
 })
-export const thinkServiceListSchema = z.array(thinkServiceSchema)
+export const modelListSchema = z.array(modelSchema)
 
-export const voiceServiceSchema = z.object({
+export const voiceSchema = z.object({
   id: str.min(1),
   name: str.min(1),
   provider: str,
-  voiceId: optStr,
+  timbreId: optStr,
   ttsCommand: z.array(z.number().optional()).optional(),
   builtin: optBool,
   tts: z.custom<TTSConfig>().optional(),
-  tokenInputUsed: num.optional(),
-  tokenOutputUsed: num.optional(),
-  tokenUsed: num.optional(),
+  inputTokensUsed: num.optional(),
+  outputTokensUsed: num.optional(),
+  totalTokensUsed: num.optional(),
   tokenLimit: num.optional(),
   limitReached: z.boolean().optional(),
   createdAt: num,
   hasTtsToken: optBool,
 })
-export const voiceServiceListSchema = z.array(voiceServiceSchema)
+export const voiceListSchema = z.array(voiceSchema)
 
 export const speakerModelSchema = z.object({
   id: str.min(1),
   name: str.min(1),
-  did: str,
-  desc: optStr,
+  didPrefix: str,
+  description: optStr,
   ttsCommand: z.array(num).optional(),
   wakeUpCommand: z.array(num).optional(),
   playingCommand: z.array(num).optional(),
-  consecutive: optBool,
+  continuousDialogue: optBool,
   imageUrl: optStr,
   builtin: optBool,
   createdAt: num,
 })
 export const speakerModelListSchema = z.array(speakerModelSchema)
 
-export const roomSchema = z.object({
+export const conversationSchema = z.object({
   id: str.min(1),
   name: str.min(1),
   description: optStr,
   builtin: optBool,
   createdAt: num,
 })
-export const roomListSchema = z.array(roomSchema)
+export const conversationListSchema = z.array(conversationSchema)
 
-export const deviceMetaSchema = z.object({
+export const deviceSchema = z.object({
   id: str.min(1),
   alias: str,
   did: str,
@@ -136,12 +137,12 @@ export const deviceMetaSchema = z.object({
   // 旧数据由迁移 v4 回填后即满足；迁移在启动期先于任何读取执行。
   robotId: str.min(1),
   accountId: optStr,
-  thinkServiceIds: z.array(str).optional(),
-  thinkServiceId: optStr,
+  modelIds: z.array(str).optional(),
+  modelId: optStr,
   voiceId: optStr,
-  roomRef: optStr,
-  roomName: optStr,
-  roomDescription: optStr,
+  conversationRef: optStr,
+  conversationName: optStr,
+  conversationDescription: optStr,
   ttsSecret: str,
   createdAt: num,
   hasTtsSecret: optBool,
@@ -151,7 +152,7 @@ export const deviceMetaSchema = z.object({
 export const overridesSchema = z.object({
   models: z.record(z.any()).optional(),
   voices: z.record(z.any()).optional(),
-  rooms: z.record(z.any()).optional(),
+  conversations: z.record(z.any()).optional(),
   robots: z.record(z.any()).optional(),
 })
 

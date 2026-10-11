@@ -1,6 +1,6 @@
 /* ══ RobotsView ══ */
 import { useEffect, useState } from 'react'
-import { type Robot, type Room, type DeviceRow } from '../apis.ts'
+import { type Robot, type Conversation, type DeviceRow } from '../apis.ts'
 import { Button, Chip, EmptyState } from '../components/atoms/index.ts'
 import { RobotDetail } from './robots/RobotDetail.tsx'
 import { RobotEditForm } from './robots/RobotEditForm.tsx'
@@ -9,7 +9,7 @@ import { RobotList } from './robots/RobotList.tsx'
 export function RobotsView(props: {
   robots: Robot[]
   allRobots: Robot[]
-  rooms: Room[]
+  conversations: Conversation[]
   devices: DeviceRow[]
   robotUsage: (id: string) => string[]
   onSave: (r: Robot) => void
@@ -33,12 +33,13 @@ export function RobotsView(props: {
     checkInterval: 1000,
     checkTTSStatusAfter: 3000,
     exitKeepAliveAfter: 30,
-    roomRef: '',
+    conversationId: '',
     onEnterAI: [],
     onExitAI: [],
     onAIAsking: [],
     onAIReplied: [],
     onAIError: [],
+    createdAt: Date.now(),
   })
   useEffect(() => {
     setSelId((s) => s || props.robots[0]?.id || null)
@@ -124,7 +125,7 @@ export function RobotsView(props: {
             key={'robot-r-' + sel.id}
             robot={sel}
             usage={usage}
-            rooms={props.rooms}
+            conversations={props.conversations}
             devices={props.devices}
             onEdit={() => setEdit(true)}
             onDelete={() => props.onDelete(sel.id)}
@@ -138,7 +139,7 @@ export function RobotsView(props: {
             draft={draft}
             creating={creating}
             usage={usage}
-            rooms={props.rooms}
+            conversations={props.conversations}
             setF={setF}
             onCancel={cancelEdit}
             onSave={doSave}

@@ -6,10 +6,10 @@ import type {
   Account,
   DeviceRow,
   Robot,
-  Room,
+  Conversation,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../apis.ts'
 
 /** React Query 统一 key 前缀，便于全局失效 */
@@ -18,10 +18,10 @@ export const queryKeys = {
   devices: ['devices'] as const,
   accounts: ['accounts'] as const,
   robots: ['robots'] as const,
-  thinkServices: ['think-services'] as const,
-  voiceServices: ['voice-services'] as const,
+  models: ['models'] as const,
+  voices: ['voices'] as const,
   speakerModels: ['speaker-models'] as const,
-  rooms: ['rooms'] as const,
+  conversations: ['conversations'] as const,
   logs: ['logs'] as const,
 }
 
@@ -81,14 +81,14 @@ export function useAppData(showToast: (msg: string) => void) {
     queryFn: api.getRobots,
     enabled,
   })
-  const thinkQ = useQuery({
-    queryKey: queryKeys.thinkServices,
-    queryFn: api.getThinkServices,
+  const modelQ = useQuery({
+    queryKey: queryKeys.models,
+    queryFn: api.getModels,
     enabled,
   })
   const voiceQ = useQuery({
-    queryKey: queryKeys.voiceServices,
-    queryFn: api.getVoiceServices,
+    queryKey: queryKeys.voices,
+    queryFn: api.getVoices,
     enabled,
   })
   const modelsQ = useQuery({
@@ -97,8 +97,8 @@ export function useAppData(showToast: (msg: string) => void) {
     enabled,
   })
   const roomsQ = useQuery({
-    queryKey: queryKeys.rooms,
-    queryFn: api.getRooms,
+    queryKey: queryKeys.conversations,
+    queryFn: api.getConversations,
     enabled,
   })
   const logsQ = useQuery({
@@ -112,7 +112,7 @@ export function useAppData(showToast: (msg: string) => void) {
     devicesQ,
     accountsQ,
     robotsQ,
-    thinkQ,
+    modelQ,
     voiceQ,
     modelsQ,
     roomsQ,
@@ -169,10 +169,11 @@ export function useAppData(showToast: (msg: string) => void) {
 
   /* ── 派生数据 ── */
   const devices = devicesQ.data ?? []
-  const models = modelsQ.data ?? []
+  const speakerModels = modelsQ.data ?? []
   const runningCount = devices.filter((d) => d.running).length
-  const builtinModelCount = models.filter((m) => m.builtin).length
-  const customModelCount = models.length - builtinModelCount
+  const builtinSpeakerModelCount = speakerModels.filter((m) => m.builtin).length
+  const customSpeakerModelCount =
+    speakerModels.length - builtinSpeakerModelCount
   const loading = queries.some((q) => q.isLoading)
 
   return {
@@ -183,15 +184,15 @@ export function useAppData(showToast: (msg: string) => void) {
     accounts: accountsQ.data ?? ([] as Account[]),
     devices,
     robots: robotsQ.data ?? ([] as Robot[]),
-    thinkSvcs: thinkQ.data ?? ([] as ThinkService[]),
-    voiceSvcs: voiceQ.data ?? ([] as VoiceService[]),
-    models,
-    rooms: roomsQ.data ?? ([] as Room[]),
+    models: modelQ.data ?? ([] as Model[]),
+    voices: voiceQ.data ?? ([] as Voice[]),
+    speakerModels,
+    conversations: roomsQ.data ?? ([] as Conversation[]),
     logCount: logsQ.data ?? 0,
     loading,
     refreshAll,
     runningCount,
-    builtinModelCount,
-    customModelCount,
+    builtinSpeakerModelCount,
+    customSpeakerModelCount,
   }
 }

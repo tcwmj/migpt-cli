@@ -20,14 +20,15 @@ jest.mock('../paths.js', () => {
   return {
     root,
     devicesRoot: p.join(root, 'devices'),
-    settingsFile: p.join(root, 'settings.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
-    thinkServicesFile: p.join(root, 'thinkServices.json'),
-    voiceServicesFile: p.join(root, 'voiceServices.json'),
+    modelsFile: p.join(root, 'models.json'),
+    voicesFile: p.join(root, 'voices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
-    roomsFile: p.join(root, 'rooms.json'),
+    conversationsFile: p.join(root, 'conversations.json'),
     authFile: p.join(root, 'auth.json'),
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
     overridesFile: p.join(root, 'overrides.json'),
@@ -42,9 +43,9 @@ import {
   getAccounts,
   getAccountById,
   getRobots,
-  getDeviceMeta,
-  listDeviceMetas,
-  getRoomByRef,
+  getDevice,
+  listDevices,
+  getConversationByRef,
   getSpeakerModelByRef,
 } from './entities.js'
 
@@ -97,8 +98,8 @@ describe('getAccounts / getAccountById', () => {
     expect(await getAccounts()).toEqual([])
   })
 
-  test('从旧 settings.json 迁移出首个账号并落盘', async () => {
-    await write(paths.settingsFile, { miUserId: 'u1', passToken: 'tk' })
+  test('从旧 credentials.json 迁移出首个账号并落盘', async () => {
+    await write(paths.credentialsFile, { miUserId: 'u1', passToken: 'tk' })
     const accounts = await getAccounts()
     expect(accounts).toHaveLength(1)
     expect(accounts[0]).toMatchObject({
@@ -114,7 +115,7 @@ describe('getAccounts / getAccountById', () => {
     await write(paths.accountsFile, [
       { id: 'a1', name: '主账号', miUserId: 'u9', createdAt: 1 },
     ])
-    await write(paths.settingsFile, { miUserId: 'old' })
+    await write(paths.credentialsFile, { miUserId: 'old' })
     const accounts = await getAccounts()
     expect(accounts).toEqual([
       { id: 'a1', name: '主账号', miUserId: 'u9', createdAt: 1 },
@@ -138,11 +139,11 @@ describe('getAccounts / getAccountById', () => {
 
 describe('设备元数据读取', () => {
   test('devices 目录不存在时列表为空', async () => {
-    expect(await listDeviceMetas()).toEqual([])
+    expect(await listDevices()).toEqual([])
   })
 
-  test('getDeviceMeta 缺失返回 undefined，存在则读回', async () => {
-    expect(await getDeviceMeta('nope')).toBeUndefined()
+  test('getDevice 缺失返回 undefined，存在则读回', async () => {
+    expect(await getDevice('nope')).toBeUndefined()
     await write(path.join(paths.devicesRoot, 'd1', 'meta.json'), {
       id: 'd1',
       alias: '客厅',
@@ -151,10 +152,10 @@ describe('设备元数据读取', () => {
       ttsSecret: 's',
       createdAt: 1,
     })
-    expect((await getDeviceMeta('d1'))?.alias).toBe('客厅')
+    expect((await getDevice('d1'))?.alias).toBe('客厅')
   })
 
-  test('listDeviceMetas 按 createdAt 升序，忽略非设备目录', async () => {
+  test('listDevices 按 createdAt 升序，忽略非设备目录', async () => {
     await write(path.join(paths.devicesRoot, 'b', 'meta.json'), {
       id: 'b',
       alias: 'B',
@@ -173,23 +174,25 @@ describe('设备元数据读取', () => {
     })
     // 空目录 / 无 meta 的目录应被过滤
     await fs.mkdir(path.join(paths.devicesRoot, 'empty'), { recursive: true })
-    const metas = await listDeviceMetas()
+    const metas = await listDevices()
     expect(metas.map((m) => m.id)).toEqual(['a', 'b'])
   })
 })
 
-describe('按引用解析会话群 / 型号', () => {
-  test('getRoomByRef：按 id 或名称命中，未命中/空引用为 undefined', async () => {
-    await write(paths.roomsFile, [{ id: 'r1', name: '家庭闲聊', createdAt: 1 }])
-    expect((await getRoomByRef('r1'))?.name).toBe('家庭闲聊')
-    expect((await getRoomByRef('家庭闲聊'))?.id).toBe('r1')
-    expect(await getRoomByRef('不存在')).toBeUndefined()
-    expect(await getRoomByRef()).toBeUndefined()
+describe('按引用解析会话 / 型号', () => {
+  test('getConversationByRef：按 id 或名称命中，未命中/空引用为 undefined', async () => {
+    await write(paths.conversationsFile, [
+      { id: 'r1', name: '家庭闲聊', createdAt: 1 },
+    ])
+    expect((await getConversationByRef('r1'))?.name).toBe('家庭闲聊')
+    expect((await getConversationByRef('家庭闲聊'))?.id).toBe('r1')
+    expect(await getConversationByRef('不存在')).toBeUndefined()
+    expect(await getConversationByRef()).toBeUndefined()
   })
 
   test('getSpeakerModelByRef：兼容旧数据存名称', async () => {
     await write(paths.speakerModelsFile, [
-      { id: 'm1', name: '自建音箱', did: 'X08E', createdAt: 1 },
+      { id: 'm1', name: '自建音箱', didPrefix: 'X08E', createdAt: 1 },
     ])
     expect((await getSpeakerModelByRef('m1'))?.name).toBe('自建音箱')
     expect((await getSpeakerModelByRef('自建音箱'))?.id).toBe('m1')
@@ -210,6 +213,7 @@ describe('实体列表读取', () => {
         checkInterval: 1000,
         checkTTSStatusAfter: 3000,
         exitKeepAliveAfter: 30,
+        createdAt: 1,
         onEnterAI: [],
         onExitAI: [],
         onAIAsking: [],

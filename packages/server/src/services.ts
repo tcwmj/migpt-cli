@@ -4,16 +4,16 @@ import { nanoid } from 'nanoid'
 import {
   type Account,
   type Robot,
-  type DeviceMeta,
-  type PulledDevice,
+  type Device,
+  type CloudDevice,
   type DeviceBindings,
 } from './types.js'
 import {
   getAccounts,
   getRobots,
-  getThinkServices,
-  getVoiceServices,
-  getRooms,
+  getModels,
+  getVoices,
+  getConversations,
   getSpeakerModelByRef,
   PROVIDER_BASE_URLS,
 } from './store.js'
@@ -62,7 +62,7 @@ function _parseJson(body: string): unknown {
 export async function pullMicoDevices(
   miUserId: string,
   passToken: string,
-): Promise<PulledDevice[]> {
+): Promise<CloudDevice[]> {
   const deviceId = 'android_' + nanoid(16)
   const ua =
     'Mozilla/5.0 (Linux; Android 10; 000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.6045.193 Mobile Safari/537.36 /XiaoMi/HybridView/ micoSoundboxApp/i appVersion/A_2.4.40'
@@ -181,60 +181,61 @@ export function buildConfigFromRobot(
   }
 }
 
-/** 解析一台设备的完整绑定链（账号/角色/思考服务/语音服务/会话群 + 来源标注） */
-export async function resolveBindings(
-  meta: DeviceMeta,
-): Promise<DeviceBindings> {
+/** 解析一台设备的完整绑定链（账号/角色/模型/语音/会话 + 来源标注） */
+export async function resolveBindings(meta: Device): Promise<DeviceBindings> {
   // 单次并行读取全部关联集合
-  const [accounts, robots, thinks, voices] = await Promise.all([
+  const [accounts, robots, models, voices] = await Promise.all([
     getAccounts(),
     getRobots(),
-    getThinkServices(),
-    getVoiceServices(),
+    getModels(),
+    getVoices(),
   ])
   const account = accounts.find((a) => a.id === meta.accountId) || accounts[0]
   const robot = meta.robotId
     ? robots.find((r) => r.id === meta.robotId)
     : undefined
 
-  // 思考服务：仅取设备指定列表（failover），不再回退角色或全局默认
-  let think: (typeof thinks)[0] | undefined
-  const thinkSource: 'device' | 'global' = 'device'
-  const thinkIds = meta.thinkServiceIds ?? []
-  if (thinkIds.length > 0) {
+  // 模型：仅取设备指定列表（failover），不再回退角色或全局默认
+  let model: (typeof models)[0] | undefined
+  const modelSource = 'device' as const
+  const modelIds = meta.modelIds ?? []
+  if (modelIds.length > 0) {
     // 按顺序跳过 limitReached 的服务
-    for (const sid of thinkIds) {
-      const svc = thinks.find((t) => t.id === sid)
+    for (const sid of modelIds) {
+      const svc = models.find((t) => t.id === sid)
       if (svc && !svc.limitReached) {
-        think = svc
+        model = svc
         break
       }
     }
     // 全部标记时回退第一个（允许重试，限额可能已重置）
-    if (!think) {
-      think = thinks.find((t) => t.id === thinkIds[0])
+    if (!model) {
+      model = models.find((t) => t.id === modelIds[0])
     }
   }
-  // 无列表时保留 thinkServiceId 兼容旧数据
-  if (!think) {
-    const legacyId = meta.thinkServiceId
-    if (legacyId) think = thinks.find((t) => t.id === legacyId)
+  // 无列表时保留 modelId 兼容旧数据
+  if (!model) {
+    const legacyId = meta.modelId
+    if (legacyId) model = models.find((t) => t.id === legacyId)
   }
 
-  // 语音服务：仅取设备指定，不再回退角色或全局默认
+  // 语音：仅取设备指定，不再回退角色或全局默认
   let voice: (typeof voices)[0] | undefined
   const voiceId = meta.voiceId
   if (voiceId) {
     voice = voices.find((v) => v.id === voiceId)
   }
-  // 设备未指定语音服务时的来源标注（用于绑定链展示）
-  const voiceSource: 'device' | 'global' = 'device'
+  // 设备未指定语音时的来源标注（用于绑定链展示）
+  const voiceSource = 'device' as const
 
-  // 会话群：角色指定 → 设备旧字段兼容（'' 视为未设置，用 || 回退）
-  const rooms = await getRooms()
-  const roomRef = robot?.roomRef || meta.roomRef || meta.roomName
-  const room = roomRef
-    ? rooms.find((r) => r.id === roomRef || r.name === roomRef)
+  // 会话：角色指定 → 设备旧字段兼容（'' 视为未设置，用 || 回退）
+  const conversations = await getConversations()
+  const conversationRef =
+    robot?.conversationId || meta.conversationRef || meta.conversationName
+  const conversation = conversationRef
+    ? conversations.find(
+        (r) => r.id === conversationRef || r.name === conversationRef,
+      )
     : undefined
 
   const rows = [
@@ -255,53 +256,53 @@ export async function resolveBindings(
       sourceLabel: '设备绑定',
     },
     {
-      key: 'think' as const,
-      label: '思考服务',
-      name: think?.name || '未配置',
-      detail: think ? `${think.provider} · ${think.model}` : undefined,
-      source: thinkSource,
+      key: 'model' as const,
+      label: '模型',
+      name: model?.name || '未配置',
+      detail: model ? `${model.provider} · ${model.model}` : undefined,
+      source: modelSource,
       sourceLabel: '设备绑定',
     },
     {
       key: 'voice' as const,
-      label: '语音服务',
+      label: '语音',
       name: voice?.name || '未配置',
       detail: voice
         ? voice.builtin
           ? '默认语音'
-          : `${voice.provider} · ${voice.voiceId || '默认音色'}`
+          : `${voice.provider} · ${voice.timbreId || '默认音色'}`
         : undefined,
       source: voiceSource,
       sourceLabel: '设备绑定',
     },
     {
-      key: 'room' as const,
-      label: '会话群',
-      name: room?.name || '未设置',
-      detail: room?.description,
-      source: robot?.roomRef ? ('robot' as const) : ('device' as const),
-      sourceLabel: robot?.roomRef ? '角色绑定' : '设备指定',
+      key: 'conversation' as const,
+      label: '会话',
+      name: conversation?.name || '未设置',
+      detail: conversation?.description,
+      source: robot?.conversationId ? ('robot' as const) : ('device' as const),
+      sourceLabel: robot?.conversationId ? '角色绑定' : '设备指定',
     },
   ]
 
-  return { account, robot, think, voice, room, rows }
+  return { account, robot, model, voice, conversation, rows }
 }
 
 /**
  * 按绑定链编译设备运行时配置（编译投影）：
- * 角色内容 → bot/speaker；思考服务 → env；语音服务 → tts。
+ * 角色内容 → bot/speaker；模型 → env；语音 → tts。
  * existingConfig 用于保留设备已有的 gui（publicURL 等）与用户手工设置。
  */
 export async function buildRunConfig(
-  meta: DeviceMeta,
+  meta: Device,
   existingConfig?: GuiConfig,
 ): Promise<{ config: GuiConfig; bindings: DeviceBindings }> {
   // 并行取绑定链 / 型号（两者互不依赖）
-  const [bindings, model] = await Promise.all([
+  const [bindings, speakerModel] = await Promise.all([
     resolveBindings(meta),
     getSpeakerModelByRef(meta.speakerModel),
   ])
-  const { account, robot, think, voice, room } = bindings
+  const { account, robot, model, voice, conversation } = bindings
   // 对话角色必填：缺失说明设备未绑定角色（或角色已被删除），无法编译人设配置
   if (!robot) {
     throw new Error('设备未绑定对话角色，无法编译运行配置')
@@ -313,18 +314,18 @@ export async function buildRunConfig(
     config.gui = existingConfig.gui
   }
 
-  // 思考服务 → 推理环境变量
-  if (think) {
-    config.env.OPENAI_API_KEY = think.apiKey
-    config.env.OPENAI_MODEL = think.model
+  // 模型 → 推理环境变量
+  if (model) {
+    config.env.OPENAI_API_KEY = model.apiKey
+    config.env.OPENAI_MODEL = model.model
     config.env.OPENAI_BASE_URL =
-      think.baseUrl || PROVIDER_BASE_URLS[think.provider] || ''
+      model.baseUrl || PROVIDER_BASE_URLS[model.provider] || ''
   } else {
-    // 未配置思考服务时保留已有 env，方便手工模式
+    // 未配置模型时保留已有 env，方便手工模式
     config.env = existingConfig?.env || config.env
   }
 
-  // 语音服务 → TTS（内置语音不配置，第三方语音写入 tts 配置）
+  // 语音 → TTS（内置语音不配置，第三方语音写入 tts 配置）
   if (voice) {
     if (voice.ttsCommand && voice.ttsCommand.length > 0) {
       config.config.speaker.ttsCommand = voice.ttsCommand
@@ -336,22 +337,25 @@ export async function buildRunConfig(
   }
 
   // 型号 → speaker 硬件指令（数字指令与连续对话能力随型号；召唤词/播报词归角色层）
-  if (model) {
+  if (speakerModel) {
     const sp = config.config.speaker
     // 数字指令：TTS / 唤醒 / 播放检测（硬件指令序列，型号有配置即覆盖）
-    if (model.ttsCommand?.length) sp.ttsCommand = model.ttsCommand
-    if (model.wakeUpCommand?.length) sp.wakeUpCommand = model.wakeUpCommand
-    if (model.playingCommand?.length) sp.playingCommand = model.playingCommand
-    // 连续对话：consecutive === false 时显式禁用 streamResponse
-    if (model.consecutive === false) sp.streamResponse = false
+    if (speakerModel.ttsCommand?.length) sp.ttsCommand = speakerModel.ttsCommand
+    if (speakerModel.wakeUpCommand?.length)
+      sp.wakeUpCommand = speakerModel.wakeUpCommand
+    if (speakerModel.playingCommand?.length)
+      sp.playingCommand = speakerModel.playingCommand
+    // 连续对话：continuousDialogue === false 时显式禁用 streamResponse
+    if (speakerModel.continuousDialogue === false) sp.streamResponse = false
     // 注意：无 playingCommand 不代表不支持连续对话（官方多数型号依赖 Mina 检测播放状态，
     // playingCommand 仅作 MiOT 备选指令，异常时才需补充）——故此处不做强制禁用
   }
-  // 会话群（room）：对话记忆上下文归属（独立 Room 实体，多设备共用；旧字段仅兼容）
-  if (room) {
+  // 会话：对话记忆上下文归属（独立 Conversation 实体，多设备共用；旧字段仅兼容）
+  // 注意：mi-gpt 上游配置键固定为 room，此处不可随内部命名改动
+  if (conversation) {
     config.config.room = {
-      name: room.name,
-      description: room.description || '',
+      name: conversation.name,
+      description: conversation.description || '',
     }
   }
 

@@ -2,15 +2,15 @@
    对外仍从 './views.tsx' 导入，保持既有引用不变。 */
 export { HomeView } from './views/HomeView.tsx'
 export { AccountsView } from './views/AccountsView.tsx'
-export { ModelsView } from './views/ModelsView.tsx'
+export { SpeakerModelsView } from './views/SpeakerModelsView.tsx'
 export { DevicesView } from './views/DevicesView.tsx'
-export { ServicesView } from './views/ServicesView.tsx'
+export { ModelsVoicesView } from './views/ModelsVoicesView.tsx'
 export { ProfileView } from './views/ProfileView.tsx'
 export type {
   AccountDraft,
-  ThinkDraft,
-  VoiceDraft,
   ModelDraft,
+  VoiceDraft,
+  SpeakerModelDraft,
   DevDraft,
   DevPullState,
   AcctDevState,

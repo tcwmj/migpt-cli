@@ -43,7 +43,7 @@ export function Options(props: {
         />
       </div>
       <div>
-        <H3>AI 服务</H3>
+        <H3>模型</H3>
         <Ai
           config={config.env}
           onChange={(aiConfig) => {
@@ -55,7 +55,7 @@ export function Options(props: {
         />
       </div>
       <div>
-        <H3>语音服务</H3>
+        <H3>语音</H3>
         <Tts
           config={config}
           onChange={(ttsConfig) => {

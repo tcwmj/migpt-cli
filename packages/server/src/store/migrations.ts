@@ -63,7 +63,9 @@ export async function migrateConversations(): Promise<void> {
   let changed = false
   for (const meta of metas) {
     if (!meta.conversationName || meta.conversationRef) continue
-    let conversation = conversations.find((r) => r.name === meta.conversationName)
+    let conversation = conversations.find(
+      (r) => r.name === meta.conversationName,
+    )
     if (!conversation) {
       conversation = {
         id: nanoid(8),
@@ -85,7 +87,12 @@ export async function migrateConversations(): Promise<void> {
     changed = true
   }
   if (changed)
-    await writeJsonChecked(conversationsFile, conversations, conversationListSchema, '会话')
+    await writeJsonChecked(
+      conversationsFile,
+      conversations,
+      conversationListSchema,
+      '会话',
+    )
 }
 
 /**
@@ -343,94 +350,64 @@ function renameKey(
   return true
 }
 
-export async function migrateEntityRenames(): Promise<void> {
-  // ── 1. 存储文件改名 ──────────────────────────────────────────
-  await renameStoreFile(path.join(root, 'settings.json'), credentialsFile)
-  await renameStoreFile(path.join(root, 'thinkServices.json'), modelsFile)
-  await renameStoreFile(path.join(root, 'voiceServices.json'), voicesFile)
-  await renameStoreFile(path.join(root, 'rooms.json'), conversationsFile)
-
-  // ── 2. 机器人：roomRef → conversationId + 补齐 createdAt ──────
-  const robots = await readJson<Record<string, unknown>[]>(robotsFile, [])
-  let robotsChanged = false
-  for (const r of robots) {
-    if (!r || typeof r !== 'object') continue
-    if (renameKey(r, 'roomRef', 'conversationId')) robotsChanged = true
-    if (typeof r.createdAt !== 'number') {
-      r.createdAt = Date.now()
-      robotsChanged = true
+/** 对列表文件里的每条记录批量改键；有改动则回写并返回 true */
+async function renameFieldsInList(
+  file: string,
+  pairs: readonly (readonly [string, string])[],
+): Promise<boolean> {
+  const rows = await readJson<Record<string, unknown>[]>(file, [])
+  let changed = false
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue
+    for (const [from, to] of pairs) {
+      if (renameKey(row, from, to)) changed = true
     }
   }
-  if (robotsChanged) {
-    await writeJsonChecked(robotsFile, robots, robotListSchema, '角色')
-    logger.info('数据迁移（实体更名）：角色 roomRef → conversationId')
+  if (changed) {
+    // 直接写原始 JSON：迁移面对的是任意历史版本数据，用 schema 校验会把
+    // 字段缺失的老数据整条判失败、中断迁移（校验交由后续读取路径负责）
+    await writeJson(file, rows)
   }
+  return changed
+}
 
-  // ── 3. 语音：voiceId → timbreId ──────────────────────────────
-  const voices = await readJson<Record<string, unknown>[]>(voicesFile, [])
-  let voicesChanged = false
-  for (const v of voices) {
-    if (!v || typeof v !== 'object') continue
-    if (renameKey(v, 'voiceId', 'timbreId')) voicesChanged = true
+/** 角色：roomRef → conversationId，并补齐新增的 createdAt */
+async function migrateRobotEntity(): Promise<void> {
+  const robots = await readJson<Record<string, unknown>[]>(robotsFile, [])
+  let changed = false
+  for (const r of robots) {
+    if (!r || typeof r !== 'object') continue
+    if (renameKey(r, 'roomRef', 'conversationId')) changed = true
+    if (typeof r.createdAt !== 'number') {
+      r.createdAt = Date.now()
+      changed = true
+    }
   }
-  if (voicesChanged) {
-    await writeJson(voicesFile, voices)
-    logger.info('数据迁移（实体更名）：语音 voiceId → timbreId')
-  }
+  if (!changed) return
+  await writeJson(robotsFile, robots)
+  logger.info('数据迁移（实体更名）：角色 roomRef → conversationId')
+}
 
-  // ── 4. 音箱型号：did / desc / consecutive 改名 ────────────────
-  const models = await readJson<Record<string, unknown>[]>(
-    speakerModelsFile,
-    [],
-  )
-  let modelsChanged = false
-  for (const m of models) {
-    if (!m || typeof m !== 'object') continue
-    if (renameKey(m, 'did', 'didPrefix')) modelsChanged = true
-    if (renameKey(m, 'desc', 'description')) modelsChanged = true
-    if (renameKey(m, 'consecutive', 'continuousDialogue')) modelsChanged = true
-  }
-  if (modelsChanged) {
-    await writeJson(speakerModelsFile, models)
-    logger.info('数据迁移（实体更名）：音箱型号字段改名（did/desc/consecutive）')
-  }
-
-  // ── 5. 设备 meta：room* → conversation* ──────────────────────
+/** 设备 meta：roomRef/roomName/roomDescription → conversation* */
+async function migrateDeviceMetaEntity(): Promise<void> {
   const ids = await fs.readdir(devicesRoot).catch(() => [] as string[])
   for (const id of ids) {
     const file = path.join(devicesRoot, id, 'meta.json')
     const meta = await readJson<Record<string, unknown> | null>(file, null)
     if (!meta || typeof meta !== 'object') continue
-    let changed = false
-    if (renameKey(meta, 'roomRef', 'conversationRef')) changed = true
-    if (renameKey(meta, 'roomName', 'conversationName')) changed = true
-    if (renameKey(meta, 'roomDescription', 'conversationDescription')) {
-      changed = true
-    }
-    if (changed) {
-      await writeJson(file, meta)
-      logger.info(`数据迁移（实体更名）：设备 ${id} meta room* → conversation*`)
-    }
+    const changed =
+      renameKey(meta, 'roomRef', 'conversationRef') ||
+      renameKey(meta, 'roomName', 'conversationName') ||
+      renameKey(meta, 'roomDescription', 'conversationDescription')
+    if (!changed) continue
+    await writeJson(file, meta)
+    logger.info(`数据迁移（实体更名）：设备 ${id} meta room* → conversation*`)
   }
+}
 
-  // ── 6. overrides.json：分组键与补丁字段名 ────────────────────
-  const ov = await readJson<Record<string, unknown> | null>(overridesFile, null)
-  if (!ov || typeof ov !== 'object') return
-  let ovChanged = false
-  if (ov.models !== undefined) {
-    if (ov.speakerModels === undefined) ov.speakerModels = ov.models
-    delete ov.models
-    ovChanged = true
-  }
-  if (ov.rooms !== undefined) {
-    if (ov.conversations === undefined) ov.conversations = ov.rooms
-    delete ov.rooms
-    ovChanged = true
-  }
-  const patchGroups: Record<
-    string,
-    readonly (readonly [string, string])[]
-  > = {
+/** 分组键 → 各分组内补丁字段名的改名对照表 */
+const OVERRIDE_RENAMES: Record<string, readonly (readonly [string, string])[]> =
+  {
     speakerModels: [
       ['did', 'didPrefix'],
       ['desc', 'description'],
@@ -439,26 +416,71 @@ export async function migrateEntityRenames(): Promise<void> {
     voices: [['voiceId', 'timbreId']],
     robots: [['roomRef', 'conversationId']],
   }
-  for (const [group, pairs] of Object.entries(patchGroups)) {
+
+/** overrides.json：分组键 models→speakerModels、rooms→conversations，并同步补丁字段名 */
+async function migrateOverridesEntity(): Promise<void> {
+  const ov = await readJson<Record<string, unknown> | null>(overridesFile, null)
+  if (!ov || typeof ov !== 'object') return
+  let changed = false
+  if (ov.models !== undefined) {
+    if (ov.speakerModels === undefined) ov.speakerModels = ov.models
+    delete ov.models
+    changed = true
+  }
+  if (ov.rooms !== undefined) {
+    if (ov.conversations === undefined) ov.conversations = ov.rooms
+    delete ov.rooms
+    changed = true
+  }
+  for (const [group, pairs] of Object.entries(OVERRIDE_RENAMES)) {
     const bag = ov[group] as Record<string, Record<string, unknown>> | undefined
     if (!bag || typeof bag !== 'object') continue
     for (const patch of Object.values(bag)) {
       if (!patch || typeof patch !== 'object') continue
       for (const [from, to] of pairs) {
-        if (renameKey(patch, from, to)) ovChanged = true
+        if (renameKey(patch, from, to)) changed = true
       }
     }
   }
-  if (ovChanged) {
-    await writeJson(overridesFile, ov)
-    logger.info('数据迁移（实体更名）：overrides.json 分组与补丁字段名已同步')
+  if (!changed) return
+  await writeJson(overridesFile, ov)
+  logger.info('数据迁移（实体更名）：overrides.json 分组与补丁字段名已同步')
+}
+
+export async function migrateEntityRenames(): Promise<void> {
+  // ── 1. 存储文件改名 ──────────────────────────────────────────
+  await renameStoreFile(path.join(root, 'settings.json'), credentialsFile)
+  await renameStoreFile(path.join(root, 'thinkServices.json'), modelsFile)
+  await renameStoreFile(path.join(root, 'voiceServices.json'), voicesFile)
+  await renameStoreFile(path.join(root, 'rooms.json'), conversationsFile)
+
+  // ── 2~4. 各实体字段改名 ──────────────────────────────────────
+  await migrateRobotEntity()
+  if (await renameFieldsInList(voicesFile, [['voiceId', 'timbreId']])) {
+    logger.info('数据迁移（实体更名）：语音 voiceId → timbreId')
   }
+  if (
+    await renameFieldsInList(speakerModelsFile, [
+      ['did', 'didPrefix'],
+      ['desc', 'description'],
+      ['consecutive', 'continuousDialogue'],
+    ])
+  ) {
+    logger.info(
+      '数据迁移（实体更名）：音箱型号字段改名（did/desc/consecutive）',
+    )
+  }
+
+  // ── 5~6. 设备 meta 与 overrides ──────────────────────────────
+  await migrateDeviceMetaEntity()
+  await migrateOverridesEntity()
 }
 
 export const migrations: Migration[] = [
   {
     version: 1,
-    description: '基线：旧 credentials.json → 多账号、设备会话 → Conversation 实体',
+    description:
+      '基线：旧 credentials.json → 多账号、设备会话 → Conversation 实体',
     up: async () => {
       // getAccounts 内部含 credentials.json → 首个账号的兼容迁移
       await getAccounts()

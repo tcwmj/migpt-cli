@@ -20,14 +20,15 @@ jest.mock('../paths.js', () => {
   return {
     root,
     devicesRoot: p.join(root, 'devices'),
-    settingsFile: p.join(root, 'settings.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
-    thinkServicesFile: p.join(root, 'thinkServices.json'),
-    voiceServicesFile: p.join(root, 'voiceServices.json'),
+    modelsFile: p.join(root, 'models.json'),
+    voicesFile: p.join(root, 'voices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
-    roomsFile: p.join(root, 'rooms.json'),
+    conversationsFile: p.join(root, 'conversations.json'),
     authFile: p.join(root, 'auth.json'),
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
     overridesFile: p.join(root, 'overrides.json'),
@@ -37,30 +38,30 @@ jest.mock('../paths.js', () => {
 })
 
 import * as paths from '../paths.js'
-import type { Robot, Room, SpeakerModel, VoiceService } from '../types.js'
-import { BUILTIN_MODELS } from './builtins.js'
+import type { Robot, Conversation, SpeakerModel, Voice } from '../types.js'
+import { BUILTIN_SPEAKER_MODELS } from './builtins.js'
 import {
   getRobots,
-  getRooms,
+  getConversations,
   getSpeakerModels,
-  getVoiceServices,
+  getVoices,
 } from './entities.js'
 import {
   getOverrides,
-  mergeBuiltinModels,
+  mergeBuiltinSpeakerModels,
   mergeBuiltinRobots,
-  mergeBuiltinRooms,
+  mergeBuiltinConversations,
   mergeBuiltinVoices,
   saveRobots,
-  saveRooms,
+  saveConversations,
   saveSpeakerModels,
-  saveVoiceServices,
-  resetBuiltinModel,
+  saveVoices,
+  resetBuiltinSpeakerModel,
   resetBuiltinRobot,
-  resetBuiltinRoom,
+  resetBuiltinConversation,
   resetBuiltinVoice,
   splitBuiltinEntities,
-  splitBuiltinRobotsRooms,
+  splitBuiltinRobotsConversations,
 } from './overrides.js'
 
 const write = async (file: string, data: unknown) => {
@@ -97,8 +98,10 @@ describe('合并内置与自建实体', () => {
 
   test('内置型号恒在列表中，id/builtin 不被补丁改写', async () => {
     const list = await getSpeakerModels()
-    expect(list.map((m) => m.id)).toEqual(BUILTIN_MODELS.map((m) => m.id))
-    const patched = mergeBuiltinModels(list, {
+    expect(list.map((m) => m.id)).toEqual(
+      BUILTIN_SPEAKER_MODELS.map((m) => m.id),
+    )
+    const patched = mergeBuiltinSpeakerModels(list, {
       'xiaomi-pro': { name: '改名', builtin: false } as Partial<SpeakerModel>,
     })
     const target = patched.find((m) => m.id === 'xiaomi-pro')!
@@ -108,14 +111,14 @@ describe('合并内置与自建实体', () => {
 
   test('可写文件中的旧内置项会被过滤，不产生重复', async () => {
     await write(paths.speakerModelsFile, [
-      { id: 'xiaomi-pro', name: '遗留内置', did: 'LX06', createdAt: 3 },
+      { id: 'xiaomi-pro', name: '遗留内置', didPrefix: 'LX06', createdAt: 3 },
     ])
     const ids = (await getSpeakerModels()).map((m) => m.id)
     expect(ids.filter((id) => id === 'xiaomi-pro')).toHaveLength(1)
   })
 
   test('自建项伪造 builtin:true 会被读取层归零（可删、可编辑，不受内置锁定）', () => {
-    const fake: VoiceService = {
+    const fake: Voice = {
       id: 'evil',
       name: '伪装内置',
       provider: 'edge',
@@ -129,11 +132,11 @@ describe('合并内置与自建实体', () => {
     const fakeModel: SpeakerModel = {
       id: 'evil-m',
       name: '伪装内置型号',
-      did: 'XX',
+      didPrefix: 'XX',
       builtin: true,
       createdAt: 9,
     }
-    const mergedM = mergeBuiltinModels([fakeModel])
+    const mergedM = mergeBuiltinSpeakerModels([fakeModel])
     expect(mergedM.find((m) => m.id === 'evil-m')!.builtin).toBe(false)
   })
 })
@@ -145,16 +148,16 @@ describe('落盘：自建写文件、内置改动写覆盖', () => {
     await saveSpeakerModels(list)
 
     expect(await read<SpeakerModel[]>(paths.speakerModelsFile)).toEqual([])
-    expect((await getOverrides()).models?.['xiaomi-pro']).toEqual({
+    expect((await getOverrides()).speakerModels?.['xiaomi-pro']).toEqual({
       name: '我的小爱 Pro',
     })
     // 覆盖生效；代码默认定义未被污染
     expect(
       (await getSpeakerModels()).find((m) => m.id === 'xiaomi-pro')?.name,
     ).toBe('我的小爱 Pro')
-    expect(BUILTIN_MODELS.find((m) => m.id === 'xiaomi-pro')?.name).toBe(
-      '小爱音箱 Pro',
-    )
+    expect(
+      BUILTIN_SPEAKER_MODELS.find((m) => m.id === 'xiaomi-pro')?.name,
+    ).toBe('小爱音箱 Pro')
   })
 
   test('自建型号写入文件，内置项不进文件', async () => {
@@ -162,7 +165,7 @@ describe('落盘：自建写文件、内置改动写覆盖', () => {
     list.push({
       id: 'custom-1',
       name: '自制音箱',
-      did: 'ZZZ',
+      didPrefix: 'ZZZ',
       builtin: false,
       createdAt: 123,
     })
@@ -170,22 +173,22 @@ describe('落盘：自建写文件、内置改动写覆盖', () => {
 
     const file = await read<SpeakerModel[]>(paths.speakerModelsFile)
     expect(file.map((m) => m.id)).toEqual(['custom-1'])
-    expect((await getOverrides()).models).toBeUndefined()
+    expect((await getOverrides()).speakerModels).toBeUndefined()
   })
 
-  test('语音服务：自建语音写文件，内置项不进文件', async () => {
-    const list = await getVoiceServices()
+  test('语音：自建语音写文件，内置项不进文件', async () => {
+    const list = await getVoices()
     list.push({
       id: 'v1',
       name: '第三方',
       provider: 'edge',
       createdAt: 5,
-    } as VoiceService)
-    await saveVoiceServices(list)
+    } as Voice)
+    await saveVoices(list)
 
-    expect(
-      (await read<VoiceService[]>(paths.voiceServicesFile)).map((v) => v.id),
-    ).toEqual(['v1'])
+    expect((await read<Voice[]>(paths.voicesFile)).map((v) => v.id)).toEqual([
+      'v1',
+    ])
     // 内置语音未被改动时无覆盖补丁
     expect((await getOverrides()).voices).toBeUndefined()
   })
@@ -195,12 +198,12 @@ describe('重置内置实体', () => {
   test('重置型号：删除覆盖并回归代码默认，不波及其他数据', async () => {
     const list = await getSpeakerModels()
     list.find((m) => m.id === 'xiaomi-pro')!.name = '改过'
-    list.push({ id: 'custom-1', name: '自制', did: 'Z', createdAt: 9 })
+    list.push({ id: 'custom-1', name: '自制', didPrefix: 'Z', createdAt: 9 })
     await saveSpeakerModels(list)
 
-    const def = await resetBuiltinModel('xiaomi-pro')
+    const def = await resetBuiltinSpeakerModel('xiaomi-pro')
     expect(def?.name).toBe('小爱音箱 Pro')
-    expect((await getOverrides()).models).toBeUndefined()
+    expect((await getOverrides()).speakerModels).toBeUndefined()
     // 自建型号仍在
     expect((await getSpeakerModels()).some((m) => m.id === 'custom-1')).toBe(
       true,
@@ -208,14 +211,14 @@ describe('重置内置实体', () => {
   })
 
   test('重置非内置型号返回 undefined', async () => {
-    expect(await resetBuiltinModel('nope')).toBeUndefined()
+    expect(await resetBuiltinSpeakerModel('nope')).toBeUndefined()
     expect(await resetBuiltinVoice('nope')).toBeUndefined()
   })
 
   test('重置语音：删除覆盖回归代码默认，不波及其他数据', async () => {
-    const list = await getVoiceServices()
+    const list = await getVoices()
     list.find((v) => v.id === 'builtin-mi')!.name = '改过'
-    await saveVoiceServices(list)
+    await saveVoices(list)
     expect((await getOverrides()).voices?.['builtin-mi']).toEqual({
       name: '改过',
     })
@@ -228,12 +231,12 @@ describe('重置内置实体', () => {
 
 describe('一次性迁移：内置 / 用户数据分离', () => {
   test('内置项移出文件，用户改动存为覆盖', async () => {
-    const pro = BUILTIN_MODELS.find((m) => m.id === 'xiaomi-pro')!
+    const pro = BUILTIN_SPEAKER_MODELS.find((m) => m.id === 'xiaomi-pro')!
     await write(paths.speakerModelsFile, [
       { ...pro, name: '用户改名', createdAt: 5 },
-      { id: 'custom-1', name: '自制', did: 'Z', createdAt: 9 },
+      { id: 'custom-1', name: '自制', didPrefix: 'Z', createdAt: 9 },
     ])
-    await write(paths.voiceServicesFile, [
+    await write(paths.voicesFile, [
       {
         id: 'builtin-mi',
         name: '小米内置',
@@ -249,12 +252,12 @@ describe('一次性迁移：内置 / 用户数据分离', () => {
     expect(
       (await read<SpeakerModel[]>(paths.speakerModelsFile)).map((m) => m.id),
     ).toEqual(['custom-1'])
-    expect(
-      (await read<VoiceService[]>(paths.voiceServicesFile)).map((v) => v.id),
-    ).toEqual(['v9'])
+    expect((await read<Voice[]>(paths.voicesFile)).map((v) => v.id)).toEqual([
+      'v9',
+    ])
 
     const ov = await getOverrides()
-    expect(ov.models?.['xiaomi-pro']).toEqual({ name: '用户改名' })
+    expect(ov.speakerModels?.['xiaomi-pro']).toEqual({ name: '用户改名' })
     // 旧名「小米内置」归一为默认名，与代码默认一致，不记为覆盖
     expect(ov.voices).toBeUndefined()
   })
@@ -266,34 +269,37 @@ describe('一次性迁移：内置 / 用户数据分离', () => {
   })
 })
 
-describe('内置会话群 / 内置角色（傻妞）', () => {
+describe('内置会话 / 内置角色（傻妞）', () => {
   test('未迁移时空文件也恒含内置项，内置在前、自建在后', async () => {
-    await write(paths.roomsFile, [
-      { id: 'c-room', name: '我的群', createdAt: 7 },
+    await write(paths.conversationsFile, [
+      { id: 'c-conversation', name: '我的群', createdAt: 7 },
     ])
     await write(paths.robotsFile, [])
-    const rooms = await getRooms()
-    expect(rooms[0].id).toBe('dQd66FVw')
-    expect(rooms[0].builtin).toBe(true)
-    expect(rooms[0].name).toBe('傻妞会话群')
-    expect(rooms.map((r) => r.id)).toEqual(['dQd66FVw', 'c-room'])
+    const conversations = await getConversations()
+    expect(conversations[0].id).toBe('dQd66FVw')
+    expect(conversations[0].builtin).toBe(true)
+    expect(conversations[0].name).toBe('傻妞会话')
+    expect(conversations.map((r) => r.id)).toEqual([
+      'dQd66FVw',
+      'c-conversation',
+    ])
     const robots = await getRobots()
     expect(robots.map((r) => r.id)).toEqual(['IgKuWadm'])
     expect(robots[0].name).toBe('傻妞')
     expect(robots[0].builtin).toBe(true)
   })
 
-  test('编辑内置会话群仅落覆盖，可写文件保持空', async () => {
-    const list = await getRooms()
+  test('编辑内置会话仅落覆盖，可写文件保持空', async () => {
+    const list = await getConversations()
     list.find((r) => r.id === 'dQd66FVw')!.description = '改过的描述'
-    await saveRooms(list)
+    await saveConversations(list)
 
-    expect(await read<Room[]>(paths.roomsFile)).toEqual([])
-    expect((await getOverrides()).rooms?.['dQd66FVw']).toEqual({
+    expect(await read<Conversation[]>(paths.conversationsFile)).toEqual([])
+    expect((await getOverrides()).conversations?.['dQd66FVw']).toEqual({
       description: '改过的描述',
     })
     expect(
-      (await getRooms()).find((r) => r.id === 'dQd66FVw')?.description,
+      (await getConversations()).find((r) => r.id === 'dQd66FVw')?.description,
     ).toBe('改过的描述')
   })
 
@@ -335,20 +341,21 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
     expect((await getRobots()).some((r) => r.id === 'c-robot')).toBe(true)
   })
 
-  test('重置非内置会话群/角色返回 undefined', async () => {
-    expect(await resetBuiltinRoom('nope')).toBeUndefined()
+  test('重置非内置会话/角色返回 undefined', async () => {
+    expect(await resetBuiltinConversation('nope')).toBeUndefined()
     expect(await resetBuiltinRobot('nope')).toBeUndefined()
   })
 
-  test('自建项伪造 builtin:true 归零（房间与角色）', () => {
-    const fakeRoom: Room = {
+  test('自建项伪造 builtin:true 归零（会话与角色）', () => {
+    const fakeRoom: Conversation = {
       id: 'evil-r',
       name: '伪装',
       builtin: true,
       createdAt: 1,
     }
     expect(
-      mergeBuiltinRooms([fakeRoom]).find((r) => r.id === 'evil-r')!.builtin,
+      mergeBuiltinConversations([fakeRoom]).find((r) => r.id === 'evil-r')!
+        .builtin,
     ).toBe(false)
     const fakeRobot = {
       id: 'evil-robot',
@@ -374,14 +381,14 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
   })
 
   test('v5 迁移：内置项移出文件、改动存覆盖，幂等', async () => {
-    await write(paths.roomsFile, [
+    await write(paths.conversationsFile, [
       {
         id: 'dQd66FVw',
-        name: '傻妞会话群',
+        name: '傻妞会话',
         description: '改过的描述',
         createdAt: 1791214020470,
       },
-      { id: 'c-room', name: '自建群', createdAt: 8 },
+      { id: 'c-conversation', name: '自建群', createdAt: 8 },
     ])
     await write(paths.robotsFile, [
       {
@@ -402,35 +409,37 @@ describe('内置会话群 / 内置角色（傻妞）', () => {
         masterName: '主人',
         masterProfile:
           '性别：男\n性格：善良正直\n其他：总是舍己为人，是傻妞的主人。',
-        roomRef: 'dQd66FVw',
+        conversationRef: 'dQd66FVw',
       },
     ])
 
-    await splitBuiltinRobotsRooms()
+    await splitBuiltinRobotsConversations()
 
-    expect((await read<Room[]>(paths.roomsFile)).map((r) => r.id)).toEqual([
-      'c-room',
-    ])
+    expect(
+      (await read<Conversation[]>(paths.conversationsFile)).map((r) => r.id),
+    ).toEqual(['c-conversation'])
     expect(await read<Robot[]>(paths.robotsFile)).toEqual([])
     const ov = await getOverrides()
-    expect(ov.rooms?.['dQd66FVw']).toEqual({ description: '改过的描述' })
+    expect(ov.conversations?.['dQd66FVw']).toEqual({
+      description: '改过的描述',
+    })
     expect(ov.robots?.['IgKuWadm']).toEqual({
       name: '改名后的傻妞',
       profile: '新的人设',
     })
 
     // 幂等：再跑一次不产生额外覆盖、不清空自建
-    await splitBuiltinRobotsRooms()
-    expect((await read<Room[]>(paths.roomsFile)).map((r) => r.id)).toEqual([
-      'c-room',
-    ])
-    expect((await getOverrides()).rooms).toEqual(ov.rooms)
+    await splitBuiltinRobotsConversations()
+    expect(
+      (await read<Conversation[]>(paths.conversationsFile)).map((r) => r.id),
+    ).toEqual(['c-conversation'])
+    expect((await getOverrides()).conversations).toEqual(ov.conversations)
     expect((await getOverrides()).robots).toEqual(ov.robots)
 
-    // 重置会话群回归代码默认
-    await resetBuiltinRoom('dQd66FVw')
+    // 重置会话回归代码默认
+    await resetBuiltinConversation('dQd66FVw')
     expect(
-      (await getRooms()).find((r) => r.id === 'dQd66FVw')?.description,
+      (await getConversations()).find((r) => r.id === 'dQd66FVw')?.description,
     ).toBe('家庭日常闲聊')
   })
 })

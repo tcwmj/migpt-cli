@@ -19,14 +19,15 @@ jest.mock('../paths.js', () => {
   return {
     root,
     devicesRoot: p.join(root, 'devices'),
-    settingsFile: p.join(root, 'settings.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
-    thinkServicesFile: p.join(root, 'thinkServices.json'),
-    voiceServicesFile: p.join(root, 'voiceServices.json'),
+    modelsFile: p.join(root, 'models.json'),
+    voicesFile: p.join(root, 'voices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
-    roomsFile: p.join(root, 'rooms.json'),
+    conversationsFile: p.join(root, 'conversations.json'),
     authFile: p.join(root, 'auth.json'),
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
     overridesFile: p.join(root, 'overrides.json'),
@@ -41,7 +42,7 @@ import {
   DataValidationError,
   accountSchema,
   assertEntity,
-  deviceMetaSchema,
+  deviceSchema,
   parseEntity,
   parseEntityList,
   readJsonChecked,
@@ -191,12 +192,12 @@ describe('schema 定义抽样', () => {
     ).toBe(false)
   })
 
-  test('deviceMetaSchema 要求 ttsSecret', () => {
+  test('deviceSchema 要求 ttsSecret', () => {
     expect(
-      deviceMetaSchema.safeParse({
+      deviceSchema.safeParse({
         id: 'd',
         alias: 'A',
-        did: 'X',
+        didPrefix: 'X',
         createdAt: 1,
       }).success,
     ).toBe(false)

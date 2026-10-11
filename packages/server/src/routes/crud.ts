@@ -7,9 +7,9 @@ import {
   assertEntity,
   assertUniqueName,
   getRobots,
-  listDeviceMetas,
+  listDevices,
 } from '../store.js'
-import type { DeviceMeta, Robot } from '../types.js'
+import type { Device, Robot } from '../types.js'
 import {
   API_PREFIX,
   asyncHandler,
@@ -29,18 +29,18 @@ export interface RefRule {
 }
 
 /**
- * 设备引用规则：按 DeviceMeta 字段匹配目标 id。
+ * 设备引用规则：按 Device 字段匹配目标 id。
  * byName 用于兼容旧数据把型号存成名称（speakerModel 可能为 id 或名称）。
  */
 export function deviceRefs(
-  field: keyof DeviceMeta,
+  field: keyof Device,
   opts: { byName?: boolean } = {},
 ): RefRule {
   return {
     key: 'devices',
     find: async (id, target) => {
       const name = (target as { name?: string })?.name
-      const metas = await listDeviceMetas()
+      const metas = await listDevices()
       return metas
         .filter((m) => {
           const v = m[field]
@@ -105,7 +105,7 @@ export interface CrudConfig<T extends { id: string; name?: string }> {
   refRules?: readonly RefRule[]
   /** 引用冲突文案 */
   refMessage?: string
-  /** 追加自定义路由（reset / pull-devices / settings 等） */
+  /** 追加自定义路由（reset / pull-devices / credentials 等） */
   extra?: (ctx: RouteContext) => void
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Select from 'react-select'
-import { type Robot, type ThinkService, type VoiceService } from '../../apis.ts'
+import { type Robot, type Model, type Voice } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { avatarOf } from '../../utils.ts'
 import { Button, EmptyState, Field } from '../atoms/index.ts'
@@ -11,9 +11,9 @@ export function WizardRobotStep(props: {
   active: boolean
   robots: Robot[]
   robotId: string
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
-  thinkServiceIds: string[]
+  models: Model[]
+  voices: Voice[]
+  modelIds: string[]
   voiceId: string
   setDraft: WizardSetDraft
   onNewRobot: (d: { name: string; profile?: string }) => Promise<Robot>
@@ -22,7 +22,7 @@ export function WizardRobotStep(props: {
   const {
     robots,
     robotId,
-    thinkServiceIds,
+    modelIds,
     voiceId,
     setDraft,
     onNewRobot,
@@ -46,26 +46,18 @@ export function WizardRobotStep(props: {
       setDraft({ robotId: robots[0].id })
   }, [props.active, robotId, robots, setDraft])
 
-  // 进入本步时预选首个思考/语音服务，避免用户漏选导致无法完成
+  // 进入本步时预选首个思考/语音，避免用户漏选导致无法完成
   useEffect(() => {
     if (!props.active) return
     const patch: Partial<{
-      thinkServiceIds: string[]
+      modelIds: string[]
       voiceId: string
     }> = {}
-    if (!thinkServiceIds.length && props.thinkSvcs.length)
-      patch.thinkServiceIds = [props.thinkSvcs[0].id]
-    if (!voiceId && props.voiceSvcs.length)
-      patch.voiceId = props.voiceSvcs[0].id
+    if (!modelIds.length && props.models.length)
+      patch.modelIds = [props.models[0].id]
+    if (!voiceId && props.voices.length) patch.voiceId = props.voices[0].id
     if (Object.keys(patch).length) setDraft(patch)
-  }, [
-    props.active,
-    props.thinkSvcs,
-    props.voiceSvcs,
-    thinkServiceIds,
-    voiceId,
-    setDraft,
-  ])
+  }, [props.active, props.models, props.voices, modelIds, voiceId, setDraft])
 
   const saveRobot = async () => {
     if (nrBusy) return
@@ -269,37 +261,37 @@ export function WizardRobotStep(props: {
         </section>
       </div>
       <div className="grp" style={{ padding: '0 16px 12px' }}>
-        <h4>关联服务</h4>
+        <h4>关联模型与语音</h4>
         <div className="row">
           <Field
-            label="思考服务"
+            label="模型"
             required
             tip="按优先级排列，限额已达时自动切换下一个"
           >
             <Select
               isMulti
-              options={props.thinkSvcs.map((s) => ({
+              options={props.models.map((s) => ({
                 value: s.id,
                 label: s.name + (s.limitReached ? '（限额）' : ''),
               }))}
-              value={props.thinkSvcs
-                .filter((s) => thinkServiceIds.includes(s.id))
+              value={props.models
+                .filter((s) => modelIds.includes(s.id))
                 .map((s) => ({ value: s.id, label: s.name }))}
               placeholder="未设置"
-              noOptionsMessage={() => '无可用服务'}
+              noOptionsMessage={() => '无可用模型'}
               onChange={(vals) =>
-                setDraft({ thinkServiceIds: (vals || []).map((v) => v.value) })
+                setDraft({ modelIds: (vals || []).map((v) => v.value) })
               }
               styles={multiSelectStyles}
             />
           </Field>
-          <Field label="语音服务" required>
+          <Field label="语音" required>
             <select
               value={voiceId}
               onChange={(e) => setDraft({ voiceId: e.target.value })}
             >
               <option value="">未设置</option>
-              {props.voiceSvcs.map((s) => (
+              {props.voices.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>

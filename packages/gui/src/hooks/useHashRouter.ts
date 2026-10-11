@@ -6,14 +6,14 @@ const VALID_VIEWS: View[] = [
   'accounts',
   'devices',
   'robots',
-  'logs',
-  'think',
-  'voice',
+  'conversations',
   'models',
-  'rooms',
+  'voices',
+  'speaker-models',
+  'chat-logs',
   'settings',
   'profile',
-  'syslogs',
+  'system-logs',
   'stats',
 ]
 
@@ -32,7 +32,7 @@ function parseView(hash: string): View {
 export function useHashRouter(
   view: View,
   setView: (v: View) => void,
-  setSettingTab?: (t: 'think' | 'voice') => void,
+  setSettingTab?: (t: 'models' | 'voices') => void,
 ): void {
   // 初始化：从 hash 读取初始视图
   useEffect(() => {
@@ -40,7 +40,7 @@ export function useHashRouter(
     if (initial !== 'home') {
       setView(initial)
       // 如果是 think 或 voice 视图，同步设置 settingTab
-      if (setSettingTab && (initial === 'think' || initial === 'voice')) {
+      if (setSettingTab && (initial === 'models' || initial === 'voices')) {
         setSettingTab(initial)
       }
     }
@@ -69,14 +69,14 @@ export function useHashRouter(
 /** 创建带 hash 同步的导航函数 */
 export function useNav(
   setView: (v: View) => void,
-  setSettingTab: (t: 'think' | 'voice') => void,
+  setSettingTab: (t: 'models' | 'voices') => void,
   setQuery: (q: string) => void,
 ): (v: View) => void {
   return useCallback(
     (v: View) => {
       setView(v)
-      if (v === 'think') setSettingTab('think')
-      if (v === 'voice') setSettingTab('voice')
+      if (v === 'models') setSettingTab('models')
+      if (v === 'voices') setSettingTab('voices')
       setQuery('')
     },
     [setView, setSettingTab, setQuery],

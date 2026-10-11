@@ -35,7 +35,7 @@ export function useDevicesCrud(opts: {
     speakerModel: d.speakerModel || '',
     accountId: d.accountId || '',
     robotId: d.robotId || '',
-    thinkServiceIds: d.thinkServiceIds || [],
+    modelIds: d.modelIds || [],
     voiceId: d.voiceId || '',
     ttsSecret: d.ttsSecret || '',
   })
@@ -45,7 +45,7 @@ export function useDevicesCrud(opts: {
     speakerModel: '',
     accountId: '',
     robotId: '',
-    thinkServiceIds: [],
+    modelIds: [],
     voiceId: '',
     ttsSecret: '',
   })
@@ -64,13 +64,13 @@ export function useDevicesCrud(opts: {
 
   const saveDeviceForm = async () => {
     if (!devDraft) return
-    // 设备服务必填：思考服务与语音服务须显式指定（不再有全局默认回退）
-    if (!devDraft.thinkServiceIds.length) {
-      showToast('请至少选择一个思考服务')
+    // 设备服务必填：模型与语音须显式指定（不再有全局默认回退）
+    if (!devDraft.modelIds.length) {
+      showToast('请至少选择一个模型')
       return
     }
     if (!devDraft.voiceId) {
-      showToast('请选择一个语音服务')
+      showToast('请选择一个语音')
       return
     }
     if (!devDraft.robotId) {
@@ -86,9 +86,7 @@ export function useDevicesCrud(opts: {
             speakerModel: devDraft.speakerModel || undefined,
             accountId: devDraft.accountId || undefined,
             robotId: devDraft.robotId,
-            thinkServiceIds: devDraft.thinkServiceIds.length
-              ? devDraft.thinkServiceIds
-              : undefined,
+            modelIds: devDraft.modelIds.length ? devDraft.modelIds : undefined,
             voiceId: devDraft.voiceId || undefined,
             ttsSecret: devDraft.ttsSecret || undefined,
           },
@@ -102,9 +100,7 @@ export function useDevicesCrud(opts: {
           speakerModel: devDraft.speakerModel || undefined,
           accountId: devDraft.accountId || undefined,
           robotId: devDraft.robotId,
-          thinkServiceIds: devDraft.thinkServiceIds.length
-            ? devDraft.thinkServiceIds
-            : undefined,
+          modelIds: devDraft.modelIds.length ? devDraft.modelIds : undefined,
           voiceId: devDraft.voiceId || undefined,
         })
         showToast('设备已添加，点击「重启设备」使其生效')

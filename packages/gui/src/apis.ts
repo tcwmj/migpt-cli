@@ -199,12 +199,9 @@ export const resetRobot = (id: string) =>
 
 // ── 模型 ─────────────────────────────────────────────────
 export const getModels = () =>
-  fetch(api('/models'), { headers: headers(false) }).then((r) =>
-    j<Model[]>(r),
-  )
+  fetch(api('/models'), { headers: headers(false) }).then((r) => j<Model[]>(r))
 
-export const createModel = (s: Partial<Model>) =>
-  post<Model>(api('/models'), s)
+export const createModel = (s: Partial<Model>) => post<Model>(api('/models'), s)
 
 export const updateModel = (id: string, s: Partial<Model>) =>
   fetch(api(`/models/${id}`), {
@@ -221,12 +218,9 @@ export const deleteModel = (id: string) =>
 
 // ── 语音 ─────────────────────────────────────────────────
 export const getVoices = () =>
-  fetch(api('/voices'), { headers: headers(false) }).then((r) =>
-    j<Voice[]>(r),
-  )
+  fetch(api('/voices'), { headers: headers(false) }).then((r) => j<Voice[]>(r))
 
-export const createVoice = (s: Partial<Voice>) =>
-  post<Voice>(api('/voices'), s)
+export const createVoice = (s: Partial<Voice>) => post<Voice>(api('/voices'), s)
 
 export const updateVoice = (id: string, s: Partial<Voice>) =>
   fetch(api(`/voices/${id}`), {
@@ -283,31 +277,33 @@ export interface Conversation extends ContractRoom {
   robotCount?: number
 }
 
-export const getRooms = () =>
-  fetch(api('/conversations'), { headers: headers(false) }).then((r) => j<Conversation[]>(r))
+export const getConversations = () =>
+  fetch(api('/conversations'), { headers: headers(false) }).then((r) =>
+    j<Conversation[]>(r),
+  )
 
-export const createRoom = (r: Partial<Conversation>) =>
+export const createConversation = (r: Partial<Conversation>) =>
   fetch(api('/conversations'), {
     method: 'POST',
     headers: headers(true),
     body: JSON.stringify(r),
   }).then((x) => j<Conversation>(x))
 
-export const updateRoom = (id: string, r: Partial<Conversation>) =>
+export const updateConversation = (id: string, r: Partial<Conversation>) =>
   fetch(api(`/conversations/${id}`), {
     method: 'PUT',
     headers: headers(true),
     body: JSON.stringify(r),
   }).then((x) => j<Conversation>(x))
 
-export const deleteRoom = (id: string) =>
+export const deleteConversation = (id: string) =>
   fetch(api(`/conversations/${id}`), {
     method: 'DELETE',
     headers: headers(false),
   }).then((r) => j<{ success: boolean }>(r))
 
 /** 重置内置会话为系统默认值（仅 builtin 可用） */
-export const resetRoom = (id: string) =>
+export const resetConversation = (id: string) =>
   fetch(api(`/conversations/${id}/reset`), {
     method: 'POST',
     headers: headers(false),
@@ -376,8 +372,7 @@ export const getLogs = (
   from?: string,
   to?: string,
 ) => {
-  const qs =
-    from && to ? `&from=${from}&to=${to}` : date ? `&date=${date}` : ''
+  const qs = from && to ? `&from=${from}&to=${to}` : date ? `&date=${date}` : ''
   return fetch(api(`/logs?limit=${limit}${qs}`), {
     headers: headers(false),
   }).then((r) => j<{ total: number; logs: LogEntry[] }>(r))
@@ -485,7 +480,7 @@ export async function testTts(ttsConfig: TTSConfig) {
 }
 
 // ── 统计接口 ────────────────────────────────────────────────
-export type StatsDimension = 'robot' | 'device' | 'service'
+export type StatsDimension = 'robot' | 'device' | 'model'
 
 export interface TokenStats {
   inputTokens: number
@@ -537,7 +532,7 @@ export interface StatsResponse {
 export const DIMENSION_LABELS: Record<string, string> = {
   robot: '对话角色',
   device: '设备服务',
-  service: '模型服务',
+  model: '模型',
 }
 
 /**

@@ -4,8 +4,8 @@ import {
   type Account,
   type Robot,
   type SpeakerModel,
-  type ThinkService,
-  type VoiceService,
+  type Model,
+  type Voice,
 } from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
@@ -18,9 +18,9 @@ export function Wizard(props: {
   step: number
   accounts: Account[]
   robots: Robot[]
-  models: SpeakerModel[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
+  speakerModels: SpeakerModel[]
+  models: Model[]
+  voices: Voice[]
   devices: { id: string; alias: string; did: string; accountId?: string }[]
   draft: WizardDraft
   setDraft: WizardSetDraft
@@ -54,7 +54,7 @@ export function Wizard(props: {
     (step === 1 && !!draft.did && !pullErr) ||
     (step === 2 &&
       !!draft.robotId &&
-      draft.thinkServiceIds.length > 0 &&
+      draft.modelIds.length > 0 &&
       !!draft.voiceId)
   const finish = () => {
     if (closing) return
@@ -66,7 +66,7 @@ export function Wizard(props: {
   const WSTEP = [
     { n: '1', t: '连接账号', s: '读取设备' },
     { n: '2', t: '选择设备', s: '确认型号' },
-    { n: '3', t: '对话服务', s: '保存并启动' },
+    { n: '3', t: '对话角色', s: '保存并启动' },
   ]
   return (
     <div className={'wizard on' + (closing ? ' closing' : '')}>
@@ -111,7 +111,7 @@ export function Wizard(props: {
             active={step === 1}
             accountId={draft.accountId}
             selAcct={selAcct}
-            models={props.models}
+            speakerModels={props.speakerModels}
             devices={props.devices}
             did={draft.did}
             alias={draft.alias}
@@ -124,9 +124,9 @@ export function Wizard(props: {
             active={step === 2}
             robots={props.robots}
             robotId={draft.robotId}
-            thinkSvcs={props.thinkSvcs}
-            voiceSvcs={props.voiceSvcs}
-            thinkServiceIds={draft.thinkServiceIds}
+            models={props.models}
+            voices={props.voices}
+            modelIds={draft.modelIds}
             voiceId={draft.voiceId}
             setDraft={setDraft}
             onNewRobot={props.onNewRobot}

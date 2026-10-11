@@ -1,12 +1,70 @@
-/* ══ LogsView ══ */
+/* ══ ChatLogsView ══ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as api from '../apis.ts'
 import { type DeviceRow, type LogEntry, type SpeakerModel } from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Chip, EmptyState, Switch } from '../components/atoms/index.ts'
 import { LogRow } from '../components/LogRow.tsx'
+import { QuickRangePicker } from '../components/QuickRangePicker.tsx'
+import type { QuickRangeItem } from '../components/QuickRangeFilter.tsx'
 
-export function LogsView(props: {
+// ── 日期工具（与系统日志页一致） ─────────────────────────────
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const TODAY_KEY = `${new Date().getFullYear()}${pad2(
+  new Date().getMonth() + 1,
+)}${pad2(new Date().getDate())}`
+const qKeyOf = (d: Date) =>
+  `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`
+
+// 快捷时段选项（今天 / 最近 N 天 / 本月 / 今年）
+const LOGS_QUICK_ITEMS: QuickRangeItem[] = [
+  { id: 'today', label: '今天', toRange: () => [TODAY_KEY, TODAY_KEY] },
+  {
+    id: 'last_3d',
+    label: '最近 3 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 2)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+  {
+    id: 'last_7d',
+    label: '最近 7 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 6)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+  {
+    id: 'last_30d',
+    label: '最近 30 天',
+    toRange: () => {
+      const s = new Date()
+      s.setDate(s.getDate() - 29)
+      return [qKeyOf(s), TODAY_KEY]
+    },
+  },
+  {
+    id: 'this_month',
+    label: '本月',
+    toRange: () => {
+      const n = new Date()
+      return [qKeyOf(new Date(n.getFullYear(), n.getMonth(), 1)), TODAY_KEY]
+    },
+  },
+  {
+    id: 'this_year',
+    label: '今年',
+    toRange: () => {
+      const n = new Date()
+      return [qKeyOf(new Date(n.getFullYear(), 0, 1)), TODAY_KEY]
+    },
+  },
+]
+
+export function ChatLogsView(props: {
   devices: DeviceRow[]
   models: SpeakerModel[]
 }) {
@@ -18,20 +76,39 @@ export function LogsView(props: {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [live, setLive] = useState(true)
+  // 日期范围筛选（复用统计/系统日志页的日历组件）；默认今天
+  const [fromKey, setFromKey] = useState(TODAY_KEY)
+  const [toKey, setToKey] = useState(TODAY_KEY)
+  const [logDates, setLogDates] = useState<Set<string> | null>(null)
+  const single = fromKey === toKey
+  const viewingToday = single && fromKey === TODAY_KEY
   const load = useCallback(() => {
     setBusy(true)
     api
-      .getLogs(300)
+      .getLogs(
+        2000,
+        single ? fromKey : undefined,
+        single ? undefined : fromKey,
+        single ? undefined : toKey,
+      )
       .then((r) => setLogs(r.logs))
       .catch(() => setLogs([]))
       .finally(() => setBusy(false))
+  }, [fromKey, toKey, single])
+  // 加载有对话记录的日期集合，供日历高亮/置灰
+  const loadDates = useCallback(() => {
+    api
+      .getLogDates()
+      .then((r) => setLogDates(new Set(r.dates)))
+      .catch(() => setLogDates(new Set()))
   }, [])
   useEffect(load, [load])
+  useEffect(loadDates, [loadDates])
   useEffect(() => {
-    if (!live) return
+    if (!live || !viewingToday) return
     const t = window.setInterval(load, 5000)
     return () => window.clearInterval(t)
-  }, [live, load])
+  }, [live, viewingToday, load])
   const list = useMemo(() => {
     if (!logs) return null
     return logs.filter(
@@ -124,13 +201,36 @@ export function LogsView(props: {
               设备日志 {kindCounts.system}
             </Chip>
             <span className="sp" />
+            {!viewingToday && <span className="tb-tag">历史记录</span>}
+            <QuickRangePicker
+              fromKey={fromKey}
+              toKey={toKey}
+              logDates={logDates}
+              quickItems={LOGS_QUICK_ITEMS}
+              onRangeChange={(f, t) => {
+                setFromKey(f)
+                setToKey(t)
+              }}
+            />
             <label
               className="switch-inline"
-              title="开启后每 5 秒自动刷新对话记录"
+              title={
+                viewingToday
+                  ? '开启后每 5 秒自动刷新对话记录'
+                  : '历史/范围记录为静态快照，仅当天实时模式支持自动刷新'
+              }
             >
-              <span className="live-dot" data-on={live ? '1' : '0'} />
+              <span
+                className="live-dot"
+                data-on={live && viewingToday ? '1' : '0'}
+              />
               <span className="k">自动刷新</span>
-              <Switch checked={live} onChange={(v) => setLive(v)} as="span" />
+              <Switch
+                checked={live}
+                onChange={(v) => setLive(v)}
+                disabled={!viewingToday}
+                as="span"
+              />
             </label>
           </div>
 
@@ -153,7 +253,9 @@ export function LogsView(props: {
                 }
                 desc={
                   logs && logs.length === 0
-                    ? '唤醒音箱开始对话后，这里会按时间记录每台音箱的问答，方便你复盘每次交互。'
+                    ? viewingToday && logDates && logDates.size > 0
+                      ? '今天还没有对话记录，点击右上角日历选择高亮的日期查看历史对话。'
+                      : '唤醒音箱开始对话后，这里会按时间记录每台音箱的问答，方便你复盘每次交互。'
                     : '换一个筛选条件，或点击右上角刷新。'
                 }
               />

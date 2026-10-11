@@ -1,16 +1,16 @@
-import type { VoiceService } from '../../apis.ts'
+import type { Voice } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, ProviderLogo, Tag } from '../../components/atoms/index.ts'
 import { TTS_ENGINES, VOICE_PROVIDERS } from '../../constants.ts'
 
-export function VoiceServiceList(props: {
-  services: VoiceService[]
+export function VoiceList(props: {
+  voices: Voice[]
   selVoice: string | null
   onSelect: (id: string | null) => void
 }) {
   return (
     <aside className="slist">
-      {props.services.map((s) => {
+      {props.voices.map((s) => {
         const p = s.builtin ? undefined : VOICE_PROVIDERS[s.provider]
         return (
           <div
@@ -33,7 +33,7 @@ export function VoiceServiceList(props: {
                 {s.builtin
                   ? 'builtin · 小米内置音色'
                   : (TTS_ENGINES[s.provider] || s.provider) +
-                    (s.voiceId ? ' · ' + s.voiceId : '')}
+                    (s.timbreId ? ' · ' + s.timbreId : '')}
               </span>
             </span>
             {s.builtin ? <Tag>内置</Tag> : null}

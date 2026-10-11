@@ -330,7 +330,7 @@ function DimensionFilter({
   const dims: { key: StatsDimension; label: string }[] = [
     { key: 'robot', label: '对话角色' },
     { key: 'device', label: '设备服务' },
-    { key: 'service', label: '模型服务' },
+    { key: 'model', label: '模型' },
   ]
   const currentEntities = dimension ? (entities[dimension] ?? []) : []
   const toggleDim = (d: StatsDimension) => {
@@ -585,17 +585,17 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
         </div>
       </div>
 
-      {/* 模型服务健康状态 */}
+      {/* 模型健康状态 */}
       <div
         className="pcard-block stats-anim-in"
         style={{ animationDelay: '60ms' }}
       >
-        <h4>模型服务健康状态</h4>
+        <h4>模型健康状态</h4>
         <div className="pcard-set">
           <div className="health-cards-wrap">
             {serviceHealth.length === 0 ? (
               <div className="chart-empty-hint" style={{ padding: '40px 0' }}>
-                暂无服务数据
+                暂无模型数据
               </div>
             ) : (
               serviceHealth.map((s, i) => (
@@ -603,7 +603,7 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
                   key={s.id}
                   className={`health-card ${s.limitReached ? 'warn' : ''}`}
                   style={{ animationDelay: `${i * 40}ms` }}
-                  onClick={() => onNavigate?.('think')}
+                  onClick={() => onNavigate?.('models')}
                 >
                   <div className="health-card-top">
                     <div className="health-card-name">{s.name}</div>
@@ -612,10 +612,10 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
                     )}
                   </div>
                   <div className="health-card-type">
-                    {s.type === 'think' ? '思考' : '语音'}
+                    {s.type === 'model' ? '模型' : '语音'}
                   </div>
                   <div className="health-card-usage">
-                    {fmtNum(s.tokenUsed)} /{' '}
+                    {fmtNum(s.totalTokensUsed)} /{' '}
                     {s.tokenLimit ? fmtNum(s.tokenLimit) : '∞'}
                   </div>
                 </div>

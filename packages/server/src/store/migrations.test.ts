@@ -18,14 +18,15 @@ jest.mock('../paths.js', () => {
   return {
     root,
     devicesRoot: p.join(root, 'devices'),
-    settingsFile: p.join(root, 'settings.json'),
+    credentialsFile: p.join(root, 'credentials.json'),
     accountsFile: p.join(root, 'accounts.json'),
     robotsFile: p.join(root, 'robots.json'),
-    thinkServicesFile: p.join(root, 'thinkServices.json'),
-    voiceServicesFile: p.join(root, 'voiceServices.json'),
+    modelsFile: p.join(root, 'models.json'),
+    voicesFile: p.join(root, 'voices.json'),
     speakerModelsFile: p.join(root, 'speakerModels.json'),
-    roomsFile: p.join(root, 'rooms.json'),
+    conversationsFile: p.join(root, 'conversations.json'),
     authFile: p.join(root, 'auth.json'),
+    logsDir: p.join(root, 'logs'),
     systemLogFile: p.join(root, 'system.log'),
     systemLogPrefix: p.join(root, 'system'),
     overridesFile: p.join(root, 'overrides.json'),
@@ -36,7 +37,7 @@ jest.mock('../paths.js', () => {
 
 import * as paths from '../paths.js'
 import type { SpeakerModel } from '../types.js'
-import { BUILTIN_MODELS } from './builtins.js'
+import { BUILTIN_SPEAKER_MODELS } from './builtins.js'
 import { getOverrides } from './overrides.js'
 import {
   runMigrations,
@@ -81,15 +82,15 @@ describe('runMigrations', () => {
     expect(await runMigrations()).toBe(0)
   })
 
-  test('旧版 settings.json 迁移为账号（v1 基线）', async () => {
-    await write(paths.settingsFile, { miUserId: 'u1', passToken: 'tk' })
+  test('旧版 credentials.json 迁移为账号（v1 基线）', async () => {
+    await write(paths.credentialsFile, { miUserId: 'u1', passToken: 'tk' })
     await runMigrations()
     const accounts = await read<{ name: string }[]>(paths.accountsFile)
     expect(accounts[0].name).toBe('默认账号')
   })
 
   test('v2 把旧内置型号移出可写文件', async () => {
-    const pro = BUILTIN_MODELS.find((m) => m.id === 'xiaomi-pro')!
+    const pro = BUILTIN_SPEAKER_MODELS.find((m) => m.id === 'xiaomi-pro')!
     await write(paths.speakerModelsFile, [
       { ...pro, name: '用户改名', createdAt: 5 },
       { id: 'custom-1', name: '自制', did: 'Z', createdAt: 9 },
@@ -98,7 +99,7 @@ describe('runMigrations', () => {
     expect(
       (await read<SpeakerModel[]>(paths.speakerModelsFile)).map((m) => m.id),
     ).toEqual(['custom-1'])
-    expect((await getOverrides()).models?.['xiaomi-pro']).toEqual({
+    expect((await getOverrides()).speakerModels?.['xiaomi-pro']).toEqual({
       name: '用户改名',
     })
   })
@@ -109,7 +110,7 @@ describe('migrateRoleToRobot（role→robot 实体改名）', () => {
   const legacyMeta = {
     id: 'd1',
     alias: '客厅',
-    did: 'X',
+    didPrefix: 'X',
     roleId: 'r-legacy',
     ttsSecret: 's',
     createdAt: 1,
@@ -171,8 +172,9 @@ describe('migrateRoleToRobot（role→robot 实体改名）', () => {
     await write(legacyRolesFile, [{ id: 'r1', name: '傻妞' }])
     await runMigrations()
     await expect(fs.readFile(legacyRolesFile, 'utf-8')).rejects.toThrow()
+    // 本轮实体改名迁移会为缺失 createdAt 的角色补齐时间戳
     expect(await read<unknown[]>(paths.robotsFile)).toEqual([
-      { id: 'r1', name: '傻妞' },
+      { id: 'r1', name: '傻妞', createdAt: expect.any(Number) },
     ])
   })
 })

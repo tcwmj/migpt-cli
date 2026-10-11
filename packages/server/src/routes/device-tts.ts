@@ -3,7 +3,7 @@ import createDebug from 'debug'
 import { createTTS, kTTSSpeakers } from 'mi-gpt-tts'
 import { streamTTSResponse } from '../tts.js'
 import { type GuiConfig } from '@migptgui/options'
-import type { DeviceMeta } from '../types.js'
+import type { Device } from '../types.js'
 import {
   findDeviceBySecret,
   loadDeviceConfig,
@@ -23,7 +23,7 @@ export function registerDeviceTtsRoutes({ app }: RouteContext): void {
     '/:secret/tts/tts.mp3',
     asyncHandler(async (req, res) => {
       const secret = req.params.secret
-      let meta: DeviceMeta | undefined
+      let meta: Device | undefined
       let config: GuiConfig | undefined
       if (secret === 'default') {
         config = await loadDeviceConfig('default')

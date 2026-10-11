@@ -20,7 +20,7 @@ export function useWizard(opts: {
       did: '',
       model: '',
       robotId: '',
-      thinkServiceIds: [],
+      modelIds: [],
       voiceId: '',
     })
   const closeWizard = () => setWizard(null)
@@ -58,12 +58,12 @@ export function useWizard(opts: {
       showToast('请选择一个对话角色')
       return
     }
-    if (!wizard.thinkServiceIds.length) {
-      showToast('请至少选择一个思考服务')
+    if (!wizard.modelIds.length) {
+      showToast('请至少选择一个模型')
       return
     }
     if (!wizard.voiceId) {
-      showToast('请选择一个语音服务')
+      showToast('请选择一个语音')
       return
     }
     try {
@@ -73,7 +73,7 @@ export function useWizard(opts: {
         speakerModel: wizard.model || undefined,
         robotId: wizard.robotId,
         accountId: wizard.accountId || undefined,
-        thinkServiceIds: wizard.thinkServiceIds,
+        modelIds: wizard.modelIds,
         voiceId: wizard.voiceId,
       })
       await api.startDevice(created.id)

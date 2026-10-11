@@ -4,14 +4,14 @@ import {
   AccountsView,
   DevicesView,
   HomeView,
-  ModelsView,
+  SpeakerModelsView,
   ProfileView,
-  ServicesView,
+  ModelsVoicesView,
 } from './views.tsx'
 import { LoginPage } from './components/LoginPage.tsx'
-import { LogsView } from './views/LogsView.tsx'
-import { SysLogsView } from './views/SysLogsView.tsx'
-import { RoomsView } from './views/RoomsView.tsx'
+import { ChatLogsView } from './views/ChatLogsView.tsx'
+import { SystemLogsView } from './views/SystemLogsView.tsx'
+import { ConversationsView } from './views/ConversationsView.tsx'
 import { RobotsView } from './views/RobotsView.tsx'
 import { Drawer } from './components/Drawer.tsx'
 import { ModalShell } from './components/ModalShell.tsx'
@@ -26,9 +26,9 @@ import { useAccountsCrud } from './hooks/useAccountsCrud.ts'
 import { useAppData } from './hooks/useAppData.ts'
 import { useConfirm } from './hooks/useConfirm.ts'
 import { useDevicesCrud } from './hooks/useDevicesCrud.ts'
-import { useModelsCrud } from './hooks/useModelsCrud.ts'
-import { useRobotsRoomsCrud } from './hooks/useRobotsRoomsCrud.ts'
-import { useServicesCrud } from './hooks/useServicesCrud.ts'
+import { useSpeakerModelsCrud } from './hooks/useSpeakerModelsCrud.ts'
+import { useRobotsConversationsCrud } from './hooks/useRobotsConversationsCrud.ts'
+import { useModelsVoicesCrud } from './hooks/useModelsVoicesCrud.ts'
 import { useToast } from './hooks/useToast.ts'
 import { useWizard } from './hooks/useWizard.ts'
 import { useHashRouter, useNav } from './hooks/useHashRouter.ts'
@@ -49,21 +49,21 @@ export function App() {
     accounts,
     devices,
     robots,
-    thinkSvcs,
-    voiceSvcs,
     models,
-    rooms,
+    voices,
+    speakerModels,
+    conversations,
     logCount,
     loading,
     refreshAll,
     runningCount,
-    builtinModelCount,
-    customModelCount,
+    builtinSpeakerModelCount,
+    customSpeakerModelCount,
   } = useAppData(showToast)
 
   /* ── 视图与顶栏/侧栏的 UI 状态 ── */
   const [view, setView] = useState<View>('home')
-  const [settingTab, setSettingTab] = useState<'think' | 'voice'>('think')
+  const [settingTab, setSettingTab] = useState<'models' | 'voices'>('models')
   const [query, setQuery] = useState('')
   const [sideOff, setSideOff] = useState<boolean>(
     () => localStorage.getItem('migpt-side-off') === '1',
@@ -103,17 +103,17 @@ export function App() {
     refreshAll,
     setConfirm,
   })
-  const svc = useServicesCrud({
+  const svc = useModelsVoicesCrud({
     devices,
     robots,
-    thinkSvcs,
-    voiceSvcs,
+    models,
+    voices,
     showToast,
     refreshAll,
     setConfirm,
   })
-  const model = useModelsCrud({
-    models,
+  const speakerModelCtl = useSpeakerModelsCrud({
+    models: speakerModels,
     devices,
     query,
     showToast,
@@ -128,9 +128,9 @@ export function App() {
     refreshAll,
     setConfirm,
   })
-  const rr = useRobotsRoomsCrud({
+  const rr = useRobotsConversationsCrud({
     robots,
-    rooms,
+    conversations,
     devices,
     query,
     showToast,
@@ -155,22 +155,22 @@ export function App() {
         // 这里通过 URL hash 触发选择
         window.location.hash = `#robots/${id}`
         break
-      case 'rooms':
-        window.location.hash = `#rooms/${id}`
+      case 'conversations':
+        window.location.hash = `#conversations/${id}`
         break
-      case 'think':
-        setSettingTab('think')
-        svc.selectThink(id)
+      case 'models':
+        setSettingTab('models')
+        svc.selectModel(id)
         break
-      case 'voice':
-        setSettingTab('voice')
+      case 'voices':
+        setSettingTab('voices')
         svc.selectVoice(id)
         break
       case 'accounts':
         acct.selectAcct(id)
         break
-      case 'models':
-        model.selectModel(id)
+      case 'speaker-models':
+        speakerModelCtl.selectModel(id)
         break
     }
   }
@@ -213,22 +213,22 @@ export function App() {
               accounts={accounts}
               devices={devices}
               robots={robots}
-              rooms={rooms}
-              thinkSvcs={thinkSvcs}
-              voiceSvcs={voiceSvcs}
+              conversations={conversations}
               models={models}
+              voices={voices}
+              speakerModels={speakerModels}
               runningCount={runningCount}
-              builtinModelCount={builtinModelCount}
-              customModelCount={customModelCount}
+              builtinSpeakerModelCount={builtinSpeakerModelCount}
+              customSpeakerModelCount={customSpeakerModelCount}
               logCount={logCount}
               onNav={setView}
-              onOpenThink={() => {
-                setSettingTab('think')
-                setView('think')
+              onOpenModel={() => {
+                setSettingTab('models')
+                setView('models')
               }}
               onOpenVoice={() => {
-                setSettingTab('voice')
-                setView('voice')
+                setSettingTab('voices')
+                setView('voices')
               }}
               onStartWizard={wz.startWizard}
             />
@@ -243,7 +243,7 @@ export function App() {
               acctEdit={acct.acctEdit}
               acctDevs={acct.acctDevs}
               devices={devices}
-              models={models}
+              speakerModels={speakerModels}
               onSelect={acct.selectAcct}
               onDraft={acct.setAcctDraft}
               onEdit={acct.setAcctEdit}
@@ -251,11 +251,13 @@ export function App() {
               onSave={acct.saveAcct}
               onRefreshDevs={acct.loadAcctDevs}
               onGoToDevice={(d) => {
-                const mm = models.find(
+                const mm = speakerModels.find(
                   (m) =>
                     m.id === d.hardware ||
                     m.name === d.hardware ||
-                    (m.did && d.hardware && d.hardware.startsWith(m.did)),
+                    (m.didPrefix &&
+                      d.hardware &&
+                      d.hardware.startsWith(m.didPrefix)),
                 )
                 dev.selectDev(null)
                 dev.setDevDraft({
@@ -264,7 +266,7 @@ export function App() {
                   speakerModel: mm?.id || '',
                   accountId: d.accountId,
                   robotId: '',
-                  thinkServiceIds: [],
+                  modelIds: [],
                   voiceId: '',
                   ttsSecret: '',
                 })
@@ -274,22 +276,22 @@ export function App() {
             />
           )}
 
-          {view === 'models' && (
-            <ModelsView
-              filterModels={model.filterModels}
-              models={models}
-              selModel={model.selModel}
-              modelDraft={model.modelDraft}
-              modelEdit={model.modelEdit}
+          {view === 'speaker-models' && (
+            <SpeakerModelsView
+              filterModels={speakerModelCtl.filterModels}
+              models={speakerModels}
+              selModel={speakerModelCtl.selModel}
+              modelDraft={speakerModelCtl.modelDraft}
+              modelEdit={speakerModelCtl.modelEdit}
               devices={devices}
-              filter={model.modelFilter}
-              onFilter={model.switchModelFilter}
-              onSelect={model.selectModel}
-              onDraft={model.setModelDraft}
-              onEdit={model.setModelEdit}
-              onDelete={model.delModel}
-              onReset={model.resetModel}
-              onSave={model.saveModel}
+              filter={speakerModelCtl.modelFilter}
+              onFilter={speakerModelCtl.switchModelFilter}
+              onSelect={speakerModelCtl.selectModel}
+              onDraft={speakerModelCtl.setSpeakerModelDraft}
+              onEdit={speakerModelCtl.setModelEdit}
+              onDelete={speakerModelCtl.delModel}
+              onReset={speakerModelCtl.resetModel}
+              onSave={speakerModelCtl.saveModel}
             />
           )}
 
@@ -308,9 +310,9 @@ export function App() {
               models={models}
               robots={robots}
               accounts={accounts}
-              rooms={rooms}
-              thinkSvcs={thinkSvcs}
-              voiceSvcs={voiceSvcs}
+              conversations={conversations}
+              speakerModels={speakerModels}
+              voices={voices}
               onSelect={dev.selectDev}
               onDraft={dev.setDevDraft}
               onEdit={dev.setDevEdit}
@@ -329,16 +331,16 @@ export function App() {
             />
           )}
 
-          {view === 'rooms' && (
-            <RoomsView
-              rooms={rr.filterRooms}
-              allRooms={rooms}
+          {view === 'conversations' && (
+            <ConversationsView
+              conversations={rr.filterRooms}
+              allRooms={conversations}
               devices={devices}
               robots={robots}
               onSave={rr.saveRoom}
-              onCreate={rr.createRoom}
+              onCreate={rr.createConversation}
               onDelete={rr.delRoom}
-              onReset={rr.resetRoom}
+              onReset={rr.resetConversation}
               onNavigate={handleNavigate}
             />
           )}
@@ -347,7 +349,7 @@ export function App() {
             <RobotsView
               robots={rr.filterRobots}
               allRobots={robots}
-              rooms={rooms}
+              conversations={conversations}
               devices={devices}
               robotUsage={rr.robotUsage}
               onSave={rr.saveRobot}
@@ -358,9 +360,11 @@ export function App() {
             />
           )}
 
-          {view === 'logs' && <LogsView devices={devices} models={models} />}
-          {view === 'syslogs' && (
-            <SysLogsView query={query} onToast={showToast} />
+          {view === 'chat-logs' && (
+            <ChatLogsView devices={devices} models={speakerModels} />
+          )}
+          {view === 'system-logs' && (
+            <SystemLogsView query={query} onToast={showToast} />
           )}
 
           {view === 'stats' && (
@@ -369,32 +373,32 @@ export function App() {
             </Suspense>
           )}
 
-          {(view === 'settings' || view === 'think' || view === 'voice') && (
-            <ServicesView
+          {(view === 'settings' || view === 'models' || view === 'voices') && (
+            <ModelsVoicesView
               tab={settingTab}
-              thinkSvcs={thinkSvcs}
-              voiceSvcs={voiceSvcs}
-              selThink={svc.selThink}
+              models={models}
+              voices={voices}
+              selModel={svc.selModel}
               selVoice={svc.selVoice}
-              thinkDraft={svc.thinkDraft}
+              modelDraft={svc.modelDraft}
               voiceDraft={svc.voiceDraft}
-              thinkEdit={svc.thinkEdit}
+              modelEdit={svc.modelEdit}
               voiceEdit={svc.voiceEdit}
               selVoiceObj={svc.selVoiceObj}
               devices={devices}
               robots={robots}
-              onSelectThink={svc.selectThink}
-              onDraftThink={svc.setThinkDraft}
-              onEditThink={svc.setThinkEdit}
-              onDeleteThink={svc.delThink}
-              onSaveThink={svc.saveThink}
+              onSelectModel={svc.selectModel}
+              onDraftModel={svc.setModelDraft}
+              onEditModel={svc.setModelEdit}
+              onDeleteModel={svc.delModel}
+              onSaveModel={svc.saveModel}
               onSelectVoice={svc.selectVoice}
               onDraftVoice={svc.setVoiceDraft}
               onEditVoice={svc.setVoiceEdit}
               onDeleteVoice={svc.delVoice}
               onResetVoice={svc.resetVoice}
               onSaveVoice={svc.saveVoice}
-              usageThink={svc.usageThink}
+              usageModel={svc.usageModel}
               usageVoice={svc.usageVoice}
               onNavigate={handleNavigate}
             />
@@ -421,11 +425,11 @@ export function App() {
           detail={detail}
           running={devices.find((x) => x.id === detail.meta.id)?.running}
           robots={robots}
-          thinkSvcs={thinkSvcs}
-          voiceSvcs={voiceSvcs}
-          accounts={accounts}
           models={models}
-          rooms={rooms}
+          voices={voices}
+          accounts={accounts}
+          speakerModels={speakerModels}
+          conversations={conversations}
           onClose={dev.closeDrawer}
           onRestart={() => dev.restartDevice(detail.meta.id)}
           onRemove={async () => {
@@ -441,7 +445,7 @@ export function App() {
             setModal({
               kind: 'deviceBind',
               title: '编辑绑定',
-              desc: '修改这台音箱的角色与服务绑定；换绑账号 / 唤醒词需重启设备。',
+              desc: '修改这台音箱的角色与模型/语音绑定；换绑账号 / 唤醒词需重启设备。',
               payload: detail.meta,
             })
           }
@@ -454,10 +458,10 @@ export function App() {
           modal={modal}
           accounts={accounts}
           robots={robots}
-          thinkSvcs={thinkSvcs}
-          voiceSvcs={voiceSvcs}
           models={models}
-          rooms={rooms}
+          voices={voices}
+          speakerModels={speakerModels}
+          conversations={conversations}
           onClose={() => setModal(null)}
           onDone={(values) => {
             const m = modal
@@ -481,8 +485,8 @@ export function App() {
           accounts={accounts}
           robots={robots}
           models={models}
-          thinkSvcs={thinkSvcs}
-          voiceSvcs={voiceSvcs}
+          speakerModels={speakerModels}
+          voices={voices}
           draft={wizard}
           setDraft={wz.setDraft}
           onClose={wz.closeWizard}

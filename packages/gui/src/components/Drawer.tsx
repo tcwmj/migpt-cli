@@ -5,10 +5,10 @@ import {
   type BindingRow,
   type DeviceDetail,
   type Robot,
-  type Room,
+  type Conversation,
   type SpeakerModel,
-  type ThinkService,
-  type VoiceService,
+  type Model,
+  type Voice,
 } from '../apis.ts'
 import { I } from '../icons.tsx'
 import { Button } from './atoms/index.ts'
@@ -18,17 +18,17 @@ export function Drawer(props: {
   detail: DeviceDetail
   running?: boolean
   robots: Robot[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
+  models: Model[]
+  voices: Voice[]
   accounts: Account[]
-  models: SpeakerModel[]
-  rooms: Room[]
+  speakerModels: SpeakerModel[]
+  conversations: Conversation[]
   onClose: () => void
   onRestart: () => void
   onRemove: () => void
   onEdit: () => void
 }) {
-  const { detail, models } = props
+  const { detail, models, speakerModels } = props
   const [closing, setClosing] = useState(false)
   const close = (after?: () => void) => {
     if (closing) return
@@ -45,13 +45,12 @@ export function Drawer(props: {
       ? 'user'
       : key === 'robot'
         ? 'chat'
-        : key === 'think'
+        : key === 'model'
           ? 'bolt'
           : 'mic'
   const rowType = (key: BindingRow['key']) =>
-    key === 'think' ? ' t' : key === 'voice' ? ' v' : ''
-  const srcClass = (s: BindingRow['source']) =>
-    s === 'device' ? ' ovr' : s === 'global' ? ' glb' : ''
+    key === 'model' ? ' t' : key === 'voice' ? ' v' : ''
+  const srcClass = (s: BindingRow['source']) => (s === 'device' ? ' ovr' : '')
   return (
     <>
       <div
@@ -84,7 +83,8 @@ export function Drawer(props: {
         <div className="db">
           <div>
             <h4>
-              <I n="lock" size={14} /> 绑定链 · 服务取设备指定，会话群取角色指定
+              <I n="lock" size={14} /> 绑定链 ·
+              模型与语音取设备指定，会话取角色指定
             </h4>
             <div
               style={{
@@ -127,9 +127,9 @@ export function Drawer(props: {
                   {(() => {
                     const r = m.speakerModel
                     const mm = r
-                      ? models.find((x) => x.id === r || x.name === r)
+                      ? speakerModels.find((x) => x.id === r || x.name === r)
                       : null
-                    return mm ? `${mm.name}（${mm.did}）` : r || '—'
+                    return mm ? `${mm.name}（${mm.didPrefix}）` : r || '—'
                   })()}
                 </span>
               </div>
@@ -151,14 +151,14 @@ export function Drawer(props: {
                 <span className="vv">
                   {(() => {
                     const mm = m.speakerModel
-                      ? models.find(
+                      ? speakerModels.find(
                           (x) =>
                             x.id === m.speakerModel ||
                             x.name === m.speakerModel,
                         )
                       : null
                     if (!mm) return '—'
-                    if (!mm.consecutive) return '未启用（型号不支持）'
+                    if (!mm.continuousDialogue) return '未启用（型号不支持）'
                     return mm.playingCommand?.length
                       ? '启用 · 支持播放状态检测'
                       : '启用 · 依赖 Mina 检测播放状态'
@@ -166,16 +166,18 @@ export function Drawer(props: {
                 </span>
               </div>
               <div className="kr">
-                <span className="k">会话群</span>
+                <span className="k">会话</span>
                 <span className="vv">
                   {(() => {
-                    const rm = m.roomRef
-                      ? props.rooms.find((x) => x.id === m.roomRef)
+                    const rm = m.conversationRef
+                      ? props.conversations.find(
+                          (x) => x.id === m.conversationRef,
+                        )
                       : null
                     return rm
                       ? `${rm.name}${rm.description ? ' · ' + rm.description : ''}`
-                      : m.roomName
-                        ? m.roomName
+                      : m.conversationName
+                        ? m.conversationName
                         : '—'
                   })()}
                 </span>

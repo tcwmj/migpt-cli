@@ -3,19 +3,14 @@ import {
   redactAccount,
   redactAccounts,
   redactBindings,
-  redactDeviceMeta,
-  redactDeviceMetas,
+  redactDevice,
+  redactDevices,
   redactGuiConfig,
-  redactSettings,
-  redactThinkService,
-  redactThinkServices,
+  redactCredential,
+  redactModel,
+  redactModels,
 } from './redact.js'
-import type {
-  Account,
-  DeviceBindings,
-  DeviceMeta,
-  ThinkService,
-} from './types.js'
+import type { Account, DeviceBindings, Device, Model } from './types.js'
 import type { GuiConfig } from '@migptgui/options'
 
 const account = (over: Partial<Account> = {}): Account => ({
@@ -28,7 +23,7 @@ const account = (over: Partial<Account> = {}): Account => ({
   ...over,
 })
 
-const think = (over: Partial<ThinkService> = {}): ThinkService => ({
+const modelFixture = (over: Partial<Model> = {}): Model => ({
   id: 't1',
   name: '豆包',
   provider: 'doubao',
@@ -38,7 +33,7 @@ const think = (over: Partial<ThinkService> = {}): ThinkService => ({
   ...over,
 })
 
-const device = (over: Partial<DeviceMeta> = {}): DeviceMeta => ({
+const device = (over: Partial<Device> = {}): Device => ({
   id: 'd1',
   alias: '客厅音箱',
   did: 'X08E',
@@ -74,42 +69,42 @@ describe('redactAccount', () => {
   })
 })
 
-describe('redactThinkService', () => {
+describe('redactModel', () => {
   test('apiKey 置空并标记', () => {
-    const out = redactThinkService(think())
+    const out = redactModel(modelFixture())
     expect(out.apiKey).toBe('')
     expect(out.hasApiKey).toBe(true)
     expect(out).toMatchObject({ id: 't1', provider: 'doubao' })
   })
 
   test('无 apiKey 时标记为 false', () => {
-    const out = redactThinkService(think({ apiKey: '' }))
+    const out = redactModel(modelFixture({ apiKey: '' }))
     expect(out.hasApiKey).toBe(false)
   })
 
-  test('redactThinkServices 逐项脱敏', () => {
-    const out = redactThinkServices([think(), think({ id: 't2' })])
+  test('redactModels 逐项脱敏', () => {
+    const out = redactModels([modelFixture(), modelFixture({ id: 't2' })])
     expect(out.map((s) => s.apiKey)).toEqual(['', ''])
   })
 })
 
-describe('redactDeviceMeta', () => {
+describe('redactDevice', () => {
   test('ttsSecret 置空并标记', () => {
-    const out = redactDeviceMeta(device())
+    const out = redactDevice(device())
     expect(out.ttsSecret).toBe('')
     expect(out.hasTtsSecret).toBe(true)
     expect(out).toMatchObject({ id: 'd1', alias: '客厅音箱', did: 'X08E' })
   })
 
-  test('redactDeviceMetas 逐项脱敏', () => {
-    const out = redactDeviceMetas([device(), device({ id: 'd2' })])
+  test('redactDevices 逐项脱敏', () => {
+    const out = redactDevices([device(), device({ id: 'd2' })])
     expect(out.every((d) => d.hasTtsSecret && d.ttsSecret === '')).toBe(true)
   })
 })
 
-describe('redactSettings', () => {
+describe('redactCredential', () => {
   test('只保留 miUserId 与 hasPassToken 标记', () => {
-    const out = redactSettings({
+    const out = redactCredential({
       miUserId: 'u1',
       miPassword: 'p',
       passToken: 't',
@@ -118,7 +113,7 @@ describe('redactSettings', () => {
   })
 
   test('无 passToken 时标记为 false', () => {
-    expect(redactSettings({ miUserId: 'u1' }).hasPassToken).toBe(false)
+    expect(redactCredential({ miUserId: 'u1' }).hasPassToken).toBe(false)
   })
 })
 
@@ -167,10 +162,10 @@ describe('redactGuiConfig', () => {
 })
 
 describe('redactBindings', () => {
-  test('账号与思考服务脱敏，角色 / 语音 / 行不变', () => {
+  test('账号与模型脱敏，角色 / 语音 / 行不变', () => {
     const bindings: DeviceBindings = {
       account: account(),
-      think: think(),
+      model: modelFixture(),
       rows: [
         {
           key: 'account',
@@ -184,14 +179,14 @@ describe('redactBindings', () => {
     const out = redactBindings(bindings)
     expect(out.account?.hasPassToken).toBe(true)
     expect(out.account?.passToken).toBeUndefined()
-    expect(out.think?.apiKey).toBe('')
-    expect(out.think?.hasApiKey).toBe(true)
+    expect(out.model?.apiKey).toBe('')
+    expect(out.model?.hasApiKey).toBe(true)
     expect(out.rows).toEqual(bindings.rows)
   })
 
-  test('account / think 缺省时不报错', () => {
+  test('account / model 缺省时不报错', () => {
     const out = redactBindings({ rows: [] })
     expect(out.account).toBeUndefined()
-    expect(out.think).toBeUndefined()
+    expect(out.model).toBeUndefined()
   })
 })

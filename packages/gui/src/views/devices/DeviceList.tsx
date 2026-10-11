@@ -5,7 +5,7 @@ import { I } from '../../icons.tsx'
 export function DeviceList(props: {
   devices: DeviceRow[]
   robots: Robot[]
-  models: SpeakerModel[]
+  speakerModels: SpeakerModel[]
   selDev: string | null
   onSelect: (id: string | null) => void
 }) {
@@ -13,7 +13,7 @@ export function DeviceList(props: {
     <aside className="slist">
       {props.devices.map((d) => {
         const r = props.robots.find((x) => x.id === d.robotId)
-        const m = props.models.find(
+        const m = props.speakerModels.find(
           (x) => x.id === d.speakerModel || x.name === d.speakerModel,
         )
         return (

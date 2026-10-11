@@ -31,7 +31,8 @@ export function PullDeviceList(props: {
         <div className="pick-list" style={{ marginTop: 8 }}>
           {devPull.list.map((d) => {
             const m = props.models.find(
-              (x) => x.did.toLowerCase() === (d.hardware || '').toLowerCase(),
+              (x) =>
+                x.didPrefix.toLowerCase() === (d.hardware || '').toLowerCase(),
             )
             const bound = !!props.devices.find(
               (x) => x.accountId === devDraft.accountId && x.did === d.miotDID,

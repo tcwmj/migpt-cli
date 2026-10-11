@@ -2,12 +2,7 @@
 import type { RouteContext } from './shared.js'
 import { API_PREFIX, ok, fail, asyncHandler } from './shared.js'
 import { logRows, logger, type LogRow } from '../logger.js'
-import {
-  getThinkServices,
-  getVoiceServices,
-  getRobots,
-  listDeviceMetas,
-} from '../store.js'
+import { getModels, getVoices, getRobots, listDevices } from '../store.js'
 import { getAllStatus } from '@migptgui/controller'
 
 // ── 类型定义 ────────────────────────────────────────────────
@@ -30,9 +25,9 @@ interface DimensionStats extends TokenStats {
 interface ServiceHealth {
   id: string
   name: string
-  type: 'think' | 'voice'
+  type: 'model' | 'voice'
   limitReached: boolean
-  tokenUsed: number
+  totalTokensUsed: number
   tokenLimit?: number
   usagePercent?: number
 }
@@ -190,7 +185,7 @@ async function getFilteredDeviceIds(
 ): Promise<Set<string> | null> {
   if (!dimension || !ids || ids.length === 0) return null
 
-  const devices = await listDeviceMetas()
+  const devices = await listDevices()
   const robots = await getRobots()
 
   if (dimension === 'device') {
@@ -210,17 +205,17 @@ async function getFilteredDeviceIds(
     return deviceIds
   }
 
-  if (dimension === 'service') {
+  if (dimension === 'model') {
     // 按服务 ID 找到绑定的角色，再找设备
     const serviceIds = new Set(ids)
     const robotIds = new Set<string>()
     for (const robot of robots) {
-      const thinkIds = robot.thinkServiceIds?.length
-        ? robot.thinkServiceIds
-        : robot.thinkServiceId
-          ? [robot.thinkServiceId]
+      const modelIds = robot.modelIds?.length
+        ? robot.modelIds
+        : robot.modelId
+          ? [robot.modelId]
           : []
-      for (const sid of thinkIds) {
+      for (const sid of modelIds) {
         if (serviceIds.has(sid)) {
           robotIds.add(robot.id)
           break
@@ -366,7 +361,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         // 3.1 每个实体的时间线数据
         const entityTimelines: Record<string, TimeSeriesPoint[]> = {}
         if (dimension && ids && ids.length > 0) {
-          const devices = await listDeviceMetas()
+          const devices = await listDevices()
           const deviceRobotMap = new Map<string, string>()
           for (const device of devices) {
             if (device.robotId) deviceRobotMap.set(device.id, device.robotId)
@@ -386,17 +381,17 @@ export function registerStatsRoutes({ app }: RouteContext): void {
               entityLogs = timeFiltered.filter((r) =>
                 boundDevices.has(r.deviceId),
               )
-            } else if (dimension === 'service') {
+            } else if (dimension === 'model') {
               // 找到使用该服务的所有角色，再找到绑定的设备
               const robots = await getRobots()
               const boundDevices = new Set<string>()
               for (const robot of robots) {
-                const thinkIds = robot.thinkServiceIds?.length
-                  ? robot.thinkServiceIds
-                  : robot.thinkServiceId
-                    ? [robot.thinkServiceId]
+                const modelIds = robot.modelIds?.length
+                  ? robot.modelIds
+                  : robot.modelId
+                    ? [robot.modelId]
                     : []
-                if (thinkIds.includes(entityId)) {
+                if (modelIds.includes(entityId)) {
                   for (const [deviceId, robotId] of deviceRobotMap) {
                     if (robotId === robot.id) boundDevices.add(deviceId)
                   }
@@ -429,7 +424,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
 
         // 4. 维度明细数据
         let dimensionData: DimensionStats[] = []
-        const devices = await listDeviceMetas()
+        const devices = await listDevices()
         const robots = await getRobots()
         const deviceRobotMap = new Map<string, string>()
         const deviceNameMap = new Map<string, string>()
@@ -474,25 +469,25 @@ export function registerStatsRoutes({ app }: RouteContext): void {
             })
           }
           dimensionData.sort((a, b) => b.totalTokens - a.totalTokens)
-        } else if (dimension === 'service') {
+        } else if (dimension === 'model') {
           // 按服务统计（从服务实体直接读取累计值）
-          const thinkServices = await getThinkServices()
-          const voiceServices = await getVoiceServices()
+          const models = await getModels()
+          const voices = await getVoices()
           dimensionData = [
-            ...thinkServices.map((s) => ({
+            ...models.map((s) => ({
               id: s.id,
               name: `${s.name} (思考)`,
-              inputTokens: s.tokenInputUsed ?? 0,
-              outputTokens: s.tokenOutputUsed ?? 0,
-              totalTokens: s.tokenUsed ?? 0,
+              inputTokens: s.inputTokensUsed ?? 0,
+              outputTokens: s.outputTokensUsed ?? 0,
+              totalTokens: s.totalTokensUsed ?? 0,
               conversations: 0,
             })),
-            ...voiceServices.map((s) => ({
+            ...voices.map((s) => ({
               id: s.id,
               name: `${s.name} (语音)`,
-              inputTokens: s.tokenInputUsed ?? 0,
-              outputTokens: s.tokenOutputUsed ?? 0,
-              totalTokens: s.tokenUsed ?? 0,
+              inputTokens: s.inputTokensUsed ?? 0,
+              outputTokens: s.outputTokensUsed ?? 0,
+              totalTokens: s.totalTokensUsed ?? 0,
               conversations: 0,
             })),
           ]
@@ -507,11 +502,11 @@ export function registerStatsRoutes({ app }: RouteContext): void {
             name: d.alias || d.did || d.id,
           })),
           service: [
-            ...(await getThinkServices()).map((s) => ({
+            ...(await getModels()).map((s) => ({
               id: s.id,
               name: `${s.name} (思考)`,
             })),
-            ...(await getVoiceServices()).map((s) => ({
+            ...(await getVoices()).map((s) => ({
               id: s.id,
               name: `${s.name} (语音)`,
             })),
@@ -519,29 +514,29 @@ export function registerStatsRoutes({ app }: RouteContext): void {
         }
 
         // 6. 服务健康状态
-        const thinkServices = await getThinkServices()
-        const voiceServices = await getVoiceServices()
+        const models = await getModels()
+        const voices = await getVoices()
         const serviceHealth: ServiceHealth[] = [
-          ...thinkServices.map((s) => ({
+          ...models.map((s) => ({
             id: s.id,
             name: s.name,
-            type: 'think' as const,
+            type: 'model' as const,
             limitReached: s.limitReached ?? false,
-            tokenUsed: s.tokenUsed ?? 0,
+            totalTokensUsed: s.totalTokensUsed ?? 0,
             tokenLimit: s.tokenLimit,
             usagePercent: s.tokenLimit
-              ? Math.round(((s.tokenUsed ?? 0) / s.tokenLimit) * 100)
+              ? Math.round(((s.totalTokensUsed ?? 0) / s.tokenLimit) * 100)
               : undefined,
           })),
-          ...voiceServices.map((s) => ({
+          ...voices.map((s) => ({
             id: s.id,
             name: s.name,
             type: 'voice' as const,
             limitReached: s.limitReached ?? false,
-            tokenUsed: s.tokenUsed ?? 0,
+            totalTokensUsed: s.totalTokensUsed ?? 0,
             tokenLimit: s.tokenLimit,
             usagePercent: s.tokenLimit
-              ? Math.round(((s.tokenUsed ?? 0) / s.tokenLimit) * 100)
+              ? Math.round(((s.totalTokensUsed ?? 0) / s.tokenLimit) * 100)
               : undefined,
           })),
         ]

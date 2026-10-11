@@ -1,11 +1,11 @@
-import type { Robot, Room, DeviceRow } from '../../apis.ts'
+import type { Robot, Conversation, DeviceRow } from '../../apis.ts'
 import { I } from '../../icons.tsx'
 import { Button, Tag } from '../../components/atoms/index.ts'
 
 export function RobotDetail(props: {
   robot: Robot
   usage: string[]
-  rooms: Room[]
+  conversations: Conversation[]
   devices: DeviceRow[]
   onEdit: () => void
   onDelete: () => void
@@ -13,8 +13,8 @@ export function RobotDetail(props: {
   onNavigate?: (view: string, id: string) => void
 }) {
   const { robot } = props
-  const room = robot.roomRef
-    ? props.rooms.find((r) => r.id === robot.roomRef)
+  const conversation = robot.conversationId
+    ? props.conversations.find((r) => r.id === robot.conversationId)
     : undefined
 
   // 找到引用该角色的设备
@@ -56,15 +56,17 @@ export function RobotDetail(props: {
           </div>
           <div className="row">
             <div className="rr">
-              <span className="k">会话群</span>
+              <span className="k">会话</span>
               <span className="v">
-                {room ? (
+                {conversation ? (
                   <button
                     type="button"
                     className="link-btn"
-                    onClick={() => props.onNavigate?.('rooms', room.id)}
+                    onClick={() =>
+                      props.onNavigate?.('conversations', conversation.id)
+                    }
                   >
-                    {room.name}
+                    {conversation.name}
                   </button>
                 ) : (
                   '未设置'
@@ -164,7 +166,7 @@ export function RobotDetail(props: {
           </div>
         </div>
         <div className="grp">
-          <h4>关联服务</h4>
+          <h4>关联模型与语音</h4>
           <div className="row">
             <div className="rr">
               <span className="k">设备服务</span>

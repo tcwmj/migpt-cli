@@ -37,14 +37,15 @@ export function DeviceForm(props: {
 }) {
   const { devDraft, selDev } = props
   const running = props.devices.find((x) => x.id === selDev)?.running
-  const model = props.speakerModels.find((x) => x.id === devDraft.speakerModel) || null
+  const model =
+    props.speakerModels.find((x) => x.id === devDraft.speakerModel) || null
   const account = props.accounts.find((a) => a.id === devDraft.accountId)
 
-  const thinkOptions = props.speakerModels.map((s) => ({
+  const modelOptions = props.models.map((s) => ({
     value: s.id,
     label: s.name + (s.limitReached ? '（限额）' : ''),
   }))
-  const thinkValue = thinkOptions.filter((o) =>
+  const modelValue = modelOptions.filter((o) =>
     (devDraft.modelIds || []).includes(o.value),
   )
 
@@ -63,7 +64,7 @@ export function DeviceForm(props: {
       <div className="desc">
         {selDev
           ? '修改设备配置；已变更的配置需重启设备生效。'
-          : '确认从云端带入的设备信息，配置服务后保存。'}
+          : '确认从云端带入的设备信息，配置模型与语音后保存。'}
       </div>
 
       {/* 关联账号 */}
@@ -89,7 +90,7 @@ export function DeviceForm(props: {
             <input value={devDraft.alias} disabled />
           </Field>
           <Field label="设备 ID">
-            <input value={devDraft.didPrefix} disabled />
+            <input value={devDraft.did} disabled />
           </Field>
         </div>
         <div className="row">
@@ -106,9 +107,9 @@ export function DeviceForm(props: {
         </div>
       </div>
 
-      {/* 关联服务 */}
+      {/* 关联模型与语音 */}
       <div className="grp">
-        <h4>关联服务</h4>
+        <h4>关联模型与语音</h4>
         <div className="row">
           <div style={{ flex: 1 }}>
             <Field
@@ -118,10 +119,10 @@ export function DeviceForm(props: {
             >
               <Select
                 isMulti
-                options={thinkOptions}
-                value={thinkValue}
+                options={modelOptions}
+                value={modelValue}
                 placeholder="未设置"
-                noOptionsMessage={() => '无可用服务'}
+                noOptionsMessage={() => '无可用模型'}
                 onChange={(vals) =>
                   props.onDraft({
                     ...devDraft,
@@ -174,13 +175,13 @@ export function DeviceForm(props: {
         </div>
       </div>
 
-      {model && !model.consecutive && (
+      {model && !model.continuousDialogue && (
         <div className="notice err">
           <I n="warning" size={15} /> 此型号不支持连续对话（streamResponse
           已禁用）。
         </div>
       )}
-      {model && model.consecutive && !model.playingCommand?.length && (
+      {model && model.continuousDialogue && !model.playingCommand?.length && (
         <div className="notice">
           <I n="warning" size={15} /> 此型号未配置播放检测指令，连续对话将依赖
           Mina 检测播放状态；若出现异常，可在「音箱型号」中补充播放检测指令。
@@ -204,7 +205,7 @@ export function DeviceForm(props: {
           variant="primary"
           icon="check"
           onClick={props.onSave}
-          disabled={!devDraft.alias || !devDraft.didPrefix}
+          disabled={!devDraft.alias || !devDraft.did}
         >
           保存
         </Button>

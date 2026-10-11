@@ -1,28 +1,29 @@
-// ── 实体读取：settings / accounts / robots / services / models / rooms / devices ──
+// ── 实体读取：credentials / accounts / robots / services / models / conversations / devices ──
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import fse from 'fs-extra'
 import { nanoid } from 'nanoid'
 import {
   root,
+  logsDir,
   devicesRoot,
-  settingsFile,
+  credentialsFile,
   accountsFile,
   robotsFile,
-  thinkServicesFile,
-  voiceServicesFile,
+  modelsFile,
+  voicesFile,
   speakerModelsFile,
-  roomsFile,
+  conversationsFile,
   systemLogFile,
 } from '../paths.js'
 import {
-  type Settings,
+  type Credential,
   type Account,
   type Robot,
-  type ThinkService,
-  type VoiceService,
-  type Room,
-  type DeviceMeta,
+  type Model,
+  type Voice,
+  type Conversation,
+  type Device,
   type SpeakerModel,
 } from '../types.js'
 import { logger, sysLogBuf } from '../logger.js'
@@ -30,24 +31,24 @@ import { readJson, writeJson } from './json.js'
 import {
   accountListSchema,
   accountSchema,
-  deviceMetaSchema,
+  deviceSchema,
   parseEntity,
   readJsonChecked,
   readJsonListChecked,
   robotSchema,
-  roomSchema,
-  settingsSchema,
+  conversationSchema,
+  credentialSchema,
   speakerModelSchema,
-  thinkServiceListSchema,
-  thinkServiceSchema,
-  voiceServiceSchema,
+  modelListSchema,
+  modelSchema,
+  voiceSchema,
   writeJsonChecked,
 } from './schemas.js'
 import {
   getOverrides,
-  mergeBuiltinModels,
+  mergeBuiltinSpeakerModels,
   mergeBuiltinRobots,
-  mergeBuiltinRooms,
+  mergeBuiltinConversations,
   mergeBuiltinVoices,
 } from './overrides.js'
 import type { GuiConfig } from '@migptgui/options'
@@ -70,11 +71,11 @@ export function assertUniqueName<T extends { id: string; name?: string }>(
   return hit ? `${label}「${n}」已存在，名称需唯一` : null
 }
 
-export function getSettings(): Promise<Settings> {
-  return readJsonChecked(settingsFile, settingsSchema, '登录设置', {})
+export function getCredential(): Promise<Credential> {
+  return readJsonChecked(credentialsFile, credentialSchema, '小米凭据', {})
 }
 
-// ── 多云端账号：读取（含旧 settings.json 迁移）─────────────────
+// ── 多云端账号：读取（含旧 credentials.json 迁移）─────────────────
 export async function getAccounts(): Promise<Account[]> {
   const accounts = await readJsonListChecked(
     accountsFile,
@@ -82,11 +83,11 @@ export async function getAccounts(): Promise<Account[]> {
     '账号',
   )
   if (accounts.length > 0) return accounts
-  // 兼容旧版本：settings.json → 迁移为第一个账号
+  // 兼容旧版本：credentials.json → 迁移为第一个账号
   const old = await readJsonChecked(
-    settingsFile,
-    settingsSchema,
-    '登录设置',
+    credentialsFile,
+    credentialSchema,
+    '小米凭据',
     {},
   )
   if (old.miUserId || old.passToken) {
@@ -125,14 +126,14 @@ export async function getRobots(): Promise<Robot[]> {
   return mergeBuiltinRobots(custom, ov.robots)
 }
 
-export async function getThinkServices(): Promise<ThinkService[]> {
-  return readJsonListChecked(thinkServicesFile, thinkServiceSchema, '思考服务')
+export async function getModels(): Promise<Model[]> {
+  return readJsonListChecked(modelsFile, modelSchema, '模型')
 }
 
-// 语音服务：内置语音源自代码 + 用户覆盖补丁，其后拼接用户自建语音。
-export async function getVoiceServices(): Promise<VoiceService[]> {
+// 语音：内置语音源自代码 + 用户覆盖补丁，其后拼接用户自建语音。
+export async function getVoices(): Promise<Voice[]> {
   const [custom, ov] = await Promise.all([
-    readJsonListChecked(voiceServicesFile, voiceServiceSchema, '语音服务'),
+    readJsonListChecked(voicesFile, voiceSchema, '语音'),
     getOverrides(),
   ])
   return mergeBuiltinVoices(custom, ov.voices)
@@ -144,29 +145,27 @@ export async function getSpeakerModels(): Promise<SpeakerModel[]> {
     readJsonListChecked(speakerModelsFile, speakerModelSchema, '型号'),
     getOverrides(),
   ])
-  return mergeBuiltinModels(custom, ov.models)
+  return mergeBuiltinSpeakerModels(custom, ov.speakerModels)
 }
 
-// 会话群：内置会话群源自代码 + 用户覆盖补丁，其后拼接用户自建会话群。
-export async function getRooms(): Promise<Room[]> {
+// 会话：内置会话源自代码 + 用户覆盖补丁，其后拼接用户自建会话。
+export async function getConversations(): Promise<Conversation[]> {
   const [custom, ov] = await Promise.all([
-    readJsonListChecked(roomsFile, roomSchema, '会话群'),
+    readJsonListChecked(conversationsFile, conversationSchema, '会话'),
     getOverrides(),
   ])
-  return mergeBuiltinRooms(custom, ov.rooms)
+  return mergeBuiltinConversations(custom, ov.conversations)
 }
 
-export async function getDeviceMeta(
-  id: string,
-): Promise<DeviceMeta | undefined> {
+export async function getDevice(id: string): Promise<Device | undefined> {
   const raw = await readJson<unknown>(
     path.join(devicesRoot, id, 'meta.json'),
     undefined,
   )
-  return parseEntity(raw, deviceMetaSchema, `设备 ${id}`)
+  return parseEntity(raw, deviceSchema, `设备 ${id}`)
 }
 
-export async function listDeviceMetas(): Promise<DeviceMeta[]> {
+export async function listDevices(): Promise<Device[]> {
   let ids: string[]
   try {
     ids = await fs.readdir(devicesRoot)
@@ -175,16 +174,18 @@ export async function listDeviceMetas(): Promise<DeviceMeta[]> {
     return []
   }
   // 并行读取各设备 meta（原先串行 await 在设备较多时线性放大延迟）
-  const metas = await Promise.all(ids.map((id) => getDeviceMeta(id)))
-  const out = metas.filter((m): m is DeviceMeta => !!m)
+  const metas = await Promise.all(ids.map((id) => getDevice(id)))
+  const out = metas.filter((m): m is Device => !!m)
   out.sort((a, b) => a.createdAt - b.createdAt)
   return out
 }
 
-/** 按 id 或名称解析会话群 */
-export async function getRoomByRef(ref?: string): Promise<Room | undefined> {
+/** 按 id 或名称解析会话 */
+export async function getConversationByRef(
+  ref?: string,
+): Promise<Conversation | undefined> {
   if (!ref) return undefined
-  const list = await getRooms()
+  const list = await getConversations()
   return list.find((r) => r.id === ref || r.name === ref)
 }
 
@@ -203,28 +204,20 @@ export async function saveAccounts(list: Account[]): Promise<void> {
   await writeJsonChecked(accountsFile, list, accountListSchema, '账号')
 }
 
-// saveRobots / saveRooms（内置项剥离 + 覆盖补丁）见 ./overrides.js
+// saveRobots / saveConversations（内置项剥离 + 覆盖补丁）见 ./overrides.js
 
-export async function saveThinkServices(list: ThinkService[]): Promise<void> {
-  await writeJsonChecked(
-    thinkServicesFile,
-    list,
-    thinkServiceListSchema,
-    '思考服务',
-  )
+export async function saveModels(list: Model[]): Promise<void> {
+  await writeJsonChecked(modelsFile, list, modelListSchema, '模型')
 }
 
 // ── 设备文件操作 ──────────────────────────────────────────────
 
 /** 写入设备 meta.json（含 schema 校验） */
-export async function saveDeviceMeta(
-  id: string,
-  meta: DeviceMeta,
-): Promise<void> {
+export async function saveDevice(id: string, meta: Device): Promise<void> {
   await writeJsonChecked(
     path.join(devicesRoot, id, 'meta.json'),
     meta,
-    deviceMetaSchema,
+    deviceSchema,
     '设备',
   )
 }
@@ -281,7 +274,7 @@ export async function loadDeviceConfig(
 }
 
 // ── 系统日志读取 ──────────────────────────────────────────────
-// 落盘按天轮转（system.<yyyyMMdd>.N.log），读取端按日期解析文件；
+// 落盘按天（logs/system.<yyyyMMdd>.N.log，单文件 5MB、永久保留），读取端按日期解析文件；
 // 未指定日期时默认当天，无对应日期文件时回退旧版固定名 system.log（迁移期兼容）。
 
 export const LOG_DATE_RE = /^\d{8}$/
@@ -296,22 +289,47 @@ export function todayLogDate(): string {
 
 /** 指定日期全部轮转文件的绝对路径（N 升序）；当天无文件时回退旧版 system.log */
 async function _systemLogFilesFor(date: string): Promise<string[]> {
-  const names = await fs.readdir(root).catch(() => [] as string[])
+  // 主源：logs/ 下 pino-roll 多文件 system.<date>.<N>.log（含无序号单文件兼容）
+  const lnames = await fs.readdir(logsDir).catch(() => [] as string[])
   const hits: { n: number; file: string }[] = []
+  for (const name of lnames) {
+    const m = name.match(/^system\.(\d{8})\.(\d+)\.log$/)
+    if (m && m[1] === date) {
+      hits.push({ n: Number(m[2]), file: path.join(logsDir, name) })
+      continue
+    }
+    // 无序号单文件（迁移期由旧 system.log 并入）
+    const s = name.match(/^system\.(\d{8})\.log$/)
+    if (s && s[1] === date) hits.push({ n: -1, file: path.join(logsDir, name) })
+  }
+  if (hits.length) {
+    hits.sort((a, b) => a.n - b.n)
+    return hits.map((h) => h.file)
+  }
+  // 旧版兼容（迁移前）：根目录 system.<date>.<N>.log
+  const names = await fs.readdir(root).catch(() => [] as string[])
+  const rhits: { n: number; file: string }[] = []
   for (const name of names) {
     const m = name.match(/^system\.(\d{8})\.(\d+)\.log$/)
     if (m && m[1] === date)
-      hits.push({ n: Number(m[2]), file: path.join(root, name) })
+      rhits.push({ n: Number(m[2]), file: path.join(root, name) })
   }
-  if (!hits.length) return [systemLogFile]
-  return hits.sort((a, b) => a.n - b.n).map((h) => h.file)
+  if (!rhits.length) return [systemLogFile]
+  return rhits.sort((a, b) => a.n - b.n).map((h) => h.file)
 }
 
 /** 有日志落盘的全部日期（yyyyMMdd，降序），供面板日历置灰判断 */
 export async function getSystemLogDates(): Promise<string[]> {
-  const names = await fs.readdir(root).catch(() => [] as string[])
   const dates = new Set<string>()
-  for (const name of names) {
+  // logs/ 下 pino-roll 多文件（含无序号单文件）
+  const lnames = await fs.readdir(logsDir).catch(() => [] as string[])
+  for (const name of lnames) {
+    const m = name.match(/^system\.(\d{8})(\.\d+)?\.log$/)
+    if (m) dates.add(m[1])
+  }
+  // 旧版兼容：根目录 system.<date>.<N>.log
+  const rnames = await fs.readdir(root).catch(() => [] as string[])
+  for (const name of rnames) {
     const m = name.match(/^system\.(\d{8})\.\d+\.log$/)
     if (m) dates.add(m[1])
   }

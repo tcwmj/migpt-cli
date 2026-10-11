@@ -238,93 +238,57 @@ function moveKey(
   return true
 }
 
-/**
- * 旧包兼容归一化：历次实体更名之前导出的包仍用旧键
- * （role→robot、ThinkService→Model、VoiceService→Voice、Room→Conversation、
- * Settings→Credential，以及 roomRef/voiceId/did/desc/consecutive 等字段改名）。
- * 导入前统一转为新键，避免旧包导入失败或静默丢数据；新包（无旧键）为 no-op。
- */
-function normalizeLegacyData(d: BackupData): BackupData {
-  const legacy = d as BackupData & {
-    settings?: Credential
-    thinkServices?: Model[]
-    voiceServices?: Voice[]
-    rooms?: Conversation[]
-    roles?: Robot[]
+/** 实体分组键的旧→新对照表 */
+const LEGACY_ENTITY_KEYS: Record<string, string> = {
+  settings: 'credentials',
+  thinkServices: 'models',
+  voiceServices: 'voices',
+  rooms: 'conversations',
+  roles: 'robots',
+}
+
+/** 各实体内补丁/记录的字段改名对照表 */
+const LEGACY_FIELD_RENAMES: Record<
+  string,
+  readonly (readonly [string, string])[]
+> = {
+  robots: [['roomRef', 'conversationId']],
+  voices: [['voiceId', 'timbreId']],
+  speakerModels: [
+    ['did', 'didPrefix'],
+    ['desc', 'description'],
+    ['consecutive', 'continuousDialogue'],
+  ],
+  devices: [
+    ['roleId', 'robotId'],
+    ['roomRef', 'conversationRef'],
+    ['roomName', 'conversationName'],
+    ['roomDescription', 'conversationDescription'],
+  ],
+}
+
+/** 对一组记录逐条批量改键（原地修改并返回同一数组） */
+function renameRows<T>(rows: T[] | undefined, group: string): T[] {
+  const pairs = LEGACY_FIELD_RENAMES[group]
+  const list = rows ?? []
+  if (!pairs) return list
+  for (const row of list) {
+    if (!row || typeof row !== 'object') continue
+    const item = row as Record<string, unknown>
+    for (const [from, to] of pairs) moveKey(item, from, to)
   }
-  const out: BackupData = { ...d }
-  // ── 实体分组键 ────────────────────────────────────────────────
-  if (out.credentials === undefined && legacy.settings !== undefined) {
-    out.credentials = legacy.settings
+  return list
+}
+
+/** overrides：分组键改名 + 各分组内补丁字段名改名 */
+function normalizeLegacyOverrides(ovIn: Overrides | undefined): Overrides {
+  const ov: Record<string, unknown> = { ...(ovIn ?? {}) }
+  for (const [from, to] of Object.entries(LEGACY_ENTITY_KEYS)) {
+    if (ov[from] === undefined) continue
+    if (ov[to] === undefined) ov[to] = ov[from]
+    delete ov[from]
   }
-  if (out.models === undefined && legacy.thinkServices !== undefined) {
-    out.models = legacy.thinkServices
-  }
-  if (out.voices === undefined && legacy.voiceServices !== undefined) {
-    out.voices = legacy.voiceServices
-  }
-  if (out.conversations === undefined && legacy.rooms !== undefined) {
-    out.conversations = legacy.rooms
-  }
-  if (out.robots === undefined && legacy.roles !== undefined) {
-    out.robots = legacy.roles
-  }
-  // ── 字段改名 ──────────────────────────────────────────────────
-  out.robots = (out.robots ?? []).map((r) => {
-    const item = r as Robot & { roomRef?: string }
-    if (item.roomRef === undefined) return item
-    const { roomRef, ...rest } = item
-    return rest.conversationId === undefined
-      ? ({ ...rest, conversationId: roomRef } as Robot)
-      : (rest as Robot)
-  })
-  out.voices = (out.voices ?? []).map((v) => {
-    const item = v as Voice & { voiceId?: string }
-    if (item.voiceId === undefined) return item
-    const { voiceId, ...rest } = item
-    return rest.timbreId === undefined
-      ? ({ ...rest, timbreId: voiceId } as Voice)
-      : (rest as Voice)
-  })
-  out.speakerModels = (out.speakerModels ?? []).map((m) => {
-    const item = m as unknown as Record<string, unknown>
-    moveKey(item, 'did', 'didPrefix')
-    moveKey(item, 'desc', 'description')
-    moveKey(item, 'consecutive', 'continuousDialogue')
-    return item as unknown as SpeakerModel
-  })
-  out.devices = (out.devices ?? []).map((m) => {
-    const item = m as unknown as Record<string, unknown>
-    if (item.roleId !== undefined) moveKey(item, 'roleId', 'robotId')
-    moveKey(item, 'roomRef', 'conversationRef')
-    moveKey(item, 'roomName', 'conversationName')
-    moveKey(item, 'roomDescription', 'conversationDescription')
-    return item as unknown as Device
-  })
-  // ── overrides 分组键与补丁字段 ────────────────────────────────
-  const ov: Record<string, unknown> = { ...(d.overrides ?? {}) }
-  if (ov.roles !== undefined) {
-    if (ov.robots === undefined) ov.robots = ov.roles
-    delete ov.roles
-  }
-  if (ov.models !== undefined) {
-    if (ov.speakerModels === undefined) ov.speakerModels = ov.models
-    delete ov.models
-  }
-  if (ov.rooms !== undefined) {
-    if (ov.conversations === undefined) ov.conversations = ov.rooms
-    delete ov.rooms
-  }
-  const patchRules: Record<string, readonly (readonly [string, string])[]> = {
-    speakerModels: [
-      ['did', 'didPrefix'],
-      ['desc', 'description'],
-      ['consecutive', 'continuousDialogue'],
-    ],
-    voices: [['voiceId', 'timbreId']],
-    robots: [['roomRef', 'conversationId']],
-  }
-  for (const [group, pairs] of Object.entries(patchRules)) {
+  for (const [group, pairs] of Object.entries(LEGACY_FIELD_RENAMES)) {
     const bag = ov[group] as Record<string, Record<string, unknown>> | undefined
     if (!bag || typeof bag !== 'object') continue
     for (const patch of Object.values(bag)) {
@@ -332,8 +296,34 @@ function normalizeLegacyData(d: BackupData): BackupData {
       for (const [from, to] of pairs) moveKey(patch, from, to)
     }
   }
-  out.overrides = ov as Overrides
-  return out
+  return ov as Overrides
+}
+
+/**
+ * 旧包兼容归一化：历次实体更名之前导出的包仍用旧键
+ * （role→robot、ThinkService→Model、VoiceService→Voice、Room→Conversation、
+ * Settings→Credential，以及 roomRef/voiceId/did/desc/consecutive 等字段改名）。
+ * 导入前统一转为新键，避免旧包导入失败或静默丢数据；新包（无旧键）为 no-op。
+ */
+function normalizeLegacyData(d: BackupData): BackupData {
+  const legacy = d as unknown as Record<string, unknown>
+  const out = { ...d } as unknown as Record<string, unknown>
+  // ── 实体分组键 ────────────────────────────────────────────────
+  for (const [from, to] of Object.entries(LEGACY_ENTITY_KEYS)) {
+    if (out[to] === undefined && legacy[from] !== undefined) {
+      out[to] = legacy[from]
+    }
+  }
+  // ── 各实体内字段改名 ──────────────────────────────────────────
+  for (const group of Object.keys(LEGACY_FIELD_RENAMES)) {
+    if (out[group] === undefined) continue
+    out[group] = renameRows(
+      out[group] as Record<string, unknown>[] | undefined,
+      group,
+    )
+  }
+  out.overrides = normalizeLegacyOverrides(d.overrides)
+  return out as unknown as BackupData
 }
 
 /**
@@ -375,28 +365,28 @@ export async function applyBackup(raw: unknown): Promise<ImportResult> {
     : (d.credentials ?? {})
 
   await Promise.all([
-    writeJsonChecked(credentialsFile, credentials, credentialSchema, '小米凭据'),
+    writeJsonChecked(
+      credentialsFile,
+      credentials,
+      credentialSchema,
+      '小米凭据',
+    ),
     writeJsonChecked(accountsFile, accounts, accountListSchema, '账号'),
     writeJsonChecked(robotsFile, robotList, robotListSchema, '角色'),
-    writeJsonChecked(
-      modelsFile,
-      models,
-      modelListSchema,
-      '模型',
-    ),
-    writeJsonChecked(
-      voicesFile,
-      d.voices ?? [],
-      voiceListSchema,
-      '语音',
-    ),
+    writeJsonChecked(modelsFile, models, modelListSchema, '模型'),
+    writeJsonChecked(voicesFile, d.voices ?? [], voiceListSchema, '语音'),
     writeJsonChecked(
       speakerModelsFile,
       d.speakerModels ?? [],
       speakerModelListSchema,
       '型号',
     ),
-    writeJsonChecked(conversationsFile, d.conversations ?? [], conversationListSchema, '会话'),
+    writeJsonChecked(
+      conversationsFile,
+      d.conversations ?? [],
+      conversationListSchema,
+      '会话',
+    ),
     // 覆盖补丁（内置实体的用户改动）随包往返：不导入会静默丢失用户对内置项的修改。
     // 脱敏包的补丁已被 scrubSecretsDeep 抹除敏感键，导入后用户改动中的凭据字段同样缺失，
     // 与实体凭据「按 id 保留本机既有值」策略不同，补丁为字段级差异、无法按位补齐，

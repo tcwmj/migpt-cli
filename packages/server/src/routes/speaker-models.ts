@@ -3,11 +3,17 @@ import { nanoid } from 'nanoid'
 import {
   getSpeakerModels,
   saveSpeakerModels,
-  resetBuiltinModel,
+  resetBuiltinSpeakerModel,
   speakerModelListSchema,
 } from '../store.js'
 import type { SpeakerModel } from '../types.js'
-import { API_PREFIX, fail, pick, asyncHandler, MODEL_FIELDS } from './shared.js'
+import {
+  API_PREFIX,
+  fail,
+  pick,
+  asyncHandler,
+  SPEAKER_MODEL_FIELDS,
+} from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
 
 export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
@@ -17,16 +23,17 @@ export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
   list: getSpeakerModels,
   save: saveSpeakerModels,
   schema: speakerModelListSchema,
-  validate: (body) => (!body.name || !body.did ? '名称与型号标识必填' : null),
+  validate: (body) =>
+    !body.name || !body.didPrefix ? '名称与型号标识必填' : null,
   build: (body) => ({
     id: nanoid(8),
     name: body.name as string,
-    did: body.did as string,
-    desc: body.desc,
+    didPrefix: body.didPrefix as string,
+    description: body.description,
     ttsCommand: body.ttsCommand || [],
     wakeUpCommand: body.wakeUpCommand || [],
     playingCommand: body.playingCommand || [],
-    consecutive: body.consecutive ?? true,
+    continuousDialogue: body.continuousDialogue ?? true,
     imageUrl: body.imageUrl,
     builtin: false,
     createdAt: Date.now(),
@@ -34,7 +41,7 @@ export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
   applyUpdate: (list, idx, body) => {
     list[idx] = {
       ...list[idx],
-      ...pick<SpeakerModel>(body, MODEL_FIELDS),
+      ...pick<SpeakerModel>(body, SPEAKER_MODEL_FIELDS),
       id: list[idx].id,
       builtin: list[idx].builtin,
     }
@@ -48,7 +55,7 @@ export const registerSpeakerModelRoutes = createCrudRouter<SpeakerModel>({
     app.post(
       `${API_PREFIX}/speaker-models/:id/reset`,
       asyncHandler(async (req, res) => {
-        const model = await resetBuiltinModel(req.params.id)
+        const model = await resetBuiltinSpeakerModel(req.params.id)
         if (!model) {
           fail(res, 404, '仅系统内置型号支持重置默认')
           return

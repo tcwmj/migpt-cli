@@ -1,8 +1,8 @@
 import type { SpeakerModel } from '../../apis.ts'
 
 /** 型号搜索选择器：输入框 + 下拉候选 + 选中型号的指令标签 */
-export function ModelPicker(props: {
-  models: SpeakerModel[]
+export function SpeakerModelPicker(props: {
+  speakerModels: SpeakerModel[]
   value: string
   open: boolean
   q: string
@@ -10,9 +10,9 @@ export function ModelPicker(props: {
   onQ: (q: string) => void
   onPick: (id: string) => void
 }) {
-  const selected = props.models.find((x) => x.id === props.value) || null
+  const selected = props.speakerModels.find((x) => x.id === props.value) || null
   const query = props.q.trim().toLowerCase()
-  const sorted = [...props.models]
+  const sorted = [...props.speakerModels]
     .sort((a, b) => {
       if (!!a.builtin !== !!b.builtin) return a.builtin ? -1 : 1
       if (a.builtin && b.builtin)
@@ -23,7 +23,7 @@ export function ModelPicker(props: {
       (m) =>
         !query ||
         m.name.toLowerCase().includes(query) ||
-        m.did.toLowerCase().includes(query) ||
+        m.didPrefix.toLowerCase().includes(query) ||
         m.id.includes(query),
     )
   return (
@@ -34,7 +34,7 @@ export function ModelPicker(props: {
             props.open
               ? props.q
               : selected
-                ? `${selected.name}（${selected.did}）`
+                ? `${selected.name}（${selected.didPrefix}）`
                 : ''
           }
           placeholder="输入关键字搜索型号…"
@@ -65,7 +65,7 @@ export function ModelPicker(props: {
                     <span className="ph" />
                   )}
                   <span>
-                    {m.name}（{m.did}）
+                    {m.name}（{m.didPrefix}）
                   </span>
                 </div>
               ))
@@ -95,7 +95,7 @@ export function ModelPicker(props: {
           </span>
           <span>
             <b>连续对话</b>
-            {selected.consecutive ? '已启用' : '未启用'}
+            {selected.continuousDialogue ? '已启用' : '未启用'}
           </span>
         </div>
       )}

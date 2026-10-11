@@ -3,8 +3,8 @@ import type {
   DeviceRow,
   Robot,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../../apis.ts'
 import { Button, Tag } from '../../components/atoms/index.ts'
 import { I } from '../../icons.tsx'
@@ -12,11 +12,11 @@ import { I } from '../../icons.tsx'
 export function DeviceDetail(props: {
   selDev: string
   devices: DeviceRow[]
-  models: SpeakerModel[]
+  speakerModels: SpeakerModel[]
   accounts: Account[]
   robots: Robot[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
+  models: Model[]
+  voices: Voice[]
   onRestart: (id: string) => void
   onDelete: () => void
   onEdit: () => void
@@ -25,15 +25,15 @@ export function DeviceDetail(props: {
   const dev = props.devices.find((x) => x.id === props.selDev) || null
   const ref = dev?.speakerModel
   const model = ref
-    ? props.models.find((x) => x.id === ref || x.name === ref) || null
+    ? props.speakerModels.find((x) => x.id === ref || x.name === ref) || null
     : null
   const account = props.accounts.find((a) => a.id === dev?.accountId)
   const robot = props.robots.find((r) => r.id === dev?.robotId)
-  const thinkServices = (dev?.thinkServiceIds || [])
-    .map((id) => props.thinkSvcs.find((s) => s.id === id))
-    .filter(Boolean) as ThinkService[]
-  const voiceService = dev?.voiceId
-    ? props.voiceSvcs.find((s) => s.id === dev.voiceId)
+  const models = (dev?.modelIds || [])
+    .map((id) => props.models.find((s) => s.id === id))
+    .filter(Boolean) as Model[]
+  const voice = dev?.voiceId
+    ? props.voices.find((s) => s.id === dev.voiceId)
     : null
   return (
     <div className="form-card">
@@ -97,7 +97,7 @@ export function DeviceDetail(props: {
           </div>
           <div className="row">
             <div className="rr">
-              <span className="k">设备型号</span>
+              <span className="k">音箱型号</span>
               <span className="v">
                 {model ? (
                   <button
@@ -105,7 +105,7 @@ export function DeviceDetail(props: {
                     className="link-btn"
                     onClick={() => props.onNavigate?.('models', model.id)}
                   >
-                    {model.name}（{model.did}）
+                    {model.name}（{model.didPrefix}）
                   </button>
                 ) : (
                   ref || '—'
@@ -115,21 +115,21 @@ export function DeviceDetail(props: {
           </div>
         </div>
 
-        {/* 关联服务 */}
+        {/* 关联模型与语音 */}
         <div className="grp">
-          <h4>关联服务</h4>
+          <h4>关联模型与语音</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">思考服务</span>
+              <span className="k">模型</span>
               <span className="v">
-                {thinkServices.length > 0 ? (
+                {models.length > 0 ? (
                   <div className="link-list">
-                    {thinkServices.map((s) => (
+                    {models.map((s) => (
                       <button
                         key={s.id}
                         type="button"
                         className="link-btn"
-                        onClick={() => props.onNavigate?.('think', s.id)}
+                        onClick={() => props.onNavigate?.('models', s.id)}
                       >
                         {s.name}
                       </button>
@@ -141,15 +141,15 @@ export function DeviceDetail(props: {
               </span>
             </div>
             <div className="rr">
-              <span className="k">语音服务</span>
+              <span className="k">语音</span>
               <span className="v">
-                {voiceService ? (
+                {voice ? (
                   <button
                     type="button"
                     className="link-btn"
-                    onClick={() => props.onNavigate?.('voice', voiceService.id)}
+                    onClick={() => props.onNavigate?.('voice', voice.id)}
                   >
-                    {voiceService.name}
+                    {voice.name}
                   </button>
                 ) : (
                   '未设置'

@@ -1,4 +1,4 @@
-/* ══ ServicesView ══ */
+/* ══ ModelsVoicesView ══ */
 import { useMemo, useState } from 'react'
 import {
   Button,
@@ -6,129 +6,129 @@ import {
   EmptyState,
   ProviderLogo,
 } from '../components/atoms/index.ts'
-import type { ThinkService, VoiceService, DeviceRow, Robot } from '../apis.ts'
-import type { ThinkDraft, VoiceDraft } from './drafts.ts'
-import { ThinkServiceList } from './services/ThinkServiceList.tsx'
-import { ThinkServiceDetail } from './services/ThinkServiceDetail.tsx'
-import { ThinkServiceForm } from './services/ThinkServiceForm.tsx'
-import { VoiceServiceList } from './services/VoiceServiceList.tsx'
-import { VoiceServiceDetail } from './services/VoiceServiceDetail.tsx'
-import { VoiceServiceForm } from './services/VoiceServiceForm.tsx'
-import { THINK_PROVIDERS, TTS_ENGINES, VOICE_PROVIDERS } from '../constants.ts'
+import type { Model, Voice, DeviceRow, Robot } from '../apis.ts'
+import type { ModelDraft, VoiceDraft } from './drafts.ts'
+import { ModelList } from './models/ModelList.tsx'
+import { ModelDetail } from './models/ModelDetail.tsx'
+import { ModelForm } from './models/ModelForm.tsx'
+import { VoiceList } from './voices/VoiceList.tsx'
+import { VoiceDetail } from './voices/VoiceDetail.tsx'
+import { VoiceForm } from './voices/VoiceForm.tsx'
+import { MODEL_PROVIDERS, TTS_ENGINES, VOICE_PROVIDERS } from '../constants.ts'
 
-export function ServicesView(props: {
-  tab: 'think' | 'voice'
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
-  selThink: string | null
+export function ModelsVoicesView(props: {
+  tab: 'models' | 'voices'
+  models: Model[]
+  voices: Voice[]
+  selModel: string | null
   selVoice: string | null
-  thinkDraft: ThinkDraft | null
+  modelDraft: ModelDraft | null
   voiceDraft: VoiceDraft | null
-  thinkEdit: boolean
+  modelEdit: boolean
   voiceEdit: boolean
-  selVoiceObj: VoiceService | null
+  selVoiceObj: Voice | null
   devices: DeviceRow[]
   robots: Robot[]
-  onSelectThink: (id: string | null) => void
-  onDraftThink: (d: ThinkDraft | null) => void
-  onEditThink: (e: boolean) => void
-  onDeleteThink: (id: string) => void
-  onSaveThink: () => void
+  onSelectModel: (id: string | null) => void
+  onDraftModel: (d: ModelDraft | null) => void
+  onEditModel: (e: boolean) => void
+  onDeleteModel: (id: string) => void
+  onSaveModel: () => void
   onSelectVoice: (id: string | null) => void
   onDraftVoice: (d: VoiceDraft | null) => void
   onEditVoice: (e: boolean) => void
   onDeleteVoice: (id: string) => void
   onResetVoice: (id: string) => void
   onSaveVoice: () => void
-  usageThink: (id: string) => number
+  usageModel: (id: string) => number
   usageVoice: (id: string) => number
   onNavigate?: (view: string, id: string) => void
 }) {
   const {
     tab,
-    thinkSvcs,
-    voiceSvcs,
-    selThink,
+    models,
+    voices,
+    selModel,
     selVoice,
-    thinkDraft,
+    modelDraft,
     voiceDraft,
-    thinkEdit,
+    modelEdit,
     voiceEdit,
     selVoiceObj,
     devices,
     robots,
-    onSelectThink,
-    onDraftThink,
-    onEditThink,
-    onDeleteThink,
-    onSaveThink,
+    onSelectModel,
+    onDraftModel,
+    onEditModel,
+    onDeleteModel,
+    onSaveModel,
     onSelectVoice,
     onDraftVoice,
     onEditVoice,
     onDeleteVoice,
     onResetVoice,
     onSaveVoice,
-    usageThink,
+    usageModel,
     usageVoice,
     onNavigate,
   } = props
-  const [thinkProvider, setThinkProvider] = useState('all')
+  const [modelProvider, setModelProvider] = useState('all')
   const [voiceProvider, setVoiceProvider] = useState('all')
 
-  const thinkProviderCounts = useMemo(() => {
+  const modelProviderCounts = useMemo(() => {
     const map: Record<string, number> = {}
-    for (const s of thinkSvcs) {
+    for (const s of models) {
       map[s.provider] = (map[s.provider] || 0) + 1
     }
     return map
-  }, [thinkSvcs])
+  }, [models])
 
   const voiceProviderCounts = useMemo(() => {
     const map: Record<string, number> = {}
-    for (const s of voiceSvcs) {
+    for (const s of voices) {
       const key = s.builtin ? 'builtin' : s.provider
       map[key] = (map[key] || 0) + 1
     }
     return map
-  }, [voiceSvcs])
+  }, [voices])
 
-  const filteredThinkSvcs = useMemo(
+  const filteredModels = useMemo(
     () =>
-      thinkProvider === 'all'
-        ? thinkSvcs
-        : thinkSvcs.filter((s) => s.provider === thinkProvider),
-    [thinkSvcs, thinkProvider],
+      modelProvider === 'all'
+        ? models
+        : models.filter((s) => s.provider === modelProvider),
+    [models, modelProvider],
   )
 
-  const filteredVoiceSvcs = useMemo(
+  const filteredVoices = useMemo(
     () =>
       voiceProvider === 'all'
-        ? voiceSvcs
-        : voiceSvcs.filter((s) =>
+        ? voices
+        : voices.filter((s) =>
             voiceProvider === 'builtin'
               ? s.builtin
               : !s.builtin && s.provider === voiceProvider,
           ),
-    [voiceSvcs, voiceProvider],
+    [voices, voiceProvider],
   )
   return (
     <section data-view="settings" className="on">
-      {tab === 'think' && (
+      {tab === 'models' && (
         <>
           <div className="filters">
             <Chip
-              on={thinkProvider === 'all'}
-              onClick={() => setThinkProvider('all')}
+              on={modelProvider === 'all'}
+              onClick={() => setModelProvider('all')}
             >
-              全部服务 {thinkSvcs.length}
+              全部模型 {models.length}
             </Chip>
-            {Object.entries(thinkProviderCounts).map(([prov, count]) => {
-              const p = THINK_PROVIDERS[prov]
+            {Object.entries(modelProviderCounts).map(([prov, count]) => {
+              const p = MODEL_PROVIDERS[prov]
               return (
                 <Chip
                   key={prov}
-                  on={thinkProvider === prov}
-                  onClick={() => setThinkProvider(prov)}
+                  on={modelProvider === prov}
+                  onClick={() => setModelProvider(prov)}
                 >
                   {p && <ProviderLogo p={p} size={15} />} {p?.name || prov}{' '}
                   {count}
@@ -138,51 +138,51 @@ export function ServicesView(props: {
             <span className="sp" />
           </div>
           <div className="split">
-            <ThinkServiceList
-              services={filteredThinkSvcs}
-              selThink={selThink}
-              onSelect={onSelectThink}
+            <ModelList
+              models={filteredModels}
+              selModel={selModel}
+              onSelect={onSelectModel}
             />
             <section
               className="sdetail"
-              key={'think-' + (selThink || 'new') + (thinkEdit ? '-e' : '-r')}
+              key={'think-' + (selModel || 'new') + (modelEdit ? '-e' : '-r')}
             >
-              {thinkSvcs.length === 0 && !thinkDraft ? (
+              {models.length === 0 && !modelDraft ? (
                 <EmptyState
                   icon="bolt"
-                  title="还没有思考服务"
+                  title="还没有模型"
                   desc="配置模型供应商与端点，作为音箱的「大脑」；配置后可在角色与设备中选择。"
                   action={
                     <Button
                       variant="primary"
                       icon="plus"
-                      onClick={() => onSelectThink(null)}
+                      onClick={() => onSelectModel(null)}
                     >
                       新建
                     </Button>
                   }
                 />
-              ) : selThink && !thinkEdit ? (
-                <ThinkServiceDetail
-                  selThink={selThink}
-                  thinkSvcs={thinkSvcs}
+              ) : selModel && !modelEdit ? (
+                <ModelDetail
+                  selModel={selModel}
+                  models={models}
                   devices={devices}
                   robots={robots}
-                  usageThink={usageThink}
-                  onDelete={onDeleteThink}
-                  onEdit={() => onEditThink(true)}
+                  usageModel={usageModel}
+                  onDelete={onDeleteModel}
+                  onEdit={() => onEditModel(true)}
                   onNavigate={onNavigate}
                 />
-              ) : thinkDraft ? (
-                <ThinkServiceForm
-                  thinkDraft={thinkDraft}
-                  selThink={selThink}
-                  thinkSvcs={thinkSvcs}
-                  usageThink={usageThink}
-                  onDraft={onDraftThink}
-                  onEdit={onEditThink}
-                  onSelect={onSelectThink}
-                  onSave={onSaveThink}
+              ) : modelDraft ? (
+                <ModelForm
+                  modelDraft={modelDraft}
+                  selModel={selModel}
+                  models={models}
+                  usageModel={usageModel}
+                  onDraft={onDraftModel}
+                  onEdit={onEditModel}
+                  onSelect={onSelectModel}
+                  onSave={onSaveModel}
                 />
               ) : null}
             </section>
@@ -190,14 +190,14 @@ export function ServicesView(props: {
         </>
       )}
 
-      {tab === 'voice' && (
+      {tab === 'voices' && (
         <>
           <div className="filters">
             <Chip
               on={voiceProvider === 'all'}
               onClick={() => setVoiceProvider('all')}
             >
-              全部服务 {voiceSvcs.length}
+              全部语音 {voices.length}
             </Chip>
             {Object.entries(voiceProviderCounts).map(([prov, count]) => {
               const p = prov === 'builtin' ? undefined : VOICE_PROVIDERS[prov]
@@ -215,8 +215,8 @@ export function ServicesView(props: {
             <span className="sp" />
           </div>
           <div className="split">
-            <VoiceServiceList
-              services={filteredVoiceSvcs}
+            <VoiceList
+              voices={filteredVoices}
               selVoice={selVoice}
               onSelect={onSelectVoice}
             />
@@ -224,11 +224,11 @@ export function ServicesView(props: {
               className="sdetail"
               key={'voice-' + (selVoice || 'new') + (voiceEdit ? '-e' : '-r')}
             >
-              {voiceSvcs.length === 0 && !voiceDraft ? (
+              {voices.length === 0 && !voiceDraft ? (
                 <EmptyState
                   icon="mic"
-                  title="还没有语音服务"
-                  desc="接入第三方语音模型，为对话角色提供音色；每个语音服务可含多套音色库。"
+                  title="还没有语音"
+                  desc="接入第三方语音模型，为对话角色提供音色；每个语音可含多套音色库。"
                   action={
                     <Button
                       variant="primary"
@@ -240,10 +240,10 @@ export function ServicesView(props: {
                   }
                 />
               ) : selVoice && !voiceEdit ? (
-                <VoiceServiceDetail
+                <VoiceDetail
                   selVoice={selVoice}
                   selVoiceObj={selVoiceObj}
-                  voiceSvcs={voiceSvcs}
+                  voices={voices}
                   devices={devices}
                   robots={robots}
                   usageVoice={usageVoice}
@@ -253,10 +253,10 @@ export function ServicesView(props: {
                   onNavigate={onNavigate}
                 />
               ) : voiceDraft ? (
-                <VoiceServiceForm
+                <VoiceForm
                   voiceDraft={voiceDraft}
                   selVoice={selVoice}
-                  voiceSvcs={voiceSvcs}
+                  voices={voices}
                   usageVoice={usageVoice}
                   onDraft={onDraftVoice}
                   onEdit={onEditVoice}

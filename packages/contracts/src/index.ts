@@ -2,7 +2,7 @@
 // server（packages/server/src/types.ts）与 gui（packages/gui/src/apis.ts）
 // 均从本包引用，修改契约两端同时生效；结构必须与存储 JSON 一一对应。
 
-export interface Settings {
+export interface Credential {
   miUserId?: string
   miPassword?: string
   passToken?: string
@@ -44,23 +44,24 @@ export interface Robot {
   onAIError: string[]
   /** 连续对话无响应自动退出时间（秒） */
   exitKeepAliveAfter: number
-  /** 会话群引用（Room 实体 id）：对话记忆上下文归属 */
-  roomRef?: string
+  /** 会话引用（Conversation 实体 id）：对话记忆上下文归属 */
+  conversationId?: string
   /** 内置标记：系统内置角色不可删除（可编辑、可重置默认值） */
   builtin?: boolean
-  /** @deprecated 已迁移至 DeviceMeta.thinkServiceIds；保留仅兼容旧数据读取 */
-  thinkServiceIds?: string[]
+  /** @deprecated 已迁移至 Device.modelIds；保留仅兼容旧数据读取 */
+  modelIds?: string[]
   /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
-  thinkServiceId?: string
-  /** @deprecated 已迁移至 DeviceMeta.voiceId；保留仅兼容旧数据读取 */
+  modelId?: string
+  /** @deprecated 已迁移至 Device.voiceId；保留仅兼容旧数据读取 */
   voiceId?: string
+  createdAt: number
 }
 
 /**
- * 思考服务：音箱的「大脑」——大模型供应商 + 模型 + 凭据 + 温度。
+ * 模型：音箱的「大脑」——大模型供应商 + 模型 + 凭据 + 温度。
  * 独立于设备存在，被角色与设备引用；被引用时禁止删除。
  */
-export interface ThinkService {
+export interface Model {
   id: string
   name: string
   provider: string
@@ -69,11 +70,11 @@ export interface ThinkService {
   baseUrl?: string
   temperature?: number
   /** 已消耗 input token 数（自动累加 + 手动修正） */
-  tokenInputUsed?: number
+  inputTokensUsed?: number
   /** 已消耗 output token 数（自动累加 + 手动修正） */
-  tokenOutputUsed?: number
+  outputTokensUsed?: number
   /** 已消耗 token 总数（自动累加 + 手动修正） */
-  tokenUsed?: number
+  totalTokensUsed?: number
   /** token 上限（用户设置） */
   tokenLimit?: number
   /** 余额不足标记：API 返回 429/402 等错误时自动置 true，用户可手动清除 */
@@ -84,27 +85,27 @@ export interface ThinkService {
 }
 
 /**
- * 语音服务：音箱的「嗓子」——供应商 + 音色库。
+ * 语音：音箱的「嗓子」——供应商 + 音色库。
  * builtin = 小米内置（永不可删）；第三方语音由 tts 配置承载。
  */
-export interface VoiceService {
+export interface Voice {
   id: string
   name: string
   provider: string
   /** 音色 ID（第三方语音），内置语音为空 */
-  voiceId?: string
+  timbreId?: string
   /** 唤醒时的音效序列，如 [5,3] */
   ttsCommand?: (number | undefined)[]
-  /** 内建标记：小米内置 voice 永不可删 */
+  /** 内置标记：小米内置 voice 永不可删 */
   builtin?: boolean
   /** 第三方 TTS 引擎配置（provider !== 'builtin' 时生效） */
   tts?: import('mi-gpt-tts').TTSConfig
   /** 已消耗 input token 数（自动累加 + 手动修正） */
-  tokenInputUsed?: number
+  inputTokensUsed?: number
   /** 已消耗 output token 数（自动累加 + 手动修正） */
-  tokenOutputUsed?: number
+  outputTokensUsed?: number
   /** 已消耗 token 总数（自动累加 + 手动修正） */
-  tokenUsed?: number
+  totalTokensUsed?: number
   /** token 上限（用户设置） */
   tokenLimit?: number
   /** 余额不足标记：API 返回 429/402 等错误时自动置 true，用户可手动清除 */
@@ -115,21 +116,21 @@ export interface VoiceService {
 }
 
 /**
- * 会话群：对话记忆的上下文归属（对应旧版 chatGroup / room）。
- * 独立实体，多个角色可共用同一会话群；被角色引用时禁止删除。
+ * 会话：对话记忆的上下文归属（对应旧版 chatGroup / conversation）。
+ * 独立实体，多个角色可共用同一会话；被角色引用时禁止删除。
  */
-export interface Room {
+export interface Conversation {
   id: string
-  /** 会话群名称（对话记忆上下文归属，如「家庭闲聊」） */
+  /** 会话名称（对话记忆上下文归属，如「家庭闲聊」） */
   name: string
-  /** 会话群描述 */
+  /** 会话描述 */
   description?: string
-  /** 内置标记：系统内置会话群不可删除（可编辑、可重置默认值） */
+  /** 内置标记：系统内置会话不可删除（可编辑、可重置默认值） */
   builtin?: boolean
   createdAt: number
 }
 
-export interface DeviceMeta {
+export interface Device {
   id: string
   alias: string
   did: string
@@ -137,18 +138,18 @@ export interface DeviceMeta {
   /** 引用的对话角色（必填；角色承载人设与对话行为） */
   robotId: string
   accountId?: string
-  /** 有序思考服务列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
-  thinkServiceIds?: string[]
+  /** 有序模型列表（第一个最优先；failover 时按顺序跳过 limitReached 的） */
+  modelIds?: string[]
   /** @deprecated 旧字段，迁移后不再使用；保留仅兼容旧数据读取 */
-  thinkServiceId?: string
-  /** 引用的语音服务（必填；不再回退全局默认） */
+  modelId?: string
+  /** 引用的语音（必填；不再回退全局默认） */
   voiceId?: string
-  /** @deprecated 已迁移至 Robot.roomRef；保留仅兼容旧数据读取 */
-  roomRef?: string
-  /** @deprecated 已迁移至 Room 实体，保留仅兼容旧数据读取 */
-  roomName?: string
-  /** @deprecated 已迁移至 Room 实体，保留仅兼容旧数据读取 */
-  roomDescription?: string
+  /** @deprecated 已迁移至 Robot.conversationId；保留仅兼容旧数据读取 */
+  conversationRef?: string
+  /** @deprecated 已迁移至 Conversation 实体，保留仅兼容旧数据读取 */
+  conversationName?: string
+  /** @deprecated 已迁移至 Conversation 实体，保留仅兼容旧数据读取 */
+  conversationDescription?: string
   ttsSecret: string
   createdAt: number
   /** 读接口脱敏标记：ttsSecret 明文不回传，仅回传是否已配置 */
@@ -164,8 +165,8 @@ export interface SpeakerModel {
   id: string
   name: string
   /** 型号标识（did 前缀 / 硬件型号），如 X08E、L05B */
-  did: string
-  desc?: string
+  didPrefix: string
+  description?: string
   /** TTS 指令（硬件指令序列，如 [5,1]） */
   ttsCommand?: number[]
   /** 唤醒指令（硬件指令序列，如 [5,3]） */
@@ -173,16 +174,16 @@ export interface SpeakerModel {
   /** 播放检测指令（查询播放状态；部分型号不支持，可缺省） */
   playingCommand?: number[]
   /** 连续对话功能是否启用 */
-  consecutive?: boolean
+  continuousDialogue?: boolean
   /** 型号图片（内置型号为真实设备图 URL；自定义型号可留空） */
   imageUrl?: string
-  /** 内建标记：系统内置型号不可删除（可编辑、可重置默认值） */
+  /** 内置标记：系统内置型号不可删除（可编辑、可重置默认值） */
   builtin?: boolean
   createdAt: number
 }
 
 /** 小米 micoapi 拉取到的云端设备（三步连接 Step2 与设备添加） */
-export interface PulledDevice {
+export interface CloudDevice {
   name: string
   alias: string
   deviceID: string
@@ -194,24 +195,24 @@ export interface PulledDevice {
 /**
  * 绑定链来源标注：
  * - account / robot  来自设备显式绑定
- * - think / voice   仅来自设备指定（必填；不再回退角色或全局默认）
- * - room            依次回退：角色指定 → 设备旧字段兼容
+ * - model / voice   仅来自设备指定（必填；不再回退角色或全局默认）
+ * - conversation            依次回退：角色指定 → 设备旧字段兼容
  */
 export interface BindingRow {
-  key: 'account' | 'robot' | 'think' | 'voice' | 'room'
+  key: 'account' | 'robot' | 'model' | 'voice' | 'conversation'
   label: string
   name: string
   detail?: string
-  source: 'device' | 'robot' | 'global'
+  source: 'device' | 'robot'
   sourceLabel: string
 }
 
 export interface DeviceBindings {
   account?: Account
   robot?: Robot
-  think?: ThinkService
-  voice?: VoiceService
-  room?: Room
+  model?: Model
+  voice?: Voice
+  conversation?: Conversation
   rows: BindingRow[]
 }
 
@@ -245,7 +246,7 @@ export const PROVIDER_BASE_URLS: Record<string, string> = {
 // 都需自己维护字段列表，容易与契约悄悄漂移。此处用常量固化各实体字段，供运行期一致性校验
 // （如「存储 schema ↔ 契约」「路由白名单 ↔ 契约」测试）引用。
 export const ENTITY_FIELDS = {
-  settings: ['miUserId', 'miPassword', 'passToken', 'hasPassToken'],
+  credentials: ['miUserId', 'miPassword', 'passToken', 'hasPassToken'],
   account: [
     'id',
     'name',
@@ -273,13 +274,14 @@ export const ENTITY_FIELDS = {
     'onAIReplied',
     'onAIError',
     'exitKeepAliveAfter',
-    'roomRef',
+    'conversationId',
     'builtin',
-    'thinkServiceIds',
-    'thinkServiceId',
+    'modelIds',
+    'modelId',
     'voiceId',
+    'createdAt',
   ],
-  thinkService: [
+  model: [
     'id',
     'name',
     'provider',
@@ -287,25 +289,25 @@ export const ENTITY_FIELDS = {
     'apiKey',
     'baseUrl',
     'temperature',
-    'tokenInputUsed',
-    'tokenOutputUsed',
-    'tokenUsed',
+    'inputTokensUsed',
+    'outputTokensUsed',
+    'totalTokensUsed',
     'tokenLimit',
     'limitReached',
     'createdAt',
     'hasApiKey',
   ],
-  voiceService: [
+  voice: [
     'id',
     'name',
     'provider',
-    'voiceId',
+    'timbreId',
     'ttsCommand',
     'builtin',
     'tts',
-    'tokenInputUsed',
-    'tokenOutputUsed',
-    'tokenUsed',
+    'inputTokensUsed',
+    'outputTokensUsed',
+    'totalTokensUsed',
     'tokenLimit',
     'limitReached',
     'createdAt',
@@ -314,30 +316,30 @@ export const ENTITY_FIELDS = {
   speakerModel: [
     'id',
     'name',
-    'did',
-    'desc',
+    'didPrefix',
+    'description',
     'ttsCommand',
     'wakeUpCommand',
     'playingCommand',
-    'consecutive',
+    'continuousDialogue',
     'imageUrl',
     'builtin',
     'createdAt',
   ],
-  room: ['id', 'name', 'description', 'builtin', 'createdAt'],
-  deviceMeta: [
+  conversation: ['id', 'name', 'description', 'builtin', 'createdAt'],
+  device: [
     'id',
     'alias',
     'did',
     'speakerModel',
     'robotId',
     'accountId',
-    'thinkServiceIds',
-    'thinkServiceId',
+    'modelIds',
+    'modelId',
     'voiceId',
-    'roomRef',
-    'roomName',
-    'roomDescription',
+    'conversationRef',
+    'conversationName',
+    'conversationDescription',
     'ttsSecret',
     'createdAt',
     'hasTtsSecret',
@@ -346,14 +348,14 @@ export const ENTITY_FIELDS = {
 
 /** 清单键名 → 对应实体接口 */
 interface EntityMap {
-  settings: Settings
+  credentials: Credential
   account: Account
   robot: Robot
-  thinkService: ThinkService
-  voiceService: VoiceService
+  model: Model
+  voice: Voice
   speakerModel: SpeakerModel
-  room: Room
-  deviceMeta: DeviceMeta
+  conversation: Conversation
+  device: Device
 }
 
 /** 清单与接口字段严格一致时求值为 true，否则退化为 never（用于编译期断言） */
@@ -367,12 +369,12 @@ type ExactKeys<T, K extends readonly string[]> = [
 const _fieldExactness: {
   [E in keyof EntityMap]: ExactKeys<EntityMap[E], (typeof ENTITY_FIELDS)[E]>
 } = {
-  settings: true,
+  credentials: true,
   account: true,
   robot: true,
-  thinkService: true,
-  voiceService: true,
+  model: true,
+  voice: true,
   speakerModel: true,
-  room: true,
-  deviceMeta: true,
+  conversation: true,
+  device: true,
 }

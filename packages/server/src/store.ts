@@ -5,7 +5,7 @@
 //   · builtins.ts    内置型号 / 内置语音的代码定义（只读）
 //   · overrides.ts   内置实体的用户覆盖：合并 / 落盘 / 重置 / 迁移分离
 //   · schemas.ts     存储 schema 校验（zod）：落盘前把关、读取时过滤脏数据
-//   · entities.ts    实体读取（settings/accounts/robots/services/models/rooms/devices）
+//   · entities.ts    实体读取（credentials/accounts/robots/services/models/conversations/devices）
 //   · env.ts         环境变量集中校验（启动 fail-fast）
 //   · demo.ts        演示日志种子（仅 MIGPT_DEMO_LOGS=1）
 //   · migrations.ts  数据版本与迁移框架（启动按版本升级）

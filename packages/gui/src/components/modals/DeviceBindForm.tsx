@@ -8,11 +8,13 @@ export function DeviceBindForm({
   setV,
   accounts,
   robots,
-  models,
-  rooms,
+  speakerModels,
+  conversations,
 }: DeviceBindFormProps) {
   const smHint = speakerModelHint(
-    v.speakerModel ? models.find((x) => x.id === v.speakerModel) : undefined,
+    v.speakerModel
+      ? speakerModels.find((x) => x.id === v.speakerModel)
+      : undefined,
   )
   return (
     <>
@@ -45,7 +47,7 @@ export function DeviceBindForm({
       </Field>
       <Field
         row
-        label="设备型号"
+        label="音箱型号"
         hint={smHint.text}
         hintTone={smHint.warn ? 'warn' : undefined}
       >
@@ -54,7 +56,7 @@ export function DeviceBindForm({
           onChange={(e) => setV({ ...v, speakerModel: e.target.value })}
         >
           <option value="">（保持当前）</option>
-          {models.map((s) => (
+          {speakerModels.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
               {s.builtin ? '' : ' · 自定义'}
@@ -76,12 +78,12 @@ function speakerModelHint(model?: SpeakerModel): {
   if (!model) {
     return { text: '切换型号后，播放指令 / 唤醒指令等硬件参数随型号生效' }
   }
-  if (!model.consecutive) {
+  if (!model.continuousDialogue) {
     return { text: '型号不支持连续对话（streamResponse 已禁用）', warn: true }
   }
   return model.playingCommand?.length
     ? { text: '支持连续对话 · 支持播放状态检测' }
     : {
-        text: '支持连续对话 · 未配置播放检测指令，将依赖 Mina 检测播放状态；若异常可在「设备型号」中补充该指令',
+        text: '支持连续对话 · 未配置播放检测指令，将依赖 Mina 检测播放状态；若异常可在「音箱型号」中补充该指令',
       }
 }

@@ -18,7 +18,7 @@ export function AccountsView(props: {
   acctEdit: boolean
   acctDevs: Record<string, AcctDevState>
   devices: DeviceRow[]
-  models: SpeakerModel[]
+  speakerModels: SpeakerModel[]
   onSelect: (id: string | null) => void
   onDraft: (d: AccountDraft | null) => void
   onEdit: (e: boolean) => void
@@ -41,7 +41,7 @@ export function AccountsView(props: {
     acctEdit,
     acctDevs,
     devices,
-    models,
+    speakerModels,
     onSelect,
     onDraft,
     onEdit,
@@ -193,11 +193,13 @@ export function AccountsView(props: {
                 return (
                   <div className="dev-pull">
                     {st.list.map((d) => {
-                      const mm = models.find(
+                      const mm = speakerModels.find(
                         (m) =>
                           m.id === d.hardware ||
                           m.name === d.hardware ||
-                          (m.didPrefix && d.hardware && d.hardware.startsWith(m.didPrefix)),
+                          (m.didPrefix &&
+                            d.hardware &&
+                            d.hardware.startsWith(m.didPrefix)),
                       )
                       const bound = devices.find(
                         (x) => x.accountId === selAcct && x.did === d.miotDID,

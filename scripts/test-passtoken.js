@@ -8,8 +8,12 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { homedir } = require('node:os')
 
-// 数据目录
-const dataDir = path.join(homedir(), '.migptgui')
+// 数据目录：与运行时一致，支持 MIGPTGUI_HOME / DATA_DIR 环境变量覆盖（前者优先），
+// 经 path.resolve 归一并支持相对路径（与 packages/server/src/paths.ts 行为对齐）
+const dataDir = path.resolve(
+  (process.env.MIGPTGUI_HOME || process.env.DATA_DIR || '').trim() ||
+    path.join(homedir(), '.migptgui'),
+)
 
 // 测试 passToken 登录
 async function testPassTokenLogin() {
@@ -28,11 +32,13 @@ async function testPassTokenLogin() {
 
   console.log(`✅ 账号: ${account.name}`)
   console.log(`   小米ID: ${account.miUserId}`)
-  console.log(`   passToken: ${account.passToken ? account.passToken.substring(0, 20) + '...' : '未配置'}`)
+  console.log(
+    `   passToken: ${account.passToken ? account.passToken.substring(0, 20) + '...' : '未配置'}`,
+  )
 
   // 2. 检查设备目录
   const devicesDir = path.join(dataDir, 'devices')
-  const devices = fs.readdirSync(devicesDir).filter(name => {
+  const devices = fs.readdirSync(devicesDir).filter((name) => {
     const metaPath = path.join(devicesDir, name, 'meta.json')
     return fs.existsSync(metaPath)
   })
@@ -64,8 +70,12 @@ async function testPassTokenLogin() {
     // 检查 mina 配置
     if (miJson.mina) {
       console.log(`     mina.userId: ${miJson.mina.userId || '❌ 缺失'}`)
-      console.log(`     mina.password: ${miJson.mina.password ? '✅ 已设置' : '❌ 缺失'}`)
-      console.log(`     mina.pass.passToken: ${miJson.mina.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`)
+      console.log(
+        `     mina.password: ${miJson.mina.password ? '✅ 已设置' : '❌ 缺失'}`,
+      )
+      console.log(
+        `     mina.pass.passToken: ${miJson.mina.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`,
+      )
     } else {
       console.error('     ❌ mina 配置缺失')
     }
@@ -73,8 +83,12 @@ async function testPassTokenLogin() {
     // 检查 miiot 配置
     if (miJson.miiot) {
       console.log(`     miiot.userId: ${miJson.miiot.userId || '❌ 缺失'}`)
-      console.log(`     miiot.password: ${miJson.miiot.password ? '✅ 已设置' : '❌ 缺失'}`)
-      console.log(`     miiot.pass.passToken: ${miJson.miiot.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`)
+      console.log(
+        `     miiot.password: ${miJson.miiot.password ? '✅ 已设置' : '❌ 缺失'}`,
+      )
+      console.log(
+        `     miiot.pass.passToken: ${miJson.miiot.pass?.passToken ? '✅ 已设置' : '❌ 缺失'}`,
+      )
     } else {
       console.error('     ❌ miiot 配置缺失')
     }
@@ -84,7 +98,9 @@ async function testPassTokenLogin() {
   console.log('💡 说明:')
   console.log('   1. 如果 passToken 有效，mi-service-lite 会直接使用它登录')
   console.log('   2. password 字段仅在 passToken 无效时使用')
-  console.log('   3. 使用 "passToken-mode" 作为虚拟密码，表示直接使用 passToken')
+  console.log(
+    '   3. 使用 "passToken-mode" 作为虚拟密码，表示直接使用 passToken',
+  )
   console.log('')
 }
 
@@ -103,7 +119,7 @@ async function fixDeviceMiJson() {
   }
 
   const devicesDir = path.join(dataDir, 'devices')
-  const devices = fs.readdirSync(devicesDir).filter(name => {
+  const devices = fs.readdirSync(devicesDir).filter((name) => {
     const metaPath = path.join(devicesDir, name, 'meta.json')
     return fs.existsSync(metaPath)
   })

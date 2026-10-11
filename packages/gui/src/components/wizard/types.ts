@@ -5,7 +5,7 @@ export type WizardDraft = {
   did: string
   model: string
   robotId: string
-  thinkServiceIds: string[]
+  modelIds: string[]
   voiceId: string
 }
 

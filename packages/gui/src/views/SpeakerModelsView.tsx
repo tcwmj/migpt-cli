@@ -1,4 +1,4 @@
-/* ══ ModelsView ══ */
+/* ══ SpeakerModelsView ══ */
 import { useMemo } from 'react'
 import { I } from '../icons.tsx'
 import {
@@ -10,19 +10,19 @@ import {
   Tag,
 } from '../components/atoms/index.ts'
 import type { DeviceRow, SpeakerModel } from '../apis.ts'
-import type { ModelDraft } from './drafts.ts'
+import type { SpeakerModelDraft } from './drafts.ts'
 
-export function ModelsView(props: {
+export function SpeakerModelsView(props: {
   filterModels: SpeakerModel[]
   models: SpeakerModel[]
   selModel: string | null
-  modelDraft: ModelDraft | null
+  modelDraft: SpeakerModelDraft | null
   modelEdit: boolean
   devices: DeviceRow[]
   filter: 'all' | 'consec' | 'plain'
   onFilter: (f: 'all' | 'consec' | 'plain') => void
   onSelect: (id: string | null) => void
-  onDraft: (d: ModelDraft | null) => void
+  onDraft: (d: SpeakerModelDraft | null) => void
   onEdit: (e: boolean) => void
   onDelete: (id: string) => void
   onReset: (id: string) => void
@@ -47,8 +47,8 @@ export function ModelsView(props: {
   const filterCounts = useMemo(
     () => ({
       all: models.length,
-      consec: models.filter((m) => m.consecutive).length,
-      plain: models.filter((m) => !m.consecutive).length,
+      consec: models.filter((m) => m.continuousDialogue).length,
+      plain: models.filter((m) => !m.continuousDialogue).length,
     }),
     [models],
   )
@@ -84,8 +84,8 @@ export function ModelsView(props: {
               <span className="txt">
                 <b>{m.name}</b>
                 <span>
-                  {m.did}
-                  {m.desc ? ' · ' + m.desc.slice(0, 18) : ''}
+                  {m.didPrefix}
+                  {m.description ? ' · ' + m.description.slice(0, 18) : ''}
                 </span>
               </span>
               {m.builtin ? (
@@ -172,7 +172,8 @@ export function ModelsView(props: {
                     <div className="rr">
                       <span className="k">型号标识</span>
                       <span className="v">
-                        {models.find((m) => m.id === selModel)?.did || '—'}
+                        {models.find((m) => m.id === selModel)?.didPrefix ||
+                          '—'}
                       </span>
                     </div>
                   </div>
@@ -180,7 +181,8 @@ export function ModelsView(props: {
                     <div className="rr">
                       <span className="k">说明</span>
                       <span className="v">
-                        {models.find((m) => m.id === selModel)?.desc || '—'}
+                        {models.find((m) => m.id === selModel)?.description ||
+                          '—'}
                       </span>
                     </div>
                   </div>
@@ -266,7 +268,8 @@ export function ModelsView(props: {
                       <span className="v">
                         <Switch
                           checked={
-                            !!models.find((x) => x.id === selModel)?.consecutive
+                            !!models.find((x) => x.id === selModel)
+                              ?.continuousDialogue
                           }
                           disabled
                         />
@@ -336,10 +339,10 @@ export function ModelsView(props: {
                     tip="硬件型号标识（did 前缀），如 X08E、L05B"
                   >
                     <input
-                      value={modelDraft.did}
+                      value={modelDraft.didPrefix}
                       placeholder="例如：X08E"
                       onChange={(e) =>
-                        onDraft({ ...modelDraft, did: e.target.value })
+                        onDraft({ ...modelDraft, didPrefix: e.target.value })
                       }
                     />
                   </Field>
@@ -347,10 +350,10 @@ export function ModelsView(props: {
                 <div className="row">
                   <Field label="简介">
                     <input
-                      value={modelDraft.desc}
+                      value={modelDraft.description}
                       placeholder="可选"
                       onChange={(e) =>
-                        onDraft({ ...modelDraft, desc: e.target.value })
+                        onDraft({ ...modelDraft, description: e.target.value })
                       }
                     />
                   </Field>
@@ -387,7 +390,7 @@ export function ModelsView(props: {
                       3,
                       '查询播放状态命令数字序列，如 3、1、1（部分型号可留空）',
                     ],
-                  ] as [string, keyof ModelDraft, number, string][]
+                  ] as [string, keyof SpeakerModelDraft, number, string][]
                 ).map(([label, key, count, hint]) => (
                   <div className="row" key={key as string}>
                     <Field label={label} tip={`${hint}（${count} 位数字）`}>
@@ -421,9 +424,9 @@ export function ModelsView(props: {
                     tip="启用后音箱可连续对话，无需每次唤醒"
                   >
                     <Switch
-                      checked={!!modelDraft.consecutive}
-                      onChange={(consecutive) =>
-                        onDraft({ ...modelDraft, consecutive })
+                      checked={!!modelDraft.continuousDialogue}
+                      onChange={(continuousDialogue) =>
+                        onDraft({ ...modelDraft, continuousDialogue })
                       }
                     />
                   </Field>
@@ -447,7 +450,7 @@ export function ModelsView(props: {
                   variant="primary"
                   icon="check"
                   onClick={onSave}
-                  disabled={!modelDraft.name || !modelDraft.did}
+                  disabled={!modelDraft.name || !modelDraft.didPrefix}
                 >
                   保存
                 </Button>

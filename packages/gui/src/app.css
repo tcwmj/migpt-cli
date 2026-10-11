@@ -17,7 +17,7 @@
 @import './styles/robots.css';
 @import './styles/split.css';
 @import './styles/forms.css';
-@import './styles/services.css';
+@import './styles/models-voices.css';
 @import './styles/profile.css';
 @import './styles/modal.css';
 @import './styles/drawer.css';
@@ -25,8 +25,8 @@
 @import './styles/toast.css';
 @import './styles/login.css';
 @import './styles/topbar.css';
-@import './styles/syslog.css';
-@import './styles/logs.css';
+@import './styles/system-logs.css';
+@import './styles/chat-logs.css';
 @import './styles/runtime.css';
 @import './styles/profile-page.css';
 @import './styles/motion.css';

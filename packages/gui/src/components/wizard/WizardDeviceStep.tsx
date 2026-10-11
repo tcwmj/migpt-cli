@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../apis.ts'
 import {
   type Account,
-  type PulledDevice,
+  type CloudDevice,
   type SpeakerModel,
 } from '../../apis.ts'
 import { I } from '../../icons.tsx'
@@ -13,7 +13,7 @@ export function WizardDeviceStep(props: {
   active: boolean
   accountId: string
   selAcct: Account | undefined
-  models: SpeakerModel[]
+  speakerModels: SpeakerModel[]
   devices: { id: string; alias: string; did: string; accountId?: string }[]
   did: string
   alias: string
@@ -22,15 +22,15 @@ export function WizardDeviceStep(props: {
   pullErr: string
   setPullErr: (e: string) => void
 }) {
-  const { accountId, selAcct, models, devices, did, setDraft } = props
+  const { accountId, selAcct, speakerModels, devices, did, setDraft } = props
   const { setPullErr } = props
   const [pulling, setPulling] = useState(false)
-  const [pulled, setPulled] = useState<PulledDevice[] | null>(null)
+  const [pulled, setPulled] = useState<CloudDevice[] | null>(null)
   const pullErr = props.pullErr
 
   const modelOf = (hardware: string) =>
-    models.find((x) => {
-      const a = (x.did || '').toLowerCase()
+    speakerModels.find((x) => {
+      const a = (x.didPrefix || '').toLowerCase()
       const b = (hardware || '').toLowerCase()
       return a === b || a.startsWith(b) || b.startsWith(a)
     })
@@ -199,7 +199,7 @@ export function WizardDeviceStep(props: {
                     <span className="v">{did || '—'}</span>
                   </div>
                   <div className="rr">
-                    <span className="k">设备型号</span>
+                    <span className="k">音箱型号</span>
                     <span className="v">
                       {modelOf(
                         (pulled || []).find((x) => x.miotDID === did)

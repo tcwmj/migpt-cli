@@ -5,10 +5,10 @@ import type { GuiConfig } from '@migptgui/options'
 import type {
   Account,
   DeviceBindings,
-  DeviceMeta,
-  Settings,
-  ThinkService,
-  VoiceService,
+  Device,
+  Credential,
+  Model,
+  Voice,
 } from './types.js'
 
 /** 账号：passToken / miPassword 为云端凭据，读接口不返回明文 */
@@ -21,28 +21,28 @@ export function redactAccounts(list: Account[]): Account[] {
   return list.map(redactAccount)
 }
 
-/** 思考服务：apiKey 为模型供应商密钥，读接口不返回明文 */
-export function redactThinkService(s: ThinkService): ThinkService {
+/** 模型：apiKey 为模型供应商密钥，读接口不返回明文 */
+export function redactModel(s: Model): Model {
   const { apiKey, ...rest } = s
   return { ...rest, apiKey: '', hasApiKey: !!apiKey }
 }
 
-export function redactThinkServices(list: ThinkService[]): ThinkService[] {
-  return list.map(redactThinkService)
+export function redactModels(list: Model[]): Model[] {
+  return list.map(redactModel)
 }
 
 /** 设备：ttsSecret 是设备 TTS 的路径令牌，读接口不返回明文 */
-export function redactDeviceMeta(m: DeviceMeta): DeviceMeta {
+export function redactDevice(m: Device): Device {
   const { ttsSecret, ...rest } = m
   return { ...rest, ttsSecret: '', hasTtsSecret: !!ttsSecret }
 }
 
-export function redactDeviceMetas(list: DeviceMeta[]): DeviceMeta[] {
-  return list.map(redactDeviceMeta)
+export function redactDevices(list: Device[]): Device[] {
+  return list.map(redactDevice)
 }
 
-/** 旧版 settings（无前端消费者，保留接口但同样不回传明文） */
-export function redactSettings(s: Settings): Settings {
+/** 旧版 credentials（无前端消费者，保留接口但同样不回传明文） */
+export function redactCredential(s: Credential): Credential {
   return { miUserId: s.miUserId, hasPassToken: !!s.passToken }
 }
 
@@ -65,20 +65,20 @@ export function redactGuiConfig(config: GuiConfig): GuiConfig {
   return next
 }
 
-/** 设备绑定链：账号与思考服务同样脱敏 */
+/** 设备绑定链：账号与模型同样脱敏 */
 export function redactBindings(b: DeviceBindings): DeviceBindings {
   return {
     ...b,
     account: b.account ? redactAccount(b.account) : undefined,
-    think: b.think ? redactThinkService(b.think) : undefined,
+    model: b.model ? redactModel(b.model) : undefined,
   }
 }
 
-/** 语音服务：第三方 TTS 引擎配置中的令牌（edge / volcano / openai）不对外回传明文 */
-export function redactVoiceService(v: VoiceService): VoiceService {
+/** 语音：第三方 TTS 引擎配置中的令牌（edge / volcano / openai）不对外回传明文 */
+export function redactVoice(v: Voice): Voice {
   if (!v.tts) return { ...v, hasTtsToken: false }
 
-  const next = JSON.parse(JSON.stringify(v)) as VoiceService
+  const next = JSON.parse(JSON.stringify(v)) as Voice
   const tts = next.tts as
     | {
         edge?: { trustedToken?: string }

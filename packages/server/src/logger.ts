@@ -1,6 +1,6 @@
 // ── 日志层：结构化 logger（pino）+ 系统日志落盘 + 设备日志缓冲 ──
-// pino 输出结构化记录，经自定义 destination 转成人可读行写入按天轮转的日志文件
-// （pino-roll：system.<yyyyMMdd>.N.log，单文件 5MB 上限、保留 30 份历史≈30 天），
+// pino 输出结构化记录，经自定义 destination 转成人可读行，写入 logs/ 下按天轮转的日志文件
+// （pino-roll：system.<yyyyMMdd>.N.log，单文件 5MB 上限；不设 limit → 永久保留），
 // 并镜像到 stdout（容器日志）；不再劫持全局 console.*。
 import { Writable } from 'node:stream'
 import fs from 'node:fs'
@@ -12,7 +12,8 @@ import {
   systemLogFile,
   systemLogPrefix,
   root,
-  conversationsDir,
+  logsDir,
+  chatLogsDir,
 } from './paths.js'
 import { getEnv } from './store/env.js'
 
@@ -20,21 +21,20 @@ import { getEnv } from './store/env.js'
 export const sysLogBuf: string[] = []
 export const sysLogMax = 1000
 
-// 落盘：pino-roll 标准轮转（按天 + 单文件 5MB + 保留 30 份），替代手写缓冲合并/轮转。
-// SonicBoom 的 fd 异步打开，ready 前的日志先积压在 _rollBacklog，ready 后补写，
-// 保证启动瞬间的日志不丢失；积压设上限防止极端情况下内存膨胀。
+// 落盘：pino-roll 按天 + 单文件 5MB 轮转（格式 system.<yyyyMMdd>.N.log），写入 logs/ 目录；
+// 不设 limit → 永久保留（不自动清理历史）。SonicBoom 的 fd 异步打开，ready 前的日志先积压在
+// _rollBacklog，ready 后补写，保证启动瞬间的日志不丢失；积压设上限防止极端情况下内存膨胀。
 const ROLL_SIZE = '5m'
-// 按天轮转下每天通常一个文件，份数≈天数：默认保留 30 天历史日志
-const ROLL_KEEP = 30
 const BACKLOG_MAX = 5000
 let _roll: { write(s: string): boolean; flushSync(): void } | undefined
 let _rollBacklog: string[] = []
+// pino-roll 在模块加载即打开 SonicBoom 写句柄，需先确保 logs/ 存在（root 存在但 logs 子目录未必）
+fse.ensureDirSync(logsDir)
 void pinoRoll({
   file: systemLogPrefix,
   frequency: 'daily',
   dateFormat: 'yyyyMMdd',
   size: ROLL_SIZE,
-  limit: { count: ROLL_KEEP },
   extension: 'log',
 })
   .then((s) => {
@@ -52,7 +52,7 @@ void pinoRoll({
 export async function clearSysLog() {
   sysLogBuf.length = 0
   _rollBacklog.length = 0
-  const names = await fse.readdir(root).catch(() => [] as string[])
+  const names = await fse.readdir(logsDir).catch(() => [] as string[])
   const logs = names.filter((n) => n.startsWith('system') && n.endsWith('.log'))
   const today = _logDateStr(new Date())
   let active = ''
@@ -67,9 +67,9 @@ export async function clearSysLog() {
   await Promise.all(
     logs
       .filter((n) => n !== active)
-      .map((n) => fse.remove(path.join(root, n)).catch(() => {})),
+      .map((n) => fse.remove(path.join(logsDir, n)).catch(() => {})),
   )
-  await fse.writeFile(path.join(root, active || 'system.log'), '', 'utf8')
+  await fse.writeFile(path.join(logsDir, active || 'system.log'), '', 'utf8')
 }
 
 const _pad2 = (n: number) => String(n).padStart(2, '0')
@@ -103,7 +103,7 @@ process.on('exit', () => {
   try {
     for (const [key, arr] of _convBacklog) {
       const [safe, date] = key.split(':')
-      const file = path.join(conversationsDir, `${safe}.${date}.log`)
+      const file = path.join(chatLogsDir, `${safe}.${date}.log`)
       fse.appendFileSync(file, arr.join('\n') + (arr.length ? '\n' : ''))
     }
     _convBacklog.clear()
@@ -215,8 +215,8 @@ export interface LogRow {
 export const logRows = new Map<string, LogRow[]>()
 
 // ── 设备对话日志按天滚动落盘（永久保留）──────────────────────────
-// 每台设备一个 conversations/<safeId>.<yyyyMMdd>.log（纯文本原始行，与 logBuffers 同构），
-// 进程重启后经 loadAllConversationLogs() 回灌内存；与系统日志（pino-roll）是完全独立的存储。
+// 每台设备一个 chatlogs/<safeId>.<yyyyMMdd>.log（纯文本原始行，与 logBuffers 同构），
+// 进程重启后经 loadAllConversationLogs() 回灌内存；与系统日志（按天文件）是完全独立的存储。
 const _SAFE_ID_RE = /[^A-Za-z0-9._@-]/g
 function sanitizeConvId(id: string): string {
   return id.replace(_SAFE_ID_RE, '_')
@@ -239,8 +239,8 @@ function ensureConvWriter(id: string, date: string): fs.WriteStream {
   const key = convKey(id, date)
   let w = _convWriters.get(key)
   if (w) return w
-  const file = path.join(conversationsDir, `${sanitizeConvId(id)}.${date}.log`)
-  fse.ensureDirSync(conversationsDir)
+  const file = path.join(chatLogsDir, `${sanitizeConvId(id)}.${date}.log`)
+  fse.ensureDirSync(chatLogsDir)
   w = fs.createWriteStream(file, { flags: 'a' })
   _convWriters.set(key, w)
   w.on('open', () => {
@@ -290,16 +290,14 @@ export async function loadAllConversationLogs(): Promise<void> {
   const prev = _convPersistenceEnabled
   _convPersistenceEnabled = false // 回灌已有数据，禁止重复落盘
   try {
-    const names = await fse
-      .readdir(conversationsDir)
-      .catch(() => [] as string[])
+    const names = await fse.readdir(chatLogsDir).catch(() => [] as string[])
     const bySafe = new Map<string, string[]>()
     for (const name of names) {
       const m = name.match(/^(.*)\.(\d{8})\.log$/)
       if (!m) continue
       const safe = m[1]
       if (!bySafe.has(safe)) bySafe.set(safe, [])
-      bySafe.get(safe)!.push(path.join(conversationsDir, name))
+      bySafe.get(safe)!.push(path.join(chatLogsDir, name))
     }
     if (!bySafe.size) return
     // 仅回灌当前仍存在的设备；已删除设备的文件保留在磁盘（永久），不进内存
@@ -321,6 +319,72 @@ export async function loadAllConversationLogs(): Promise<void> {
     logger.error({ err: e }, '对话日志回灌失败')
   } finally {
     _convPersistenceEnabled = prev
+  }
+}
+
+/**
+ * 启动期一次性存储布局迁移（非破坏性、best-effort，失败仅记录日志不阻断启动）：
+ * 1) 系统日志：根目录旧 pino-roll 多文件（system.<date>.<N>.log）与无日期 system.log
+ *    迁至 logs/（保留 .N 序号，pino-roll 可续写/读取；无日期 system.log 并入 logs/system.<今天>.log）；
+ * 2) 对话记录目录：conversations/ → chatlogs/（修复与 conversations.json 会话实体的命名歧义）。
+ */
+export async function migrateStorageLayout(): Promise<void> {
+  // 1) 系统日志迁移：根目录旧格式 → logs/
+  try {
+    await fse.ensureDir(logsDir)
+    const names = await fse.readdir(root).catch(() => [] as string[])
+    const legacy = names.filter(
+      (n) => /^system\.\d{8}\.\d+\.log$/.test(n) || n === 'system.log',
+    )
+    for (const n of legacy) {
+      const src = path.join(root, n)
+      if (n === 'system.log') {
+        // 无日期旧版：并入今天的 logs/system.<今天>.log（可读作无序号单文件）
+        const target = path.join(
+          logsDir,
+          `system.${_logDateStr(new Date())}.log`,
+        )
+        const content = fse.readFileSync(src, 'utf8')
+        if (content) {
+          let existing = ''
+          try {
+            existing = fse.readFileSync(target, 'utf8')
+          } catch {
+            /* 目标不存在 */
+          }
+          await fse.writeFile(
+            target,
+            (existing ? existing.replace(/\n+$/, '\n') : '') + content,
+            'utf8',
+          )
+        }
+      } else {
+        // 有日期多文件：同名移入 logs/（保留 .N，pino-roll 续写/读取一致）
+        const dst = path.join(logsDir, n)
+        if (!(await fse.pathExists(dst)))
+          await fse.move(src, dst, { overwrite: false }).catch(() => {})
+      }
+      await fse.remove(src).catch(() => {})
+    }
+  } catch (e) {
+    logger.error({ err: e }, '系统日志布局迁移失败（已忽略，不影响启动）')
+  }
+
+  // 2) 对话日志目录重命名 conversations/ → chatlogs/
+  try {
+    const oldDir = path.join(root, 'conversations')
+    if (!(await fse.pathExists(oldDir))) return
+    await fse.ensureDir(chatLogsDir)
+    const files = await fse.readdir(oldDir)
+    for (const f of files) {
+      const src = path.join(oldDir, f)
+      const dst = path.join(chatLogsDir, f)
+      if (await fse.pathExists(dst)) continue
+      await fse.move(src, dst, { overwrite: false }).catch(() => {})
+    }
+    await fse.remove(oldDir).catch(() => {})
+  } catch (e) {
+    logger.error({ err: e }, '对话日志目录迁移失败（已忽略，不影响启动）')
   }
 }
 
@@ -421,10 +485,10 @@ export function clearDeviceLog(id: string) {
   // 连带删除该设备在磁盘上的全部按天对话文件与在途 writer
   try {
     const safe = sanitizeConvId(id)
-    const names = fse.readdirSync(conversationsDir)
+    const names = fse.readdirSync(chatLogsDir)
     for (const n of names) {
       if (n.startsWith(`${safe}.`) && n.endsWith('.log'))
-        fse.removeSync(path.join(conversationsDir, n))
+        fse.removeSync(path.join(chatLogsDir, n))
     }
     for (const [key, w] of _convWriters) {
       if (key.startsWith(`${safe}:`)) {

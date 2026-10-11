@@ -4,10 +4,10 @@ import type {
   Account,
   DeviceRow,
   Robot,
-  Room,
+  Conversation,
   SpeakerModel,
-  ThinkService,
-  VoiceService,
+  Model,
+  Voice,
 } from '../apis.ts'
 import type { DevDraft, DevPullState } from './drafts.ts'
 import { DeviceDetail } from './devices/DeviceDetail.tsx'
@@ -25,12 +25,12 @@ export function DevicesView(props: {
   devAcctGroups: { id: string; name: string }[]
   modelPickOpen: boolean
   modelPickQ: string
-  models: SpeakerModel[]
+  speakerModels: SpeakerModel[]
   robots: Robot[]
   accounts: Account[]
-  rooms: Room[]
-  thinkSvcs: ThinkService[]
-  voiceSvcs: VoiceService[]
+  conversations: Conversation[]
+  models: Model[]
+  voices: Voice[]
   onSelect: (id: string | null) => void
   onDraft: (d: DevDraft | null) => void
   onEdit: (e: boolean) => void
@@ -52,10 +52,10 @@ export function DevicesView(props: {
     devEdit,
     devAcctFilter,
     devAcctGroups,
-    models,
+    speakerModels,
     robots,
     accounts,
-    rooms,
+    conversations,
     onSelect,
     onDraft,
     onEdit,
@@ -98,7 +98,7 @@ export function DevicesView(props: {
         <DeviceList
           devices={filterDevices}
           robots={robots}
-          models={models}
+          speakerModels={speakerModels}
           selDev={selDev}
           onSelect={onSelect}
         />
@@ -116,11 +116,11 @@ export function DevicesView(props: {
             <DeviceDetail
               selDev={selDev}
               devices={devices}
-              models={models}
+              speakerModels={speakerModels}
               accounts={accounts}
               robots={robots}
-              thinkSvcs={props.thinkSvcs}
-              voiceSvcs={props.voiceSvcs}
+              models={props.models}
+              voices={props.voices}
               onRestart={onRestart}
               onDelete={onDelete}
               onEdit={() => onEdit(true)}
@@ -131,12 +131,12 @@ export function DevicesView(props: {
               devDraft={devDraft}
               selDev={selDev}
               devices={devices}
-              models={models}
+              speakerModels={speakerModels}
               accounts={accounts}
               robots={robots}
-              rooms={rooms}
-              thinkSvcs={props.thinkSvcs}
-              voiceSvcs={props.voiceSvcs}
+              conversations={conversations}
+              models={props.models}
+              voices={props.voices}
               modelPickOpen={props.modelPickOpen}
               modelPickQ={props.modelPickQ}
               devPull={props.devPull}

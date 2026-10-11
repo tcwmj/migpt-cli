@@ -14,7 +14,7 @@ import {
   todayLogDate,
   LOG_DATE_RE,
 } from '../store.js'
-import { conversationsDir } from '../paths.js'
+import { chatLogsDir } from '../paths.js'
 import {
   API_PREFIX,
   ok,
@@ -102,7 +102,7 @@ export function registerLogRoutes({ app }: RouteContext): void {
     `${API_PREFIX}/logs/dates`,
     asyncHandler(async (_req, res) => {
       try {
-        const names = await fse.readdir(conversationsDir)
+        const names = await fse.readdir(chatLogsDir)
         const dates = new Set<string>()
         for (const n of names) {
           const m = n.match(/\.(\d{8})\.log$/)

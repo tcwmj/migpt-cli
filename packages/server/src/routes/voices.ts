@@ -1,33 +1,33 @@
-// ── 语音服务（音箱的「嗓子」：内置/第三方 TTS）───────────────────
+// ── 语音（音箱的「嗓子」：内置/第三方 TTS）───────────────────
 import { nanoid } from 'nanoid'
 import {
-  getVoiceServices,
-  saveVoiceServices,
+  getVoices,
+  saveVoices,
   resetBuiltinVoice,
-  voiceServiceListSchema,
+  voiceListSchema,
 } from '../store.js'
-import type { VoiceService } from '../types.js'
+import type { Voice } from '../types.js'
 import { API_PREFIX, fail, pick, asyncHandler, VOICE_FIELDS } from './shared.js'
 import { createCrudRouter, deviceRefs } from './crud.js'
-import { redactVoiceService } from '../redact.js'
+import { redactVoice } from '../redact.js'
 
-export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
-  path: 'voice-services',
-  label: '语音服务',
-  nameLabel: '语音服务名称',
-  list: getVoiceServices,
-  save: saveVoiceServices,
-  schema: voiceServiceListSchema,
-  listTransform: (list) => list.map(redactVoiceService),
-  respond: (entity) => redactVoiceService(entity),
+export const registerVoiceRoutes = createCrudRouter<Voice>({
+  path: 'voices',
+  label: '语音',
+  nameLabel: '语音名称',
+  list: getVoices,
+  save: saveVoices,
+  schema: voiceListSchema,
+  listTransform: (list) => list.map(redactVoice),
+  respond: (entity) => redactVoice(entity),
   validate: (body) =>
     !body.name || !body.provider ? '名称与供应商必填' : null,
   build: (body) => {
-    const svc: VoiceService = {
+    const svc: Voice = {
       id: nanoid(8),
       name: body.name as string,
       provider: body.provider as string,
-      voiceId: body.voiceId,
+      timbreId: body.timbreId,
       ttsCommand: body.ttsCommand,
       // 内置标记只由代码注册表（store/builtins）决定，禁止客户端伪造 builtin:true
       // 把自建实体锁成「不可删除且无法重置」
@@ -38,7 +38,7 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
     return svc
   },
   applyUpdate: (list, idx, body) => {
-    const patch = pick<VoiceService>(body, VOICE_FIELDS)
+    const patch = pick<Voice>(body, VOICE_FIELDS)
     // tts 密钥（trustedToken / accessToken / apiKey）读接口脱敏后不回传：
     // 前端提交的空值视为「未修改」，与存储值合并，避免误清空已存密钥
     if (patch.tts && list[idx].tts) {
@@ -65,17 +65,17 @@ export const registerVoiceServiceRoutes = createCrudRouter<VoiceService>({
       builtin: list[idx].builtin,
     }
   },
-  deleteGuard: (target) => (target.builtin ? '内建语音服务不可删除' : null),
+  deleteGuard: (target) => (target.builtin ? '内置语音不可删除' : null),
   refRules: [deviceRefs('voiceId')],
-  refMessage: '该语音服务正被设备引用，无法删除',
+  refMessage: '该语音正被设备引用，无法删除',
   extra: ({ app }) => {
-    // 重置内置语音服务为默认（仅 builtin 可用）
+    // 重置内置语音为默认（仅 builtin 可用）
     app.post(
-      `${API_PREFIX}/voice-services/:id/reset`,
+      `${API_PREFIX}/voices/:id/reset`,
       asyncHandler(async (req, res) => {
         const svc = await resetBuiltinVoice(req.params.id)
         if (!svc) {
-          fail(res, 404, '仅系统内置语音服务支持重置默认')
+          fail(res, 404, '仅系统内置语音支持重置默认')
           return
         }
         res.json(svc)

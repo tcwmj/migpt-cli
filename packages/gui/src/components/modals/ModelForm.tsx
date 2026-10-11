@@ -1,13 +1,13 @@
-import { THINK_PROVIDERS, PROVIDER_PRESETS } from '../../constants.ts'
+import { MODEL_PROVIDERS, PROVIDER_PRESETS } from '../../constants.ts'
 import { Field, ProviderPicker } from '../atoms/index.ts'
 import type { ModalFormProps } from './types.ts'
 
-export function ThinkForm({ v, setV, isEdit }: ModalFormProps) {
-  const preset = THINK_PROVIDERS[v.provider || 'custom']
-  const dlId = `think-models-${v.provider || 'custom'}`
+export function ModelForm({ v, setV, isEdit }: ModalFormProps) {
+  const preset = MODEL_PROVIDERS[v.provider || 'custom']
+  const dlId = `model-list-${v.provider || 'custom'}`
   return (
     <>
-      <Field row label="服务名称" required>
+      <Field row label="模型名称" required>
         <input
           value={v.name || ''}
           placeholder="例如：豆包 Doubao-Seed"
@@ -24,7 +24,7 @@ export function ThinkForm({ v, setV, isEdit }: ModalFormProps) {
         }
       >
         <ProviderPicker
-          providers={THINK_PROVIDERS}
+          providers={MODEL_PROVIDERS}
           value={v.provider || 'custom'}
           onPick={(p) => {
             const pp = PROVIDER_PRESETS[p]
