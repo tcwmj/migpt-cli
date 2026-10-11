@@ -107,7 +107,7 @@ const tooltipStyle = {
   boxShadow: 'var(--shadow-pop)',
 }
 
-// ── 横向堆积柱状图（Token / 对话次数趋势） ────────────────
+// ── 横向堆积柱状图（Token 趋势） ────────────────
 interface StackedData {
   date: string
   inputTokens: number
@@ -187,6 +187,80 @@ function StackedBarChart({
           stackId="stack"
           fill={colors[1]}
           radius={[4, 0, 0, 4]}
+          animationDuration={300}
+          minPointSize={3}
+          barSize={16}
+        />
+      </RBarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// ── 简单柱状图（对话次数等单一数值） ────────────────
+function SimpleBarChart({
+  data,
+  color,
+  dataKey,
+  name,
+  emptyHint,
+}: {
+  data: { date: string; value: number }[]
+  color: string
+  dataKey: string
+  name: string
+  emptyHint?: string
+}) {
+  if (data.length === 0)
+    return (
+      <div className="chart-empty-hint" style={{ padding: '60px 0' }}>
+        {emptyHint ?? '暂无数据'}
+      </div>
+    )
+
+  // Y轴日期格式化：按小时→HH:mm，年→完整年份，月→YM，日→MM-DD
+  const isHourly = data[0]?.date.includes(':')
+  const formatTick = (v: string) => {
+    if (isHourly) return v.split(' ')[1]
+    if (v.length <= 7) return v // 年 "2026" 或月 "2026-10" 完整显示
+    return v.slice(5) // 日 "YYYY-MM-DD" → "MM-DD"
+  }
+
+  return (
+    <ResponsiveContainer
+      width="100%"
+      height={data.length > 7 ? Math.max(280, data.length * 24) : 260}
+    >
+      <RBarChart
+        data={data}
+        margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+        layout="vertical"
+      >
+        <XAxis
+          type="number"
+          tick={{ fontSize: 11, fill: 'var(--ink-3)' }}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={fmtNum}
+          width={52}
+        />
+        <YAxis
+          type="category"
+          dataKey="date"
+          tick={{ fontSize: 10, fill: 'var(--ink-3)' }}
+          tickLine={false}
+          axisLine={false}
+          width={56}
+          tickFormatter={formatTick}
+        />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          formatter={(v) => fmtNum(Number(v))}
+        />
+        <Bar
+          name={name}
+          dataKey={dataKey}
+          fill={color}
+          radius={[0, 4, 4, 0]}
           animationDuration={300}
           minPointSize={3}
           barSize={16}
@@ -793,14 +867,14 @@ export function StatsView({ onNavigate }: { onNavigate?: (v: View) => void }) {
                       加载中...
                     </div>
                   ) : (
-                    <StackedBarChart
+                    <SimpleBarChart
                       data={timeline.map((t) => ({
                         date: t.date,
-                        inputTokens: Math.floor(t.conversations * 0.6),
-                        outputTokens: Math.floor(t.conversations * 0.4),
-                        conversations: t.conversations,
+                        value: t.conversations,
                       }))}
-                      colors={['#d9642a', '#2e6b63']}
+                      color="#d9642a"
+                      dataKey="value"
+                      name="对话次数"
                       emptyHint="当前时段暂无对话记录"
                     />
                   )}

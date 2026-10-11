@@ -192,14 +192,7 @@ export function runServer(options?: ServerOptions): ServerHandle {
     await loadAllConversationLogs()
     await Promise.allSettled([seedDemoLogs()])
     server = app.listen(port, () => {
-      logger.info({ port }, '服务已启动')
-      logger.info(`登录认证：${options?.auth !== false ? '已启用' : '未启用'}`)
-      // 默认凭据告警：仅在启用认证且未通过 --pwd / AUTH_PASSWORD / auth.json 覆盖时提示
-      if (options?.auth !== false && !options?.users && usingDefaultAuth()) {
-        logger.warn(
-          '正在使用默认登录凭据，请尽快修改密码，或使用 --pwd 启动参数设置 AUTH_PASSWORD 环境变量。',
-        )
-      }
+      logger.info('MIGPT 服务启动成功')
       if (options?.open) {
         open(`http://localhost:${port}`)
       }

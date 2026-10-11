@@ -58,16 +58,24 @@ export function WizardDeviceStep(props: {
   useEffect(() => {
     if (props.active && credentialId) load(credentialId)
   }, [props.active, credentialId, load])
-  // 设备拉取完成且有设备时，默认选中第一台
+  // 设备拉取完成后，默认选中第一台未接入的设备；如果全部已接入则不选中
   useEffect(() => {
     if (props.active && pulled && pulled.length > 0 && !did) {
-      const d = pulled[0]
-      const m = modelOf(d.hardware)
-      setDraft({
-        alias: d.name || d.alias,
-        did: d.miotDID,
-        model: m ? m.id : props.model,
-      })
+      // 找到第一台未接入的设备
+      const unboundDevice = pulled.find(
+        (d) =>
+          !devices.find(
+            (x) => x.credentialId === selAcct?.id && x.did === d.miotDID,
+          ),
+      )
+      if (unboundDevice) {
+        const m = modelOf(unboundDevice.hardware)
+        setDraft({
+          alias: unboundDevice.name || unboundDevice.alias,
+          did: unboundDevice.miotDID,
+          model: m ? m.id : props.model,
+        })
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.active, pulled, did])

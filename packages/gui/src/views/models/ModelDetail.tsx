@@ -123,7 +123,7 @@ export function ModelDetail(props: {
           </div>
         </div>
         <div className="grp">
-          <h4>关联模型与语音</h4>
+          <h4>关联设备</h4>
           <div className="row">
             <div className="rr">
               <span className="k">设备服务</span>

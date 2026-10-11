@@ -133,7 +133,7 @@ export function WizardCredentialStep(props: {
                 <div className="rr">
                   <span className="k">passToken</span>
                   <span className="v">
-                    {selAcct.passToken ? '已保存' : '未配置'}
+                    {selAcct.hasPassToken ? '已配置' : '未配置'}
                   </span>
                 </div>
               </div>
@@ -155,7 +155,7 @@ export function WizardCredentialStep(props: {
                   ? '更新名称或凭据；换绑凭据后需重启受影响设备。'
                   : '填入小米 ID 与 passToken。凭据仅保存于本机服务端。'}
               </div>
-              <Field label="凭据名称" required>
+              <Field row label="凭据名称" required>
                 <input
                   value={naDraft.name}
                   placeholder="例如：默认凭据"
@@ -165,31 +165,32 @@ export function WizardCredentialStep(props: {
                 />
               </Field>
               <Field
+                row
                 label="小米 ID"
                 required
-                tip="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
+                hint="登录官方 小米账号 › 个人信息 后获取 小米ID，不是手机号或邮箱。"
               >
                 <input
                   value={naDraft.miUserId}
-                  placeholder="登录官方 小米账号 › 个人信息 获取，不是手机号或邮箱"
+                  placeholder="例如：1234567890"
                   onChange={(e) =>
                     setNaDraft({ ...naDraft, miUserId: e.target.value })
                   }
                 />
               </Field>
               <Field
-                label="云端会话凭证 passToken"
-                tip={
+                label="passToken"
+                hint={
                   credEdit && selAcct
                     ? '留空则保留原凭据'
-                    : '请勿把凭证发送给其他人；异地登录安全验证时，会给出授权链接。'
+                    : '异地登录安全验证时，会给出授权链接'
                 }
               >
                 <textarea
-                  rows={3}
+                  rows={4}
                   value={naDraft.passToken}
                   placeholder={
-                    credEdit && selAcct && selAcct.passToken
+                    credEdit && selAcct && selAcct.hasPassToken
                       ? '已保存 · 留空保持不变'
                       : '从米家 / 小爱获取的 token'
                   }

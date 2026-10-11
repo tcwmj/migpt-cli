@@ -24,9 +24,11 @@ import studyImg from '../assets/scene-study.jpg'
 import heroImg from '../assets/speaker-hero-multi.jpg'
 import voiceImg from '../assets/kpi-voice.jpg'
 import modelsImg from '../assets/model-stack.jpg'
-import girlImg from '../assets/avatar-girl.jpg'
-import catImg from '../assets/avatar-cat.jpg'
-import closeImg from '../assets/speaker-close.jpg'
+import avatarRobotImg from '../assets/avatar-robot.jpg'
+import speakerHeroImg from '../assets/speaker-hero.jpg'
+import kpiRobotImg from '../assets/kpi-robot.jpg'
+import kpiVoiceImg from '../assets/kpi-voice.jpg'
+import avatarGirlImg from '../assets/avatar-girl.jpg'
 
 export function HomeView(props: {
   credentials: Credential[]
@@ -209,12 +211,24 @@ export function HomeView(props: {
             [
               '连接凭据',
               '选择已有小米凭据，或新建并填入小米 ID 与 passToken',
-              girlImg,
+              avatarGirlImg,
             ],
-            ['选择设备', '从小米凭据拉取音箱列表，选择要接入的设备', catImg],
-            ['思考服务', '选择或新建大模型服务，作为音箱的思考大脑', girlImg],
-            ['语音服务', '选择或新建语音服务，决定音箱的发音音色', catImg],
-            ['对话角色', '选择已有对话角色，或新建角色绑定角色性格', closeImg],
+            [
+              '选择设备',
+              '从小米凭据拉取音箱列表，选择要接入的设备',
+              speakerHeroImg,
+            ],
+            [
+              '思考服务',
+              '选择或新建大模型服务，作为音箱的思考大脑',
+              kpiRobotImg,
+            ],
+            ['语音服务', '选择或新建语音服务，决定音箱的发音音色', kpiVoiceImg],
+            [
+              '对话角色',
+              '选择已有对话角色，或新建角色绑定角色性格',
+              avatarRobotImg,
+            ],
           ].map(([t, d, img], i) => (
             <div
               key={t}

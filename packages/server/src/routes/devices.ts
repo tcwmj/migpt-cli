@@ -23,7 +23,7 @@ import {
   redactGuiConfig,
   redactBindings,
 } from '../redact.js'
-import { logBuffers, appendLog, clearDeviceLog } from '../logger.js'
+import { logBuffers, appendLog, clearDeviceLog, logger } from '../logger.js'
 import type { Device } from '../types.js'
 import {
   API_PREFIX,
@@ -333,6 +333,8 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
         (deviceId, line) => appendLog(deviceId, line),
       )
 
+      logger.info(`${meta.alias} 设备服务启动成功`)
+
       ok(res)
     }),
   )
@@ -340,7 +342,10 @@ export function registerDeviceRoutes({ app }: RouteContext): void {
   app.post(
     `${API_PREFIX}/devices/:id/stop`,
     asyncHandler(async (req, res) => {
-      await stop(assertSafeId(req.params.id))
+      const id = assertSafeId(req.params.id)
+      const meta = await getDevice(id)
+      await stop(id)
+      logger.info(`${meta?.alias || id} 设备服务已停止`)
       ok(res)
     }),
   )

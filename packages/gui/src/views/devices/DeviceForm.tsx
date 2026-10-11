@@ -105,13 +105,13 @@ export function DeviceForm(props: {
         </div>
       </div>
 
-      {/* 关联模型与语音 */}
+      {/* 关联思考服务与语音服务 */}
       <div className="grp">
-        <h4>关联模型与语音</h4>
+        <h4>关联思考服务与语音服务</h4>
         <div className="row">
           <div style={{ flex: 1 }}>
             <Field
-              label="模型"
+              label="思考服务"
               required
               tip="按优先级排列，限额已达时自动切换下一个"
             >
@@ -132,7 +132,7 @@ export function DeviceForm(props: {
             </Field>
           </div>
           <div style={{ flex: 1 }}>
-            <Field label="语音" required>
+            <Field label="语音服务" required>
               <select
                 value={devDraft.voiceId || ''}
                 onChange={(e) =>

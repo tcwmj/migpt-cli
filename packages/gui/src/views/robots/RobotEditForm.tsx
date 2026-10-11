@@ -129,7 +129,7 @@ export function RobotEditForm(props: {
         </div>
         <div className="row">
           <Field
-            label="会话"
+            label="会话群"
             tip="对话记忆的上下文归属；多台设备共用同一角色时共享对话记忆"
           >
             <select

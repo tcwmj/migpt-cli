@@ -115,12 +115,12 @@ export function DeviceDetail(props: {
           </div>
         </div>
 
-        {/* 关联模型与语音 */}
+        {/* 关联思考服务与语音服务 */}
         <div className="grp">
-          <h4>关联模型与语音</h4>
+          <h4>关联思考服务与语音服务</h4>
           <div className="row">
             <div className="rr">
-              <span className="k">模型</span>
+              <span className="k">思考服务</span>
               <span className="v">
                 {models.length > 0 ? (
                   <div className="link-list">
@@ -141,7 +141,7 @@ export function DeviceDetail(props: {
               </span>
             </div>
             <div className="rr">
-              <span className="k">语音</span>
+              <span className="k">语音服务</span>
               <span className="v">
                 {voice ? (
                   <button

@@ -66,7 +66,7 @@ export function RobotDetail(props: {
           </div>
           <div className="row">
             <div className="rr">
-              <span className="k">会话</span>
+              <span className="k">会话群</span>
               <span className="v">
                 {conversation ? (
                   <button

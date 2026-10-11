@@ -530,19 +530,17 @@ export function appendLog(id: string, line: string) {
     if (LOG_USER_RE.test(body)) kind = 'user'
     else if (LOG_AI_RE.test(body)) kind = 'ai'
     const row: LogRow = { time: m[1], kind, text: body }
-    // 解析 token 用量（仅 AI 行）
-    if (kind === 'ai') {
-      const inputMatch = body.match(INPUT_TOKEN_RE)
-      const outputMatch = body.match(OUTPUT_TOKEN_RE)
-      if (inputMatch) row.inputTokens = Number(inputMatch[1])
-      if (outputMatch) row.outputTokens = Number(outputMatch[1])
-      if (row.inputTokens || row.outputTokens) {
-        void accumulateTokens(
-          id,
-          row.inputTokens ?? 0,
-          row.outputTokens ?? 0,
-        ).catch(() => {})
-      }
+    // 解析 token 用量（所有行都尝试解析，因为 token 日志是独立行）
+    const inputMatch = body.match(INPUT_TOKEN_RE)
+    const outputMatch = body.match(OUTPUT_TOKEN_RE)
+    if (inputMatch) row.inputTokens = Number(inputMatch[1])
+    if (outputMatch) row.outputTokens = Number(outputMatch[1])
+    if (row.inputTokens || row.outputTokens) {
+      void accumulateTokens(
+        id,
+        row.inputTokens ?? 0,
+        row.outputTokens ?? 0,
+      ).catch(() => {})
     }
     rows.push(row)
   } else if (rows.length) {

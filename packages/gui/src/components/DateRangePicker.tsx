@@ -143,9 +143,7 @@ export function DateRangePicker({
               const k = keyOf(day)
               const isToday = k === TODAY_KEY
               const future = k > TODAY_KEY
-              const hasNoLogToday =
-                logDates != null && !logDates.has(k) && isToday
-              const disabled: boolean = future || (hasNoLogToday ? true : false)
+              const disabled: boolean = future
               const inRange =
                 !disabled &&
                 ((anchor !== null && k >= anchor) ||
@@ -167,13 +165,7 @@ export function DateRangePicker({
                     (isToday ? ' today' : '')
                   }
                   disabled={disabled}
-                  title={
-                    future
-                      ? '未来日期暂无日志'
-                      : hasNoLogToday
-                        ? '当天没有日志记录'
-                        : undefined
-                  }
+                  title={future ? '未来日期暂无日志' : undefined}
                   onClick={() => pick(k)}
                 >
                   {day.getDate()}
