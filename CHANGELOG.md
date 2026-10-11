@@ -32,6 +32,9 @@
 - 角色运行配置编译修正：`buildConfigFromRobot` 此前把 `master.name` 硬编码为「主人」、`master.profile` 恒为空，导致角色上的 `masterName` / `masterProfile` 存而未用；现改为读取角色值（未填写时回落「主人」），并透传 `systemTemplate`（`undefined` 时整键不写，交 mi-gpt 回落内置默认模板）
 - README.md 更新：新增 Docker Compose 部署方式，添加阿里云容器镜像服务地址
 - .dockerignore 更新：排除 Docker 相关配置文件，避免污染构建上下文
+- Docker 构建国内提速（Dockerfile）：① 依赖层与源码层分离缓存——先 COPY 全部 workspace 清单 + lock 执行 `npm ci`，再 COPY 源码，`package-lock.json` 未变时重构建命中缓存（首次约 8~20 分钟 → 后续约 1~3 分钟）；② npm 源走 npmmirror 并显式设 `replace-registry-host=npmjs`，强制改写 lockfile 中指向 `registry.npmjs.org` 的 resolved URL；③ Prisma 引擎二进制（~19MB）经 `PRISMA_ENGINES_MIRROR` 改走 npmmirror；④ apk 源换阿里云镜像；⑤ 关 npm progress/audit/fund 减少无效 IO
+- Docker 构建兼容群晖经典构建器（Dockerfile）：弃用 BuildKit 专属语法 `COPY --chmod`，改 `COPY` + `RUN chmod`
+- Docker 容器启动健壮性（新增 `scripts/docker-entrypoint.sh`）：镜像以 root 启动 → 自动修正宿主 bind mount 数据目录属主为 node(1000) → `su-exec` 降权运行服务（进程仍非 root），解决群晖 File Station 建目录归 root 导致的 `EACCES mkdir logs` 崩溃循环；数据目录解析与 `paths.ts` 一致（`MIGPTGUI_HOME` > `DATA_DIR` > `$HOME/.migptgui`）
 
 ### Removed
 

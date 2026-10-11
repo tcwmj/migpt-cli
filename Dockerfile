@@ -13,6 +13,20 @@
 #     -e AUTH_PASSWORD=你的自定义密码 \
 #     -e PORT=36597 \
 #     migpt-cli:latest
+#
+# ── 国内构建提速设计 ────────────────────────────────────────
+#   1. 依赖层缓存：先 COPY 全部 workspace 清单 + lock 执行 npm ci，再 COPY 源码。
+#      日常改代码重新构建时依赖层直接命中缓存（~15min → ~3min；lock 变更才重装）。
+#      注：GitHub 直拉构建每次 clone 内容相同，只要 package-lock.json 未变即命中。
+#   2. Prisma 引擎二进制走 npmmirror 镜像：mi-gpt 依赖 @prisma/client，其 postinstall
+#      默认从 binaries.prisma.sh 下载 ~19MB 引擎（国内极慢，npm ci 卡住的主因之一）。
+#      PRISMA_ENGINES_MIRROR 指向 npmmirror 后秒下。
+#      （不能用 --ignore-scripts 跳过——client 未生成会导致运行时崩溃，已实测确认。）
+#   3. npm 源 npmmirror；显式设 replace-registry-host=npmjs，强制把 lockfile 中
+#      1300+ 条指向 registry.npmjs.org 的 resolved URL 改写到 npmmirror（不依赖 npm 默认值，
+#      跨 npm 版本稳定生效）；关 progress/audit/fund 减少无效 IO 与输出。
+#   4. apk 换阿里云源（默认 dl-cdn 国内不可达）。
+#   5. 兼容群晖经典构建器：不用 BuildKit 专属语法（COPY --chmod、RUN --mount=cache 等）。
 
 # ── 构建阶段 ────────────────────────────────────────────────
 # node 版本需与根 .nvmrc 保持一致
@@ -23,23 +37,47 @@ WORKDIR /app
 # 缺失时 npm ci 阶段 mi-gpt 的 postinstall（prisma migrate）报
 # "prisma:warn Prisma failed to detect the libssl/openssl version to use"
 # su-exec：入口脚本以 root 修正挂载目录属主后降权运行（见 scripts/docker-entrypoint.sh）
-# apk 换阿里云源：默认 dl-cdn.alpinelinux.org 国内常连不通，导致构建卡在 apk add
 RUN sed -i 's|https\?://dl-cdn.alpinelinux.org|https://mirrors.aliyun.com|g' /etc/apk/repositories \
  && apk add --no-cache openssl libc6-compat su-exec
 
-# 关闭彩色输出：群晖 Container Manager 日志查看器不渲染 ANSI 转义序列，
-# npm/nx 的颜色码（ESC[0m、ESC[91m 等）会显示成方块+乱码文本。
-# TERM=dumb 让 npm 自动禁用颜色，npm_config_color=false 双保险。
+# 提速与降噪的环境变量（在 npm ci 之前设置才能全部生效）：
+#   - registry → npmmirror；replace-registry-host=npmjs 显式强制 npm ci 把 lockfile 中
+#     指向 registry.npmjs.org 的 resolved URL 统一改写到 npmmirror（不依赖 npm 默认行为）
+#   - PRISMA_ENGINES_MIRROR → Prisma 引擎二进制（~19MB）改走 npmmirror，默认 binaries.prisma.sh 国内极慢
+#   - TERM=dumb + npm_config_color=false → 群晖日志查看器不渲染 ANSI 色码，显示为乱码
+#   - progress=false → 关闭进度条（非 tty 环境下的无效输出）
 ENV TERM=dumb \
-    npm_config_color=false
+    npm_config_color=false \
+    npm_config_fund=false \
+    npm_config_audit=false \
+    npm_config_progress=false \
+    npm_config_registry=https://registry.npmmirror.com \
+    npm_config_replace_registry_host=npmjs \
+    PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
 
-# 国内镜像加速（lock 文件中的 resolved 也已改写为 npmmirror）
-RUN npm config set registry https://registry.npmmirror.com
+# ── 依赖层（低频变更，优先缓存）────────────────────────────
+# 全部 workspace 清单 + 根 lock 先行 COPY；根 postinstall（token 补丁）依赖 patches/，
+# 补丁脚本幂等且低频变更，随清单一并进入缓存层
+COPY package.json package-lock.json ./
+COPY patches/ patches/
+COPY apps/cli/package.json apps/cli/
+COPY apps/server/package.json apps/server/
+COPY packages/contracts/package.json packages/contracts/
+COPY packages/controller/package.json packages/controller/
+COPY packages/gui/package.json packages/gui/
+COPY packages/options/package.json packages/options/
+COPY packages/options-with-preview/package.json packages/options-with-preview/
+COPY packages/server/package.json packages/server/
 
+RUN npm ci --no-audit --no-fund
+
+# ── 源码层（高频变更）──────────────────────────────────────
 COPY . .
 
+# 显式应用 mi-gpt token 用量补丁（双保险：依赖层 npm ci 的根 postinstall 已跑过一次，
+# 脚本幂等——已应用则跳过；此处确保缓存命中场景下补丁一定生效）
 # .cache 是构建期缓存（babel/nx/coverage），不进运行镜像
-RUN npm ci --no-audit --no-fund \
+RUN node patches/mi-gpt-token-usage.js \
  && npm run build \
  && npm prune --omit=dev \
  && rm -rf .cache
