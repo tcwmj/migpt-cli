@@ -19,20 +19,20 @@ const envSchema = z.object({
 
 export type EnvConfig = z.infer<typeof envSchema>
 
-let _env: EnvConfig | undefined
-
-/** 解析并校验环境变量；首次调用时执行，结果缓存 */
+/**
+ * 解析并校验环境变量（fail-fast：非法值直接退出进程）。
+ * 每次调用重新读取 process.env：AUTH_USER / AUTH_PASSWORD 等凭据类变量
+ * 需要「改了即生效」语义（resolveAuth 缓存失效后立即反映新值），
+ * 且调用频率极低（启动、认证解析、日志初始化），zod 解析开销可忽略。
+ */
 export function getEnv(): EnvConfig {
-  if (!_env) {
-    const result = envSchema.safeParse(process.env)
-    if (!result.success) {
-      const issues = result.error.issues
-        .map((i) => `  ${i.path.join('.')}: ${i.message}`)
-        .join('\n')
-      console.error(`环境变量校验失败:\n${issues}`)
-      process.exit(1)
-    }
-    _env = result.data
+  const result = envSchema.safeParse(process.env)
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
+      .join('\n')
+    console.error(`环境变量校验失败:\n${issues}`)
+    process.exit(1)
   }
-  return _env
+  return result.data
 }

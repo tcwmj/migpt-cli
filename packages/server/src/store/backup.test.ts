@@ -85,12 +85,25 @@ const device = (id: string, alias: string, ttsSecret?: string): Device => ({
 })
 
 beforeEach(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  // maxRetries：Windows 下 pino-roll 日志流可能仍在异步落盘，
+  // 立即递归删除会撞 ENOTEMPTY/EBUSY，交给 fs.rm 内置重试
+  const rmOpts = {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  }
+  await fs.rm(paths.root, rmOpts)
   await fs.mkdir(paths.root, { recursive: true })
 })
 
 afterAll(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  await fs.rm(paths.root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 200,
+  })
 })
 
 describe('buildBundle · 导出', () => {
@@ -304,9 +317,19 @@ describe('startBackupScheduler', () => {
 
   test('到点自动生成备份', async () => {
     const stop = startBackupScheduler({ intervalMs: 30, keep: 0 })
-    await new Promise((r) => setTimeout(r, 120))
-    stop()
-    expect((await listBackups()).length).toBeGreaterThanOrEqual(1)
+    try {
+      // createBackupFile 为异步链（collectData 读多个文件 + 写盘），
+      // 慢盘上固定短等待易假阴性：轮询直到出现备份文件（上限 3s）
+      const deadline = Date.now() + 3000
+      let files = await listBackups()
+      while (files.length === 0 && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 50))
+        files = await listBackups()
+      }
+      expect(files.length).toBeGreaterThanOrEqual(1)
+    } finally {
+      stop()
+    }
   })
 })
 

@@ -59,12 +59,25 @@ beforeAll(() => {
 })
 
 beforeEach(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  // maxRetries：Windows 下 pino-roll 日志流可能仍在异步落盘，
+  // 立即递归删除会撞 ENOTEMPTY/EBUSY，交给 fs.rm 内置重试
+  const rmOpts = {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  }
+  await fs.rm(paths.root, rmOpts)
   await fs.mkdir(paths.root, { recursive: true })
 })
 
 afterAll(async () => {
-  await fs.rm(paths.root, { recursive: true, force: true })
+  await fs.rm(paths.root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 200,
+  })
 })
 
 describe('runMigrations', () => {
