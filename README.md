@@ -32,6 +32,9 @@
 
 ### Docker Compose 运行（推荐）
 
+> 部署用的 compose 文件与脚本统一存放在 `docs/deploy/`（本地资料，不入库；
+> 群晖部署见 `docs/deploy/SYNOLOGY.md`）。以下命令均在**仓库根目录**执行。
+
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/tcwmj/migpt-cli.git
@@ -45,13 +48,13 @@ vim .env
 
 # 4. 一键部署
 # Linux/macOS
-./deploy.sh
+./docs/deploy/deploy.sh
 
 # Windows
-deploy.bat
+docs\deploy\deploy.bat
 
 # 或手动启动
-docker-compose up -d
+docker-compose -f docs/deploy/docker-compose.yml up -d
 ```
 
 ### 源码运行（开发）
@@ -59,7 +62,7 @@ docker-compose up -d
 ```bash
 npm install
 npm run build        # 构建全部 workspace（契约 → server → gui）
-npm run dev              # 见 scripts/dev.ps1：后端 + 前端 watch 热更新
+npm run dev              # 见 scripts/dev.js：后端 + 前端 watch 热更新
 ```
 
 面板默认地址：`http://127.0.0.1:36597`（默认账号 `admin` / 密码 `123456`，登录后请在「个人中心」修改）。
@@ -75,22 +78,23 @@ cp .env.example .env
 # 2. 编辑配置（设置 AUTH_PASSWORD）
 vim .env
 
-# 3. 一键部署
+# 3. 一键部署（仓库根执行，脚本与 compose 文件在 docs/deploy/）
 # Linux/macOS
-./deploy.sh
+./docs/deploy/deploy.sh
 
 # Windows
-deploy.bat
+docs\deploy\deploy.bat
 ```
 
 #### 方式二：手动 Docker Compose
 
 ```bash
 # 拉取预构建镜像并启动
-docker-compose up -d
+docker-compose -f docs/deploy/docker-compose.yml up -d
 
-# 或本地构建镜像并启动
-docker-compose up --build -d
+# 或先本地构建镜像再启动（Dockerfile 在仓库根）
+docker build -t migpt-cli:latest .
+docker-compose -f docs/deploy/docker-compose.yml up -d
 ```
 
 #### 方式三：传统 Docker 命令
@@ -122,23 +126,20 @@ docker run -d --name migpt-cli --restart unless-stopped \
 │   ├── gui/       # 前端控制面板（@migptgui/gui）
 │   └── options/   # CLI 配置选项（上游遗留）
 ├── docs/          # 本地开发资料（不入库，见下方「文档策略」）
-├── scripts/       # 开发脚本（dev.ps1 三 watch 热启动等）
+│   └── deploy/    # 个人部署文件（compose/部署脚本/部署指南，不入库）
+├── scripts/       # 开发脚本（dev.js 三 watch 热启动等）
 ├── docker/        # Docker 打包相关
 ├── .github/       # Issue/PR 模板、SECURITY.md、CI workflow
-├── docker-compose.yml   # Docker Compose 配置（支持本地构建和预构建镜像）
-├── .env.example         # 环境变量配置示例
-├── deploy.sh            # 一键部署脚本（Linux/macOS）
-├── deploy.bat           # 一键部署脚本（Windows）
-├── test-docker.sh       # Docker 配置测试脚本
-└── DOCKER.md            # Docker 部署指南
+├── Dockerfile           # 单容器镜像构建定义（源码全量构建）
+└── .env.example         # 环境变量配置示例
 ```
 
 > 约定：`apps/*` 为可部署入口，`packages/*` 为可复用实现；node_modules 统一 hoist 到根目录。
 
 ### 文档策略
 
-- **随仓库入库（公开）**：`README.md`、`CHANGELOG.md`、`CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`、`SECURITY.md`、`NOTICE`、`LICENSE`、`DOCKER.md` 及 `.github/` 模板。
-- **本地资料（不入库）**：`docs/` 整体由 `.gitignore` 排除，含内部待办清单、产品信息架构与本地设计文档、设计原型等，仅在本机留存。新增需要对外公开的文档请放仓库根目录或 `.github/`；确需公开 `docs/` 内某文档时，先移出 `docs/` 再入库。
+- **随仓库入库（公开）**：`README.md`、`CHANGELOG.md`、`CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`、`SECURITY.md`、`NOTICE`、`LICENSE`、`Dockerfile` / `docker/` / `.env.example` 及 `.github/` 模板。
+- **本地资料（不入库）**：`docs/` 整体由 `.gitignore` 排除，含内部待办清单、产品信息架构与本地设计文档、设计原型，以及 `docs/deploy/` 个人部署文件（compose 配置、一键部署脚本、`DOCKER.md` / `SYNOLOGY.md` 部署指南），仅在本机留存。新增需要对外公开的文档请放仓库根目录或 `.github/`；确需公开 `docs/` 内某文档时，先移出 `docs/` 再入库。
 
 ## 前后端共享契约（#5）
 
@@ -244,9 +245,11 @@ docker run -d --name migpt-cli --restart unless-stopped \
 
 ## 常见问题
 
+> 以下 compose 命令均在仓库根执行，并通过 `-f docs/deploy/docker-compose.yml` 指定配置文件。
+
 ### Q: Docker Compose 启动失败怎么办？
 
-A: 查看日志 `docker-compose logs`，检查配置是否正确。常见问题：
+A: 查看日志 `docker-compose -f docs/deploy/docker-compose.yml logs`，检查配置是否正确。常见问题：
 
 - 端口被占用：修改 `.env` 文件中的 `PORT` 变量
 - 密码未设置：确保 `.env` 文件中设置了 `AUTH_PASSWORD`
@@ -254,7 +257,7 @@ A: 查看日志 `docker-compose logs`，检查配置是否正确。常见问题�
 
 ### Q: 如何修改端口？
 
-A: 修改 `.env` 文件中的 `PORT` 变量，然后重启容器 `docker-compose restart`。
+A: 修改 `.env` 文件中的 `PORT` 变量，然后重启容器 `docker-compose -f docs/deploy/docker-compose.yml restart`。
 
 ### Q: 如何备份数据？
 
@@ -265,8 +268,8 @@ A: 备份挂载的数据卷目录即可。容器内数据目录：`/home/node/.m
 A: 使用以下命令：
 
 ```bash
-docker-compose pull
-docker-compose up -d
+docker-compose -f docs/deploy/docker-compose.yml pull
+docker-compose -f docs/deploy/docker-compose.yml up -d
 ```
 
 ### Q: 如何查看容器资源使用情况？
@@ -277,7 +280,7 @@ A: 使用 `docker stats migpt-cli` 命令。
 
 A: 检查以下几点：
 
-1. 容器是否正常运行：`docker-compose ps`
+1. 容器是否正常运行：`docker-compose -f docs/deploy/docker-compose.yml ps`
 2. 端口是否正确映射：`docker port migpt-cli`
 3. 防火墙是否开放端口
 4. 健康检查是否通过：`curl http://localhost:36597/ping`

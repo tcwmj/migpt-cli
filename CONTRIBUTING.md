@@ -18,7 +18,7 @@ npm run format:check # Prettier 检查
 npm run typecheck    # TypeScript 类型检查
 ```
 
-本地开发调试可用 `scripts/dev.ps1`（Windows）。
+本地开发调试可用 `npm run dev`（`scripts/dev.js`，后端 + 前端 watch 热更新）。
 
 ## 分支与提交
 
