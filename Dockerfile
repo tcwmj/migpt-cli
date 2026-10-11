@@ -23,7 +23,9 @@ WORKDIR /app
 # 缺失时 npm ci 阶段 mi-gpt 的 postinstall（prisma migrate）报
 # "prisma:warn Prisma failed to detect the libssl/openssl version to use"
 # su-exec：入口脚本以 root 修正挂载目录属主后降权运行（见 scripts/docker-entrypoint.sh）
-RUN apk add --no-cache openssl libc6-compat su-exec
+# apk 换阿里云源：默认 dl-cdn.alpinelinux.org 国内常连不通，导致构建卡在 apk add
+RUN sed -i 's|https\?://dl-cdn.alpinelinux.org|https://mirrors.aliyun.com|g' /etc/apk/repositories \
+ && apk add --no-cache openssl libc6-compat su-exec
 
 # 关闭彩色输出：群晖 Container Manager 日志查看器不渲染 ANSI 转义序列，
 # npm/nx 的颜色码（ESC[0m、ESC[91m 等）会显示成方块+乱码文本。
@@ -50,8 +52,9 @@ ENV NODE_ENV=production \
     HOME=/home/node \
     TERM=dumb
 # 运行时同样依赖 OpenSSL / glibc 兼容层（Prisma 引擎为 musl 动态链接库）；
-# su-exec 供入口脚本降权
-RUN apk add --no-cache openssl libc6-compat su-exec
+# su-exec 供入口脚本降权；apk 源同样换阿里云
+RUN sed -i 's|https\?://dl-cdn.alpinelinux.org|https://mirrors.aliyun.com|g' /etc/apk/repositories \
+ && apk add --no-cache openssl libc6-compat su-exec
 COPY --from=build /app/ .
 # 入口脚本以 root 启动 → 修正宿主挂载目录属主 → su-exec 降权到 node 运行服务。
 # 服务进程仍以非 root（node，uid 1000）执行；不在此处写 USER node，
