@@ -470,27 +470,16 @@ export function registerStatsRoutes({ app }: RouteContext): void {
           }
           dimensionData.sort((a, b) => b.totalTokens - a.totalTokens)
         } else if (dimension === 'model') {
-          // 按服务统计（从服务实体直接读取累计值）
+          // 按模型统计（从模型实体直接读取累计值；语音不消耗 token，不纳入）
           const models = await getModels()
-          const voices = await getVoices()
-          dimensionData = [
-            ...models.map((s) => ({
-              id: s.id,
-              name: `${s.name} (思考)`,
-              inputTokens: s.inputTokensUsed ?? 0,
-              outputTokens: s.outputTokensUsed ?? 0,
-              totalTokens: s.totalTokensUsed ?? 0,
-              conversations: 0,
-            })),
-            ...voices.map((s) => ({
-              id: s.id,
-              name: `${s.name} (语音)`,
-              inputTokens: s.inputTokensUsed ?? 0,
-              outputTokens: s.outputTokensUsed ?? 0,
-              totalTokens: s.totalTokensUsed ?? 0,
-              conversations: 0,
-            })),
-          ]
+          dimensionData = models.map((s) => ({
+            id: s.id,
+            name: s.name,
+            inputTokens: s.inputTokensUsed ?? 0,
+            outputTokens: s.outputTokensUsed ?? 0,
+            totalTokens: s.totalTokensUsed ?? 0,
+            conversations: 0,
+          }))
           dimensionData.sort((a, b) => b.totalTokens - a.totalTokens)
         }
 
@@ -513,7 +502,7 @@ export function registerStatsRoutes({ app }: RouteContext): void {
           ],
         }
 
-        // 6. 服务健康状态
+        // 6. 服务健康状态（模型含 token 用量；语音仅显示存在性，无 token 消耗）
         const models = await getModels()
         const voices = await getVoices()
         const serviceHealth: ServiceHealth[] = [
@@ -532,12 +521,10 @@ export function registerStatsRoutes({ app }: RouteContext): void {
             id: s.id,
             name: s.name,
             type: 'voice' as const,
-            limitReached: s.limitReached ?? false,
-            totalTokensUsed: s.totalTokensUsed ?? 0,
-            tokenLimit: s.tokenLimit,
-            usagePercent: s.tokenLimit
-              ? Math.round(((s.totalTokensUsed ?? 0) / s.tokenLimit) * 100)
-              : undefined,
+            limitReached: false,
+            totalTokensUsed: 0,
+            tokenLimit: undefined,
+            usagePercent: undefined,
           })),
         ]
 

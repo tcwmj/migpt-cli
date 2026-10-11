@@ -28,10 +28,6 @@ export type VoiceDraft = {
   /** 接口地址（openai-compat 自动带出官方地址，可改网关） */
   baseUrl: string
   customJson: string
-  inputTokensUsed?: string
-  outputTokensUsed?: string
-  totalTokensUsed?: string
-  tokenLimit?: string
 }
 export type SpeakerModelDraft = {
   name: string

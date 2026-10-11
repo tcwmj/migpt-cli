@@ -31,6 +31,7 @@ import {
   logger,
   loadAllConversationLogs,
   migrateStorageLayout,
+  startLogCleanup,
 } from './logger.js'
 import { requestId, errorHandler } from './middleware.js'
 
@@ -185,8 +186,9 @@ export function runServer(options?: ServerOptions): ServerHandle {
       logger.error({ err: e }, '数据迁移失败')
     }
     // 先按存储布局迁移（系统日志 → logs/、对话日志目录 conversations/ → chatlogs/），
-    // 再回灌历史对话日志到内存（不重复落盘），最后注入演示数据（演示数据不落盘）
+    // 再清理过期日志、回灌历史对话日志到内存（不重复落盘），最后注入演示数据
     await migrateStorageLayout()
+    startLogCleanup()
     await loadAllConversationLogs()
     await Promise.allSettled([seedDemoLogs()])
     server = app.listen(port, () => {

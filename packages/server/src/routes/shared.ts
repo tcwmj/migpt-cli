@@ -96,11 +96,6 @@ export const VOICE_FIELDS = [
   'timbreId',
   'ttsCommand',
   'tts',
-  'inputTokensUsed',
-  'outputTokensUsed',
-  'totalTokensUsed',
-  'tokenLimit',
-  'limitReached',
 ] as const
 export const SPEAKER_MODEL_FIELDS = [
   'name',
@@ -122,9 +117,6 @@ export const DEVICE_FIELDS = [
   'modelIds',
   'modelId',
   'voiceId',
-  'conversationRef',
-  'conversationName',
-  'conversationDescription',
   'ttsSecret',
 ] as const
 

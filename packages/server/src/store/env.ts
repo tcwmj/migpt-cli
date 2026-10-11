@@ -15,6 +15,10 @@ const envSchema = z.object({
   // MIGPTGUI_HOME 优先于 DATA_DIR，二者均未设置时回落 $HOME/.migptgui。
   MIGPTGUI_HOME: z.string().min(1).optional(),
   DATA_DIR: z.string().min(1).optional(),
+  // 日志保留天数：超过此天数的系统日志和对话日志文件将在启动时及每天定期清理。
+  // 默认 60 天；设为 0 表示不清理（永久保留，等效旧行为）。
+  LOG_RETENTION_DAYS: z.coerce.number().int().min(0).default(60),
+  CHAT_LOG_RETENTION_DAYS: z.coerce.number().int().min(0).default(60),
 })
 
 export type EnvConfig = z.infer<typeof envSchema>

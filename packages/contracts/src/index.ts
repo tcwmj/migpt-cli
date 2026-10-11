@@ -100,16 +100,6 @@ export interface Voice {
   builtin?: boolean
   /** 第三方 TTS 引擎配置（provider !== 'builtin' 时生效） */
   tts?: import('mi-gpt-tts').TTSConfig
-  /** 已消耗 input token 数（自动累加 + 手动修正） */
-  inputTokensUsed?: number
-  /** 已消耗 output token 数（自动累加 + 手动修正） */
-  outputTokensUsed?: number
-  /** 已消耗 token 总数（自动累加 + 手动修正） */
-  totalTokensUsed?: number
-  /** token 上限（用户设置） */
-  tokenLimit?: number
-  /** 余额不足标记：API 返回 429/402 等错误时自动置 true，用户可手动清除 */
-  limitReached?: boolean
   createdAt: number
   /** 读接口脱敏标记：TTS 令牌（edge/volcano/openai）明文不回传，仅回传是否已配置 */
   hasTtsToken?: boolean
@@ -305,11 +295,6 @@ export const ENTITY_FIELDS = {
     'ttsCommand',
     'builtin',
     'tts',
-    'inputTokensUsed',
-    'outputTokensUsed',
-    'totalTokensUsed',
-    'tokenLimit',
-    'limitReached',
     'createdAt',
     'hasTtsToken',
   ],

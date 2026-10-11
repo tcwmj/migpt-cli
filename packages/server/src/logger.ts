@@ -30,11 +30,18 @@ let _roll: { write(s: string): boolean; flushSync(): void } | undefined
 let _rollBacklog: string[] = []
 // pino-roll 在模块加载即打开 SonicBoom 写句柄，需先确保 logs/ 存在（root 存在但 logs 子目录未必）
 fse.ensureDirSync(logsDir)
+const _logRetentionDays = getEnv().LOG_RETENTION_DAYS
 void pinoRoll({
   file: systemLogPrefix,
   frequency: 'daily',
   dateFormat: 'yyyyMMdd',
   size: ROLL_SIZE,
+  // limit.count 是文件数量上限（非天数）：每天可能因 5MB 轮转产生多个文件，
+  // 乘以 3 作为安全系数；精确保留由 cleanupOldLogs 基于 mtime 控制。
+  limit:
+    _logRetentionDays > 0
+      ? { count: _logRetentionDays * 3, removeOtherLogFiles: false }
+      : undefined,
   extension: 'log',
 })
   .then((s) => {
@@ -386,6 +393,74 @@ export async function migrateStorageLayout(): Promise<void> {
   } catch (e) {
     logger.error({ err: e }, '对话日志目录迁移失败（已忽略，不影响启动）')
   }
+}
+
+// ── 日志清理：按 mtime 删除超过保留天数的文件 ──────────────────────
+// 系统日志（logs/system.*.log）和对话日志（chatlogs/<safeId>.<date>.log）统一由
+// mtime 判断是否过期：stat 失败（文件不存在 / 权限问题）的跳过，不影响其余文件。
+
+async function _cleanupDir(
+  dir: string,
+  pattern: RegExp,
+  retentionDays: number,
+  label: string,
+): Promise<number> {
+  if (retentionDays <= 0) return 0
+  const cutoff = Date.now() - retentionDays * 86_400_000
+  let names: string[]
+  try {
+    names = await fse.readdir(dir)
+  } catch {
+    return 0
+  }
+  let removed = 0
+  for (const name of names) {
+    if (!pattern.test(name)) continue
+    try {
+      const st = await fse.stat(path.join(dir, name))
+      if (st.mtimeMs < cutoff) {
+        await fse.remove(path.join(dir, name))
+        removed++
+      }
+    } catch {
+      /* 文件已删除或无权限，跳过 */
+    }
+  }
+  if (removed)
+    logger.info(
+      `${label}清理：删除 ${removed} 个过期文件（保留 ${retentionDays} 天）`,
+    )
+  return removed
+}
+
+/** 清理超过保留天数的系统日志和对话日志文件 */
+export async function cleanupOldLogs(): Promise<void> {
+  const env = getEnv()
+  await _cleanupDir(
+    logsDir,
+    /^system\.\d{8}(\.\d+)?\.log$/,
+    env.LOG_RETENTION_DAYS,
+    '系统日志',
+  )
+  await _cleanupDir(
+    chatLogsDir,
+    /^.+\.\d{8}\.log$/,
+    env.CHAT_LOG_RETENTION_DAYS,
+    '对话日志',
+  )
+}
+
+// 启动日志清理调度器：首次立即执行，之后每天执行一次（unref，不阻止进程退出）
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 小时
+let _cleanupStarted = false
+export function startLogCleanup(): void {
+  if (_cleanupStarted) return
+  _cleanupStarted = true
+  void cleanupOldLogs()
+  const timer = setInterval(() => {
+    void cleanupOldLogs()
+  }, CLEANUP_INTERVAL_MS)
+  timer.unref()
 }
 
 // 日志行解析正则：模块级预编译

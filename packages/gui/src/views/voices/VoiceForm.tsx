@@ -302,66 +302,6 @@ export function VoiceForm(props: {
       </div>
       <div className="grp">
         <h4>Token 管理</h4>
-        <div className="row">
-          <Field label="输入 Token">
-            <input
-              type="number"
-              min="0"
-              value={voiceDraft.inputTokensUsed ?? ''}
-              placeholder="0"
-              onChange={(e) =>
-                onDraft({ ...voiceDraft, inputTokensUsed: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="输出 Token">
-            <input
-              type="number"
-              min="0"
-              value={voiceDraft.outputTokensUsed ?? ''}
-              placeholder="0"
-              onChange={(e) =>
-                onDraft({ ...voiceDraft, outputTokensUsed: e.target.value })
-              }
-            />
-          </Field>
-        </div>
-        <div className="row">
-          <Field label="合计 Token">
-            <input
-              type="number"
-              min="0"
-              value={voiceDraft.totalTokensUsed ?? ''}
-              placeholder="0"
-              onChange={(e) =>
-                onDraft({ ...voiceDraft, totalTokensUsed: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Token 上限">
-            <input
-              type="number"
-              min="0"
-              value={voiceDraft.tokenLimit || ''}
-              placeholder="不限"
-              onChange={(e) =>
-                onDraft({ ...voiceDraft, tokenLimit: e.target.value })
-              }
-            />
-          </Field>
-        </div>
-        {currentSvc?.limitReached && (
-          <div className="row">
-            <div className="rr">
-              <Tag tone="bad">限额已达</Tag>
-              {props.onClearLimitReached && (
-                <Button variant="ghost" onClick={props.onClearLimitReached}>
-                  清除限额标记
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
       <div className="acts">
         <span className="sp" />

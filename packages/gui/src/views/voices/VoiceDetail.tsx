@@ -150,49 +150,7 @@ export function VoiceDetail(props: {
             </div>
           )}
         </div>
-        <div className="grp">
-          <h4>
-            Token 用量
-            {svc?.tokenLimit ? (
-              <span
-                className="aside"
-                title={`Token 已使用 ${(((svc.totalTokensUsed ?? 0) / svc.tokenLimit) * 100).toFixed(1)}%（${(svc.totalTokensUsed ?? 0).toLocaleString()} / ${svc.tokenLimit.toLocaleString()}）`}
-              >
-                {(((svc.totalTokensUsed ?? 0) / svc.tokenLimit) * 100).toFixed(
-                  1,
-                )}
-                %
-              </span>
-            ) : null}
-            {svc?.limitReached && <Tag tone="bad">限额已达</Tag>}
-          </h4>
-          <div className="row">
-            <div className="rr">
-              <span className="k">输入 Token</span>
-              <span className="v">
-                {(svc?.inputTokensUsed ?? 0).toLocaleString()}
-              </span>
-            </div>
-            <div className="rr">
-              <span className="k">输出 Token</span>
-              <span className="v">
-                {(svc?.outputTokensUsed ?? 0).toLocaleString()}
-              </span>
-            </div>
-            <div className="rr">
-              <span className="k">合计 Token</span>
-              <span className="v">
-                {(svc?.totalTokensUsed ?? 0).toLocaleString()}
-              </span>
-            </div>
-            <div className="rr">
-              <span className="k">Token 上限</span>
-              <span className="v">
-                {svc?.tokenLimit ? svc.tokenLimit.toLocaleString() : '未设置'}
-              </span>
-            </div>
-          </div>
-        </div>
+        <div className="grp"></div>
         <div className="grp">
           <h4>关联模型与语音</h4>
           <div className="row">

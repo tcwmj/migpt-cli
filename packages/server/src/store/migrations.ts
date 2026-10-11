@@ -32,14 +32,12 @@ import {
   getRobots,
   getConversations,
   getModels,
-  getVoices,
   listDevices,
   saveDevice,
   saveModels,
 } from './entities.js'
 import {
   saveRobots,
-  saveVoices,
   splitBuiltinEntities,
   splitBuiltinRobotsConversations,
 } from './overrides.js'
@@ -126,7 +124,8 @@ export async function migrateTokenUsageFailover(): Promise<void> {
     }
   }
 
-  // ── 3. Model / Voice：补全 token 用量默认值 ─────────
+  // ── 3. Model：补全 token 用量默认值 ─────────
+  // Voice 不消耗 token，已移除其 token 字段（Voice.token* 为废弃数据，读取时被 schema 忽略）
   const models = await getModels()
   let modelChanged = false
   for (const svc of models) {
@@ -144,24 +143,6 @@ export async function migrateTokenUsageFailover(): Promise<void> {
     }
   }
   if (modelChanged) await saveModels(models)
-
-  const voices = await getVoices()
-  let voiceChanged = false
-  for (const svc of voices) {
-    if (svc.inputTokensUsed == null) {
-      svc.inputTokensUsed = 0
-      voiceChanged = true
-    }
-    if (svc.outputTokensUsed == null) {
-      svc.outputTokensUsed = 0
-      voiceChanged = true
-    }
-    if (svc.totalTokensUsed == null) {
-      svc.totalTokensUsed = 0
-      voiceChanged = true
-    }
-  }
-  if (voiceChanged) await saveVoices(voices)
 }
 
 /**

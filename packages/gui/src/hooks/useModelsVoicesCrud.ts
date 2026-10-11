@@ -63,14 +63,6 @@ export function useModelsVoicesCrud(opts: {
       ...voiceFormFromTts(s),
       name: s?.name || '',
       timbreId: s?.timbreId || '',
-      ...(id
-        ? {}
-        : {
-            inputTokensUsed: '',
-            outputTokensUsed: '',
-            totalTokensUsed: '',
-            tokenLimit: '',
-          }),
     })
     setVoiceEdit(id === null)
   }
@@ -167,11 +159,6 @@ export function useModelsVoicesCrud(opts: {
         return
       }
       if (Object.keys(tts).length) out.tts = tts as never
-      // Token 用量：清空即归零（上限 0 由详情页呈现为「未设置」）
-      out.inputTokensUsed = tokenNum(voiceDraft.inputTokensUsed)
-      out.outputTokensUsed = tokenNum(voiceDraft.outputTokensUsed)
-      out.totalTokensUsed = tokenNum(voiceDraft.totalTokensUsed)
-      out.tokenLimit = tokenNum(voiceDraft.tokenLimit)
       if (selVoice) {
         await api.updateVoice(selVoice, out)
         showToast('语音已保存，绑定设备支持热切')

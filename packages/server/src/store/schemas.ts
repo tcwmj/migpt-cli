@@ -94,11 +94,6 @@ export const voiceSchema = z.object({
   ttsCommand: z.array(z.number().optional()).optional(),
   builtin: optBool,
   tts: z.custom<TTSConfig>().optional(),
-  inputTokensUsed: num.optional(),
-  outputTokensUsed: num.optional(),
-  totalTokensUsed: num.optional(),
-  tokenLimit: num.optional(),
-  limitReached: z.boolean().optional(),
   createdAt: num,
   hasTtsToken: optBool,
 })
