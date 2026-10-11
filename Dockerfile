@@ -59,7 +59,9 @@ COPY --from=build /app/ .
 # 入口脚本以 root 启动 → 修正宿主挂载目录属主 → su-exec 降权到 node 运行服务。
 # 服务进程仍以非 root（node，uid 1000）执行；不在此处写 USER node，
 # 否则容器无法修复 bind mount 目录属主（群晖 File Station 建的目录归 root）。
-COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# 注意：不用 COPY --chmod（BuildKit 专属语法），群晖经典构建器不支持，改 RUN chmod
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
 EXPOSE 36597
 VOLUME /home/node/.migptgui
 
